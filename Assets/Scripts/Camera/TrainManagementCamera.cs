@@ -12,24 +12,24 @@ namespace FrozenTrain.CameraSystem
         [Header("Movement")]
         [SerializeField] private float panSpeed = 12f;
         [SerializeField] private float boostMultiplier = 2f;
-        [SerializeField] private Vector2 xBounds = new(-120f, 120f);
-        [SerializeField] private Vector2 zBounds = new(-45f, 45f);
+        [SerializeField] private Vector2 xBounds = new Vector2(-120f, 120f);
+        [SerializeField] private Vector2 zBounds = new Vector2(-45f, 45f);
 
         [Header("Orbit")]
         [SerializeField] private float orbitSensitivity = 0.18f;
-        [SerializeField] private Vector2 pitchLimits = new(18f, 72f);
+        [SerializeField] private Vector2 pitchLimits = new Vector2(18f, 72f);
 
         [Header("Zoom")]
         [SerializeField] private float zoomSensitivity = 0.035f;
-        [SerializeField] private Vector2 distanceLimits = new(7f, 65f);
+        [SerializeField] private Vector2 distanceLimits = new Vector2(7f, 65f);
 
         [Header("Smoothing")]
         [SerializeField] private float positionSmoothTime = 0.08f;
         [SerializeField] private float zoomSmoothTime = 0.08f;
         [SerializeField] private float rotationSharpness = 14f;
 
-        private Vector3 desiredFocusPoint = new(0f, 1.5f, 0f);
-        private Vector3 currentFocusPoint = new(0f, 1.5f, 0f);
+        private Vector3 desiredFocusPoint = new Vector3(0f, 1.5f, 0f);
+        private Vector3 currentFocusPoint = new Vector3(0f, 1.5f, 0f);
         private Vector3 focusVelocity;
 
         private float desiredDistance = 36f;
@@ -103,7 +103,9 @@ namespace FrozenTrain.CameraSystem
             Vector3 forward = yawRotation * Vector3.forward;
             Vector3 right = yawRotation * Vector3.right;
 
-            float distanceScale = Mathf.Lerp(0.65f, 1.75f,
+            float distanceScale = Mathf.Lerp(
+                0.65f,
+                1.75f,
                 Mathf.InverseLerp(distanceLimits.x, distanceLimits.y, desiredDistance));
 
             float speed = panSpeed * distanceScale;
