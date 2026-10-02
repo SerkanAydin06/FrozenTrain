@@ -69,7 +69,7 @@ namespace FrozenTrain.Gameplay
                 }
             }
 
-            if (trainState.GeneratorFaultPhase == GeneratorFaultPhase.EngineerEnRoute)
+            if (trainState.CurrentGeneratorFaultPhase == GeneratorFaultPhase.EngineerEnRoute)
             {
                 MoveEngineerToGenerator();
             }
@@ -158,7 +158,7 @@ namespace FrozenTrain.Gameplay
                 return;
             }
 
-            if (trainState.GeneratorFaultPhase == GeneratorFaultPhase.EngineerEnRoute)
+            if (trainState.CurrentGeneratorFaultPhase == GeneratorFaultPhase.EngineerEnRoute)
             {
                 alarmCooldown = 4.5f;
                 return;
@@ -245,7 +245,7 @@ namespace FrozenTrain.Gameplay
             string detail = string.Empty;
             Texture2D background = dangerTexture;
 
-            switch (trainState.GeneratorFaultPhase)
+            switch (trainState.CurrentGeneratorFaultPhase)
             {
                 case GeneratorFaultPhase.Alarm:
                     title = "JENERATÖR ARIZASI";
