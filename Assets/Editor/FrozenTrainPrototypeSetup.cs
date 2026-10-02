@@ -19,7 +19,6 @@ namespace FrozenTrain.EditorTools
             EnsureFolder(MaterialFolder);
 
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-            scene.name = "MainPrototype";
 
             Material darkMetal = GetOrCreateMaterial("Prototype_DarkMetal", new Color(0.12f, 0.15f, 0.18f));
             Material generatorMetal = GetOrCreateMaterial("Prototype_Generator", new Color(0.27f, 0.17f, 0.10f));
@@ -30,7 +29,7 @@ namespace FrozenTrain.EditorTools
             CreateLighting();
             CreateEnvironment(snowMaterial, railMaterial);
 
-            GameObject trainRoot = new("TRAIN_PROTOTYPE");
+            GameObject trainRoot = new GameObject("TRAIN_PROTOTYPE");
             CreateCar(trainRoot.transform, "01_Locomotive", new Vector3(-14f, 1.8f, 0f), darkMetal, true);
             CreateCar(trainRoot.transform, "02_Generator", new Vector3(0f, 1.8f, 0f), generatorMetal, false);
             CreateCar(trainRoot.transform, "03_Living", new Vector3(14f, 1.8f, 0f), livingMetal, false);
@@ -47,7 +46,7 @@ namespace FrozenTrain.EditorTools
 
         private static void CreateLighting()
         {
-            GameObject lightObject = new("Sun");
+            GameObject lightObject = new GameObject("Sun");
             Light light = lightObject.AddComponent<Light>();
             light.type = LightType.Directional;
             light.intensity = 1.15f;
@@ -63,12 +62,12 @@ namespace FrozenTrain.EditorTools
 
         private static void CreateEnvironment(Material snowMaterial, Material railMaterial)
         {
-            GameObject environment = new("ENVIRONMENT");
+            GameObject environment = new GameObject("ENVIRONMENT");
 
             GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ground.name = "SnowGround";
             ground.transform.SetParent(environment.transform);
-            ground.transform.position = new Vector3(0f, 0f, 0f);
+            ground.transform.position = Vector3.zero;
             ground.transform.localScale = new Vector3(14f, 1f, 6f);
             ground.GetComponent<Renderer>().sharedMaterial = snowMaterial;
 
@@ -78,7 +77,7 @@ namespace FrozenTrain.EditorTools
             for (int x = -55; x <= 55; x += 5)
             {
                 GameObject sleeper = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                sleeper.name = $"Sleeper_{x}";
+                sleeper.name = "Sleeper_" + x;
                 sleeper.transform.SetParent(environment.transform);
                 sleeper.transform.position = new Vector3(x, 0.08f, 0f);
                 sleeper.transform.localScale = new Vector3(0.35f, 0.15f, 5.2f);
@@ -98,7 +97,7 @@ namespace FrozenTrain.EditorTools
 
         private static void CreateCar(Transform parent, string name, Vector3 position, Material material, bool locomotive)
         {
-            GameObject car = new(name);
+            GameObject car = new GameObject(name);
             car.transform.SetParent(parent);
             car.transform.position = position;
 
@@ -146,12 +145,12 @@ namespace FrozenTrain.EditorTools
 
         private static void CreateManagementCamera()
         {
-            GameObject cameraObject = new("ManagementCamera");
-            Camera camera = cameraObject.AddComponent<Camera>();
-            camera.tag = "MainCamera";
-            camera.fieldOfView = 55f;
-            camera.nearClipPlane = 0.1f;
-            camera.farClipPlane = 600f;
+            GameObject cameraObject = new GameObject("ManagementCamera");
+            Camera cameraComponent = cameraObject.AddComponent<Camera>();
+            cameraObject.tag = "MainCamera";
+            cameraComponent.fieldOfView = 55f;
+            cameraComponent.nearClipPlane = 0.1f;
+            cameraComponent.farClipPlane = 600f;
             cameraObject.AddComponent<AudioListener>();
 
             TrainManagementCamera controller = cameraObject.AddComponent<TrainManagementCamera>();
@@ -160,7 +159,7 @@ namespace FrozenTrain.EditorTools
 
         private static Material GetOrCreateMaterial(string fileName, Color color)
         {
-            string path = $"{MaterialFolder}/{fileName}.mat";
+            string path = MaterialFolder + "/" + fileName + ".mat";
             Material existing = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (existing != null)
             {
@@ -173,11 +172,9 @@ namespace FrozenTrain.EditorTools
                 shader = Shader.Find("Standard");
             }
 
-            Material material = new(shader)
-            {
-                name = fileName,
-                color = color
-            };
+            Material material = new Material(shader);
+            material.name = fileName;
+            material.color = color;
 
             if (material.HasProperty("_Smoothness"))
             {
@@ -195,7 +192,12 @@ namespace FrozenTrain.EditorTools
                 return;
             }
 
-            string parent = System.IO.Path.GetDirectoryName(folderPath)?.Replace('\\', '/');
+            string parent = System.IO.Path.GetDirectoryName(folderPath);
+            if (!string.IsNullOrEmpty(parent))
+            {
+                parent = parent.Replace('\\', '/');
+            }
+
             string name = System.IO.Path.GetFileName(folderPath);
 
             if (!string.IsNullOrEmpty(parent) && !AssetDatabase.IsValidFolder(parent))
