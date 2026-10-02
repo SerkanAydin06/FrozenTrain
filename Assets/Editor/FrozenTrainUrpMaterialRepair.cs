@@ -12,14 +12,15 @@ namespace FrozenTrain.EditorTools
         [MenuItem("Frozen Train/Rebuild FPS Prototype (URP Safe)")]
         public static void RebuildFpsPrototypeUrpSafe()
         {
-            // Build the base train, then add the gameplay systems in a stable order.
+            // Build the base train, then add the gameplay and visual layers in a stable order.
             FrozenTrainFpsPrototypeSetup.CreateFpsTrainPrototype();
             FrozenTrainInteractionSetup.AddDoorsAndInteraction();
             FrozenTrainManagementSetup.AddPortableManagementPanel();
+            FrozenTrainInteriorDetailSetup.AddInteriorDetailPass();
             RepairPinkUrpMaterials();
 
             Debug.Log(
-                "FrozenTrain: FPS prototype rebuilt with URP materials, sliding doors, E interaction and portable management panel.");
+                "FrozenTrain: FPS prototype rebuilt with URP materials, sliding doors, E interaction, portable management and interior details.");
         }
 
         [MenuItem("Frozen Train/Repair Pink URP Materials")]
