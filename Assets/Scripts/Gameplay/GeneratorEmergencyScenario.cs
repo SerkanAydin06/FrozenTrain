@@ -108,7 +108,7 @@ namespace FrozenTrain.Gameplay
                 float xDistance = Mathf.Abs(engineer.position.x - door.transform.position.x);
                 if (xDistance < 1.55f && door.transform.position.x < engineer.position.x + 0.5f)
                 {
-                    door.Interact(engineer.gameObject);
+                    door.Open();
                     openedDoors.Add(door);
                 }
             }
