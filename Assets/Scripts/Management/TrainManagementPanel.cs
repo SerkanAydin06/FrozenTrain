@@ -73,10 +73,7 @@ namespace FrozenTrain.Management
 
         public void OpenPanel()
         {
-            if (isOpen)
-            {
-                return;
-            }
+            if (isOpen) return;
 
             if (trainState == null)
             {
@@ -102,10 +99,7 @@ namespace FrozenTrain.Management
 
         public void ClosePanel()
         {
-            if (!isOpen)
-            {
-                return;
-            }
+            if (!isOpen) return;
 
             Time.timeScale = previousTimeScale;
 
@@ -120,28 +114,20 @@ namespace FrozenTrain.Management
 
         private void OnDisable()
         {
-            if (!isOpen)
-            {
-                return;
-            }
-
+            if (!isOpen) return;
             Time.timeScale = previousTimeScale;
             isOpen = false;
         }
 
         private void OnGUI()
         {
-            if (!isOpen)
-            {
-                return;
-            }
+            if (!isOpen) return;
 
             EnsureStyles();
-
             GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), backdropTexture);
 
             float width = Mathf.Min(1120f, Screen.width - 48f);
-            float height = Mathf.Min(820f, Screen.height - 36f);
+            float height = Mathf.Min(860f, Screen.height - 36f);
             Rect panelRect = new Rect(
                 (Screen.width - width) * 0.5f,
                 (Screen.height - height) * 0.5f,
@@ -152,7 +138,6 @@ namespace FrozenTrain.Management
             GUI.DrawTexture(new Rect(panelRect.x, panelRect.y, 5f, panelRect.height), accentTexture);
 
             GUILayout.BeginArea(new Rect(panelRect.x + 26f, panelRect.y + 20f, panelRect.width - 52f, panelRect.height - 40f));
-
             DrawHeader();
 
             if (trainState == null)
@@ -165,6 +150,13 @@ namespace FrozenTrain.Management
 
             GUILayout.Space(14f);
             DrawEnergySection();
+
+            if (trainState.GeneratorFaultActive)
+            {
+                GUILayout.Space(10f);
+                DrawEmergencySection();
+            }
+
             GUILayout.Space(12f);
             DrawResourceStrip();
             GUILayout.Space(14f);
@@ -174,7 +166,7 @@ namespace FrozenTrain.Management
 
             scroll = GUILayout.BeginScrollView(scroll, false, true);
             DrawFixedRow("01", "LOKOMOTİF", "Çekiş, rota ve ana kumanda", "ÇALIŞIYOR", true);
-            DrawToggleRow("02", "JENERATÖR", trainState.GeneratorOnline ? "Ana enerji üretimi çevrimiçi" : "Ana üretim kapalı — acil güç kullanılıyor", trainState.GeneratorOnline, "KAPAT", "DEVREYE AL", trainState.ToggleGenerator);
+            DrawGeneratorRow();
             DrawToggleRow("03", "YAŞAM", trainState.LivingCarPowered ? "Isıtma ve yaşam sistemleri besleniyor" : "Güç kesildi — sıcaklık ve moral riski", trainState.LivingCarPowered, "GÜCÜ KES", "GÜÇ VER", trainState.ToggleLivingCarPower);
             DrawToggleRow("04", "ATÖLYE", trainState.WorkshopPowered ? "Üretim ve tamir tezgâhları çalışıyor" : "Atölye bekleme modunda", trainState.WorkshopPowered, "KAPAT", "ÇALIŞTIR", trainState.ToggleWorkshopPower);
             DrawToggleRow("05", "SERA", trainState.GreenhousePowered ? "Yetiştirme ışıkları ve pompalar aktif" : "Yiyecek üretimi durduruldu", trainState.GreenhousePowered, "KAPAT", "ÇALIŞTIR", trainState.ToggleGreenhousePower);
@@ -196,7 +188,8 @@ namespace FrozenTrain.Management
             GUILayout.FlexibleSpace();
             GUILayout.BeginVertical(GUILayout.Width(150f));
             GUILayout.Label("SİSTEM", metricLabelStyle);
-            GUILayout.Label(trainState != null && trainState.EnergyDeficit > 0 ? "UYARI" : "ONLINE", trainState != null && trainState.EnergyDeficit > 0 ? statusStyle : metricValueStyle);
+            bool warning = trainState != null && (trainState.EnergyDeficit > 0 || trainState.GeneratorFaultActive);
+            GUILayout.Label(warning ? "ACİL DURUM" : "ONLINE", warning ? statusStyle : metricValueStyle);
             GUILayout.EndVertical();
 
             if (GUILayout.Button("KAPAT  [TAB]", smallButtonStyle, GUILayout.Width(138f), GUILayout.Height(36f)))
@@ -207,7 +200,7 @@ namespace FrozenTrain.Management
 
             GUILayout.Space(12f);
             Rect line = GUILayoutUtility.GetRect(1f, 2f, GUILayout.ExpandWidth(true));
-            GUI.DrawTexture(line, accentTexture);
+            GUI.DrawTexture(line, trainState != null && trainState.GeneratorFaultActive ? dangerTexture : accentTexture);
         }
 
         private void DrawEnergySection()
@@ -231,7 +224,14 @@ namespace FrozenTrain.Management
             Texture2D fillTexture = ratio > 1f ? dangerTexture : ratio > 0.82f ? warningTexture : goodTexture;
             GUI.DrawTexture(new Rect(barRect.x, barRect.y, barRect.width * fill, barRect.height), fillTexture);
 
-            if (trainState.EnergyDeficit > 0)
+            if (trainState.GeneratorFaultActive)
+            {
+                GUILayout.Space(7f);
+                GUILayout.Label(
+                    "ANA JENERATÖR ARIZALI  //  Acil güç kapasitesi: " + trainState.EnergyCapacity + " birim. Kritik olmayan sistemleri kapat.",
+                    warningStyle);
+            }
+            else if (trainState.EnergyDeficit > 0)
             {
                 GUILayout.Space(7f);
                 GUILayout.Label(
@@ -243,6 +243,49 @@ namespace FrozenTrain.Management
                 int reserve = Mathf.Max(0, trainState.EnergyCapacity - trainState.EnergyConsumption);
                 GUILayout.Space(5f);
                 GUILayout.Label("Şebeke kararlı  •  Yedek kapasite: " + reserve + " birim", subtitleStyle);
+            }
+
+            GUILayout.EndVertical();
+        }
+
+        private void DrawEmergencySection()
+        {
+            GUILayout.BeginVertical(sectionStyle);
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("ACİL DURUM // JENERATÖR", warningStyle);
+            GUILayout.FlexibleSpace();
+
+            string phase;
+            switch (trainState.GeneratorFaultPhase)
+            {
+                case GeneratorFaultPhase.Alarm: phase = "PERSONEL BEKLİYOR"; break;
+                case GeneratorFaultPhase.EngineerEnRoute: phase = "MÜHENDİS YOLDA"; break;
+                case GeneratorFaultPhase.ManualIntervention: phase = "MANUEL MÜDAHALE"; break;
+                default: phase = "NORMAL"; break;
+            }
+            GUILayout.Label(phase, statusStyle, GUILayout.Width(170f));
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(4f);
+
+            if (trainState.GeneratorFaultPhase == GeneratorFaultPhase.Alarm)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Ana jeneratör otomatik korumaya geçti. Mühendis Murat'ı jeneratör vagonuna sevk et.", rowBodyStyle);
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button("MÜHENDİS GÖNDER", buttonStyle, GUILayout.Width(175f), GUILayout.Height(36f)))
+                {
+                    trainState.AssignEngineerToGenerator("Müh. Murat");
+                }
+                GUILayout.EndHorizontal();
+            }
+            else if (trainState.GeneratorFaultPhase == GeneratorFaultPhase.EngineerEnRoute)
+            {
+                GUILayout.Label(trainState.AssignedEngineerName + " fiziksel olarak jeneratör vagonuna ilerliyor. Emir uzaktan verildi; işi NPC gerçekleştiriyor.", rowBodyStyle);
+            }
+            else if (trainState.GeneratorFaultPhase == GeneratorFaultPhase.ManualIntervention)
+            {
+                GUILayout.Label("Mühendis arıza noktasında. Güvenlik kilidi nedeniyle son işlem uzaktan yapılamıyor. Paneli kapat, jeneratör vagonuna git ve kırmızı bakım panelinde 3 aşamalı manuel onarımı tamamla.", warningStyle);
             }
 
             GUILayout.EndVertical();
@@ -267,6 +310,35 @@ namespace FrozenTrain.Management
             GUILayout.Label(value, metricValueStyle);
             GUILayout.EndVertical();
             GUILayout.Space(6f);
+        }
+
+        private void DrawGeneratorRow()
+        {
+            if (!trainState.GeneratorFaultActive)
+            {
+                DrawToggleRow("02", "JENERATÖR", trainState.GeneratorOnline ? "Ana enerji üretimi çevrimiçi" : "Ana üretim kapalı — acil güç kullanılıyor", trainState.GeneratorOnline, "KAPAT", "DEVREYE AL", trainState.ToggleGenerator);
+                return;
+            }
+
+            string description;
+            string status;
+            switch (trainState.GeneratorFaultPhase)
+            {
+                case GeneratorFaultPhase.Alarm:
+                    description = "Koruma sistemi ana üretimi durdurdu — personel müdahalesi gerekli";
+                    status = "ARIZA";
+                    break;
+                case GeneratorFaultPhase.EngineerEnRoute:
+                    description = trainState.AssignedEngineerName + " jeneratör vagonuna ilerliyor";
+                    status = "YOLDA";
+                    break;
+                default:
+                    description = "Mühendis arıza noktasında — FPS manuel onarım gerekli";
+                    status = "MANUEL";
+                    break;
+            }
+
+            DrawFixedRow("02", "JENERATÖR", description, status, false);
         }
 
         private void DrawFixedRow(string number, string title, string description, string status, bool active)
@@ -319,10 +391,7 @@ namespace FrozenTrain.Management
 
         private void EnsureStyles()
         {
-            if (titleStyle != null)
-            {
-                return;
-            }
+            if (titleStyle != null) return;
 
             backdropTexture = SolidTexture(new Color(0.006f, 0.010f, 0.014f, 0.86f));
             panelTexture = SolidTexture(new Color(0.026f, 0.035f, 0.044f, 0.98f));
@@ -336,18 +405,13 @@ namespace FrozenTrain.Management
             buttonTexture = SolidTexture(new Color(0.18f, 0.22f, 0.25f, 1f));
             buttonHoverTexture = SolidTexture(new Color(0.28f, 0.32f, 0.35f, 1f));
 
-            panelStyle = new GUIStyle(GUI.skin.box)
-            {
-                normal = { background = panelTexture }
-            };
-
+            panelStyle = new GUIStyle(GUI.skin.box) { normal = { background = panelTexture } };
             sectionStyle = new GUIStyle(GUI.skin.box)
             {
                 padding = new RectOffset(14, 14, 10, 10),
                 margin = new RectOffset(0, 0, 0, 0),
                 normal = { background = sectionTexture }
             };
-
             rowStyle = new GUIStyle(GUI.skin.box)
             {
                 padding = new RectOffset(14, 12, 10, 10),
@@ -360,48 +424,41 @@ namespace FrozenTrain.Management
                 fontStyle = FontStyle.Bold,
                 normal = { textColor = new Color(0.94f, 0.97f, 1f) }
             };
-
             subtitleStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 11,
                 normal = { textColor = new Color(0.46f, 0.56f, 0.62f) }
             };
-
             sectionTitleStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 14,
                 fontStyle = FontStyle.Bold,
                 normal = { textColor = new Color(0.70f, 0.78f, 0.82f) }
             };
-
             metricLabelStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 10,
                 fontStyle = FontStyle.Bold,
                 normal = { textColor = new Color(0.46f, 0.56f, 0.62f) }
             };
-
             metricValueStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 16,
                 fontStyle = FontStyle.Bold,
                 normal = { textColor = new Color(0.84f, 0.93f, 0.95f) }
             };
-
             rowTitleStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 15,
                 fontStyle = FontStyle.Bold,
                 normal = { textColor = new Color(0.90f, 0.94f, 0.97f) }
             };
-
             rowBodyStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 12,
                 wordWrap = true,
                 normal = { textColor = new Color(0.57f, 0.65f, 0.69f) }
             };
-
             statusStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 12,
@@ -409,7 +466,6 @@ namespace FrozenTrain.Management
                 alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = new Color(0.92f, 0.42f, 0.16f) }
             };
-
             warningStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 12,
@@ -426,11 +482,7 @@ namespace FrozenTrain.Management
                 hover = { background = buttonHoverTexture, textColor = Color.white },
                 active = { background = accentTexture, textColor = Color.white }
             };
-
-            smallButtonStyle = new GUIStyle(buttonStyle)
-            {
-                fontSize = 10
-            };
+            smallButtonStyle = new GUIStyle(buttonStyle) { fontSize = 10 };
         }
 
         private static Texture2D SolidTexture(Color color)
