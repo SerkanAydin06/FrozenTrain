@@ -42,7 +42,7 @@ namespace FrozenTrain.Management
         public bool LivingCarPowered => livingCarPowered;
         public bool WorkshopPowered => workshopPowered;
         public bool GreenhousePowered => greenhousePowered;
-        public GeneratorFaultPhase GeneratorFaultPhase => generatorFaultPhase;
+        public GeneratorFaultPhase CurrentGeneratorFaultPhase => generatorFaultPhase;
         public bool GeneratorFaultActive => generatorFaultPhase != GeneratorFaultPhase.Normal;
         public bool EngineerAssigned => generatorFaultPhase == GeneratorFaultPhase.EngineerEnRoute || generatorFaultPhase == GeneratorFaultPhase.ManualIntervention;
         public bool ManualInterventionRequired => generatorFaultPhase == GeneratorFaultPhase.ManualIntervention;
