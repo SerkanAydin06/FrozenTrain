@@ -17,7 +17,7 @@ namespace FrozenTrain.Interaction
                     return "Bakım paneli çevrimdışı";
                 }
 
-                switch (trainState.GeneratorFaultPhase)
+                switch (trainState.CurrentGeneratorFaultPhase)
                 {
                     case GeneratorFaultPhase.Alarm:
                         return "Önce yönetim panelinden mühendis görevlendir";
