@@ -2,6 +2,14 @@ using UnityEngine;
 
 namespace FrozenTrain.Management
 {
+    public enum GeneratorFaultPhase
+    {
+        Normal,
+        Alarm,
+        EngineerEnRoute,
+        ManualIntervention
+    }
+
     public sealed class TrainPrototypeState : MonoBehaviour
     {
         [Header("Energy")]
@@ -26,10 +34,20 @@ namespace FrozenTrain.Management
         [SerializeField] private bool workshopPowered = false;
         [SerializeField] private bool greenhousePowered = false;
 
+        [Header("Emergency State")]
+        [SerializeField] private GeneratorFaultPhase generatorFaultPhase = GeneratorFaultPhase.Normal;
+        [SerializeField] private string assignedEngineerName = string.Empty;
+
         public bool GeneratorOnline => generatorOnline;
         public bool LivingCarPowered => livingCarPowered;
         public bool WorkshopPowered => workshopPowered;
         public bool GreenhousePowered => greenhousePowered;
+        public GeneratorFaultPhase GeneratorFaultPhase => generatorFaultPhase;
+        public bool GeneratorFaultActive => generatorFaultPhase != GeneratorFaultPhase.Normal;
+        public bool EngineerAssigned => generatorFaultPhase == GeneratorFaultPhase.EngineerEnRoute || generatorFaultPhase == GeneratorFaultPhase.ManualIntervention;
+        public bool ManualInterventionRequired => generatorFaultPhase == GeneratorFaultPhase.ManualIntervention;
+        public string AssignedEngineerName => assignedEngineerName;
+
         public int EnergyCapacity => generatorOnline ? generatorCapacity : emergencyCapacity;
         public int EnergyConsumption => baseConsumption
                                         + (livingCarPowered ? livingCarConsumption : 0)
@@ -43,9 +61,67 @@ namespace FrozenTrain.Management
         public int Medicine => medicine;
         public int Population => population;
 
-        public void ToggleGenerator() => generatorOnline = !generatorOnline;
+        public void ToggleGenerator()
+        {
+            if (GeneratorFaultActive)
+            {
+                return;
+            }
+
+            generatorOnline = !generatorOnline;
+        }
+
         public void ToggleLivingCarPower() => livingCarPowered = !livingCarPowered;
         public void ToggleWorkshopPower() => workshopPowered = !workshopPowered;
         public void ToggleGreenhousePower() => greenhousePowered = !greenhousePowered;
+
+        public bool TriggerGeneratorFault()
+        {
+            if (GeneratorFaultActive)
+            {
+                return false;
+            }
+
+            generatorOnline = false;
+            generatorFaultPhase = GeneratorFaultPhase.Alarm;
+            assignedEngineerName = string.Empty;
+            return true;
+        }
+
+        public bool AssignEngineerToGenerator(string engineerName)
+        {
+            if (generatorFaultPhase != GeneratorFaultPhase.Alarm)
+            {
+                return false;
+            }
+
+            assignedEngineerName = string.IsNullOrWhiteSpace(engineerName) ? "Mühendis" : engineerName;
+            generatorFaultPhase = GeneratorFaultPhase.EngineerEnRoute;
+            return true;
+        }
+
+        public bool MarkEngineerOnSite()
+        {
+            if (generatorFaultPhase != GeneratorFaultPhase.EngineerEnRoute)
+            {
+                return false;
+            }
+
+            generatorFaultPhase = GeneratorFaultPhase.ManualIntervention;
+            return true;
+        }
+
+        public bool CompleteGeneratorRepair()
+        {
+            if (generatorFaultPhase != GeneratorFaultPhase.ManualIntervention)
+            {
+                return false;
+            }
+
+            generatorOnline = true;
+            generatorFaultPhase = GeneratorFaultPhase.Normal;
+            assignedEngineerName = string.Empty;
+            return true;
+        }
     }
 }
