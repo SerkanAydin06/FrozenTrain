@@ -2,68 +2,124 @@ using UnityEngine;
 
 namespace FrozenTrain.Management
 {
-    public enum GeneratorFaultPhase
-    {
-        Normal,
-        Alarm,
-        EngineerEnRoute,
-        ManualIntervention
-    }
-
+    /// <summary>
+    /// Single source of truth for the five-car survival prototype.
+    /// The game pressure comes from resource flow and power allocation, not scripted events.
+    /// </summary>
     public sealed class TrainPrototypeState : MonoBehaviour
     {
-        [Header("Energy")]
-        [SerializeField] private int generatorCapacity = 100;
+        [Header("Power")]
+        [SerializeField] private int generatorCapacity = 115;
         [SerializeField] private int emergencyCapacity = 18;
-        [SerializeField] private int baseConsumption = 38;
-        [SerializeField] private int livingCarConsumption = 22;
-        [SerializeField] private int workshopConsumption = 24;
-        [SerializeField] private int greenhouseConsumption = 28;
+        [SerializeField] private int locomotiveConsumption = 34;
+        [SerializeField] private int lifeSupportConsumption = 12;
+        [SerializeField] private int livingCarConsumption = 24;
+        [SerializeField] private int workshopConsumption = 26;
+        [SerializeField] private int greenhouseConsumption = 30;
 
         [Header("Resources")]
-        [SerializeField] private int heatPercent = 74;
-        [SerializeField] private int food = 86;
-        [SerializeField] private int water = 79;
-        [SerializeField] private int materials = 42;
-        [SerializeField] private int medicine = 14;
+        [SerializeField] private float fuel = 100f;
+        [SerializeField] private float food = 100f;
+        [SerializeField] private float water = 100f;
+        [SerializeField] private float materials = 60f;
+        [SerializeField] private float medicine = 20f;
+        [SerializeField, Range(0f, 100f)] private float heatPercent = 72f;
         [SerializeField] private int population = 10;
 
         [Header("Car State")]
         [SerializeField] private bool generatorOnline = true;
         [SerializeField] private bool livingCarPowered = true;
-        [SerializeField] private bool workshopPowered = false;
-        [SerializeField] private bool greenhousePowered = false;
+        [SerializeField] private bool workshopPowered;
+        [SerializeField] private bool greenhousePowered;
 
-        [Header("Emergency State")]
-        [SerializeField] private GeneratorFaultPhase generatorFaultPhase = GeneratorFaultPhase.Normal;
-        [SerializeField] private string assignedEngineerName = string.Empty;
+        [Header("Balance / real second")]
+        [SerializeField] private float locomotiveFuelUse = 0.018f;
+        [SerializeField] private float generatorFuelUse = 0.035f;
+        [SerializeField] private float foodUsePerPerson = 0.0015f;
+        [SerializeField] private float waterUsePerPerson = 0.0024f;
+        [SerializeField] private float greenhouseFoodProduction = 0.055f;
+        [SerializeField] private float greenhouseWaterUse = 0.022f;
+        [SerializeField] private float poweredHeatGain = 0.10f;
+        [SerializeField] private float unpoweredHeatLoss = 0.075f;
+        [SerializeField] private float deficitHeatLoss = 0.035f;
 
         public bool GeneratorOnline => generatorOnline;
         public bool LivingCarPowered => livingCarPowered;
         public bool WorkshopPowered => workshopPowered;
         public bool GreenhousePowered => greenhousePowered;
-        public GeneratorFaultPhase CurrentGeneratorFaultPhase => generatorFaultPhase;
-        public bool GeneratorFaultActive => generatorFaultPhase != GeneratorFaultPhase.Normal;
-        public bool EngineerAssigned => generatorFaultPhase == GeneratorFaultPhase.EngineerEnRoute || generatorFaultPhase == GeneratorFaultPhase.ManualIntervention;
-        public bool ManualInterventionRequired => generatorFaultPhase == GeneratorFaultPhase.ManualIntervention;
-        public string AssignedEngineerName => assignedEngineerName;
 
-        public int EnergyCapacity => generatorOnline ? generatorCapacity : emergencyCapacity;
-        public int EnergyConsumption => baseConsumption
+        public int EnergyCapacity => generatorOnline && fuel > 0.01f ? generatorCapacity : emergencyCapacity;
+        public int EnergyConsumption => locomotiveConsumption
+                                        + lifeSupportConsumption
                                         + (livingCarPowered ? livingCarConsumption : 0)
                                         + (workshopPowered ? workshopConsumption : 0)
                                         + (greenhousePowered ? greenhouseConsumption : 0);
         public int EnergyDeficit => Mathf.Max(0, EnergyConsumption - EnergyCapacity);
-        public int HeatPercent => heatPercent;
-        public int Food => food;
-        public int Water => water;
-        public int Materials => materials;
-        public int Medicine => medicine;
+        public float PowerEfficiency => EnergyConsumption <= 0
+            ? 1f
+            : Mathf.Clamp01(EnergyCapacity / (float)EnergyConsumption);
+        public bool PowerStable => EnergyDeficit == 0;
+
+        public int Fuel => Mathf.CeilToInt(fuel);
+        public int HeatPercent => Mathf.RoundToInt(heatPercent);
+        public int Food => Mathf.CeilToInt(food);
+        public int Water => Mathf.CeilToInt(water);
+        public int Materials => Mathf.CeilToInt(materials);
+        public int Medicine => Mathf.CeilToInt(medicine);
         public int Population => population;
+
+        public float FuelDeltaPerMinute => -(locomotiveFuelUse + (generatorOnline ? generatorFuelUse : 0f)) * 60f;
+        public float FoodDeltaPerMinute => (-population * foodUsePerPerson
+                                            + (GreenhouseActuallyRunning ? greenhouseFoodProduction : 0f)) * 60f;
+        public float WaterDeltaPerMinute => (-population * waterUsePerPerson
+                                             - (GreenhouseActuallyRunning ? greenhouseWaterUse : 0f)) * 60f;
+        public float HeatDeltaPerMinute
+        {
+            get
+            {
+                float perSecond;
+                if (LivingActuallyRunning)
+                {
+                    perSecond = poweredHeatGain * Mathf.Max(0.35f, PowerEfficiency);
+                }
+                else
+                {
+                    perSecond = -unpoweredHeatLoss;
+                }
+
+                if (!PowerStable)
+                {
+                    perSecond -= deficitHeatLoss;
+                }
+
+                return perSecond * 60f;
+            }
+        }
+
+        public bool LivingActuallyRunning => livingCarPowered && EnergyCapacity > 0 && PowerEfficiency > 0.35f;
+        public bool WorkshopActuallyRunning => workshopPowered && EnergyCapacity > 0 && PowerEfficiency > 0.70f;
+        public bool GreenhouseActuallyRunning => greenhousePowered
+                                                 && water > 0.01f
+                                                 && EnergyCapacity > 0
+                                                 && PowerEfficiency > 0.75f;
+
+        public int SurvivalWarningCount
+        {
+            get
+            {
+                int warnings = 0;
+                if (fuel <= 20f) warnings++;
+                if (food <= 20f) warnings++;
+                if (water <= 20f) warnings++;
+                if (heatPercent <= 35f) warnings++;
+                if (!PowerStable) warnings++;
+                return warnings;
+            }
+        }
 
         public void ToggleGenerator()
         {
-            if (GeneratorFaultActive)
+            if (!generatorOnline && fuel <= 0.01f)
             {
                 return;
             }
@@ -75,53 +131,54 @@ namespace FrozenTrain.Management
         public void ToggleWorkshopPower() => workshopPowered = !workshopPowered;
         public void ToggleGreenhousePower() => greenhousePowered = !greenhousePowered;
 
-        public bool TriggerGeneratorFault()
+        public void SimulateSecond(float deltaSeconds)
         {
-            if (GeneratorFaultActive)
+            if (deltaSeconds <= 0f)
             {
-                return false;
+                return;
             }
 
-            generatorOnline = false;
-            generatorFaultPhase = GeneratorFaultPhase.Alarm;
-            assignedEngineerName = string.Empty;
-            return true;
-        }
+            fuel = Mathf.Max(0f, fuel - locomotiveFuelUse * deltaSeconds);
 
-        public bool AssignEngineerToGenerator(string engineerName)
-        {
-            if (generatorFaultPhase != GeneratorFaultPhase.Alarm)
+            if (generatorOnline)
             {
-                return false;
+                fuel = Mathf.Max(0f, fuel - generatorFuelUse * deltaSeconds);
+                if (fuel <= 0.001f)
+                {
+                    fuel = 0f;
+                    generatorOnline = false;
+                }
             }
 
-            assignedEngineerName = string.IsNullOrWhiteSpace(engineerName) ? "Mühendis" : engineerName;
-            generatorFaultPhase = GeneratorFaultPhase.EngineerEnRoute;
-            return true;
-        }
+            food = Mathf.Max(0f, food - population * foodUsePerPerson * deltaSeconds);
+            water = Mathf.Max(0f, water - population * waterUsePerPerson * deltaSeconds);
 
-        public bool MarkEngineerOnSite()
-        {
-            if (generatorFaultPhase != GeneratorFaultPhase.EngineerEnRoute)
+            if (GreenhouseActuallyRunning)
             {
-                return false;
+                food = Mathf.Min(200f, food + greenhouseFoodProduction * deltaSeconds);
+                water = Mathf.Max(0f, water - greenhouseWaterUse * deltaSeconds);
             }
 
-            generatorFaultPhase = GeneratorFaultPhase.ManualIntervention;
-            return true;
-        }
-
-        public bool CompleteGeneratorRepair()
-        {
-            if (generatorFaultPhase != GeneratorFaultPhase.ManualIntervention)
+            if (LivingActuallyRunning)
             {
-                return false;
+                heatPercent += poweredHeatGain * Mathf.Max(0.35f, PowerEfficiency) * deltaSeconds;
+            }
+            else
+            {
+                heatPercent -= unpoweredHeatLoss * deltaSeconds;
             }
 
-            generatorOnline = true;
-            generatorFaultPhase = GeneratorFaultPhase.Normal;
-            assignedEngineerName = string.Empty;
-            return true;
+            if (!PowerStable)
+            {
+                heatPercent -= deficitHeatLoss * deltaSeconds;
+            }
+
+            if (food <= 0.01f || water <= 0.01f)
+            {
+                heatPercent -= 0.015f * deltaSeconds;
+            }
+
+            heatPercent = Mathf.Clamp(heatPercent, 0f, 100f);
         }
     }
 }
