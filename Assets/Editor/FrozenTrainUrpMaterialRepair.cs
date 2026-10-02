@@ -9,6 +9,13 @@ namespace FrozenTrain.EditorTools
         private const string PrototypeMaterialFolder = "Assets/Materials/Prototype";
         private const string UrpLitShaderName = "Universal Render Pipeline/Lit";
 
+        [MenuItem("Frozen Train/Rebuild FPS Prototype (URP Safe)")]
+        public static void RebuildFpsPrototypeUrpSafe()
+        {
+            FrozenTrainFpsPrototypeSetup.CreateFpsTrainPrototype();
+            RepairPinkUrpMaterials();
+        }
+
         [MenuItem("Frozen Train/Repair Pink URP Materials")]
         public static void RepairPinkUrpMaterials()
         {
