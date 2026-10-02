@@ -8,17 +8,32 @@ namespace FrozenTrain.Atmosphere
         [SerializeField] private float minX = -35f;
         [SerializeField] private float maxX = 62f;
 
+        public void Configure(float movementSpeed, float minimumX, float maximumX)
+        {
+            speed = Mathf.Max(0f, movementSpeed);
+            minX = minimumX;
+            maxX = Mathf.Max(minX + 1f, maximumX);
+        }
+
         private void Update()
         {
             float span = maxX - minX;
-            if (span <= 0.1f) return;
+            if (span <= 0.1f || speed <= 0f)
+            {
+                return;
+            }
 
             foreach (Transform child in transform)
             {
-                Vector3 p = child.localPosition;
-                p.x -= speed * Time.deltaTime;
-                while (p.x < minX) p.x += span;
-                child.localPosition = p;
+                Vector3 position = child.localPosition;
+                position.x -= speed * Time.deltaTime;
+
+                while (position.x < minX)
+                {
+                    position.x += span;
+                }
+
+                child.localPosition = position;
             }
         }
     }
