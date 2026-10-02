@@ -84,24 +84,20 @@ namespace FrozenTrain.Interaction
         {
             if (promptStyle == null)
             {
-                promptStyle = new GUIStyle(GUI.skin.label)
-                {
-                    alignment = TextAnchor.MiddleCenter,
-                    fontSize = 18,
-                    fontStyle = FontStyle.Bold,
-                    normal = { textColor = Color.white }
-                };
+                promptStyle = new GUIStyle(GUI.skin.label);
+                promptStyle.alignment = TextAnchor.MiddleCenter;
+                promptStyle.fontSize = 18;
+                promptStyle.fontStyle = FontStyle.Bold;
+                promptStyle.normal.textColor = Color.white;
             }
 
             if (crosshairStyle == null)
             {
-                crosshairStyle = new GUIStyle(GUI.skin.label)
-                {
-                    alignment = TextAnchor.MiddleCenter,
-                    fontSize = 20,
-                    fontStyle = FontStyle.Bold,
-                    normal = { textColor = new Color(1f, 1f, 1f, 0.85f) }
-                };
+                crosshairStyle = new GUIStyle(GUI.skin.label);
+                crosshairStyle.alignment = TextAnchor.MiddleCenter;
+                crosshairStyle.fontSize = 20;
+                crosshairStyle.fontStyle = FontStyle.Bold;
+                crosshairStyle.normal.textColor = new Color(1f, 1f, 1f, 0.85f);
             }
         }
     }
