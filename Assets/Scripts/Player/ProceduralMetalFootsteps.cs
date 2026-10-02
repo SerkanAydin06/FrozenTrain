@@ -15,18 +15,6 @@ namespace FrozenTrain.Player
         private float timer;
         private int clipIndex;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        private static void Install()
-        {
-            GameObject player = GameObject.Find("FPS_Player");
-            if (player == null || player.GetComponent<ProceduralMetalFootsteps>() != null)
-            {
-                return;
-            }
-
-            player.AddComponent<ProceduralMetalFootsteps>();
-        }
-
         private void Awake()
         {
             controller = GetComponent<CharacterController>();

@@ -3,8 +3,8 @@ using UnityEngine;
 namespace FrozenTrain.Interaction
 {
     /// <summary>
-    /// Polished train sliding door for the FPS prototype.
-    /// Uses eased movement, procedural mechanical audio and lightweight runtime detailing.
+    /// Sliding-door behaviour only. Door mesh, handle, warning plate and trim are authored
+    /// in the connector prefab and are never generated at runtime.
     /// </summary>
     public sealed class SlidingDoor : InteractableBase
     {
@@ -40,7 +40,6 @@ namespace FrozenTrain.Interaction
 
             openClip = CreateDoorClip("DoorOpen", false);
             closeClip = CreateDoorClip("DoorClose", true);
-            CreateRuntimeDetails();
         }
 
         public void Configure(Vector3 localOpenOffset, float speed)
@@ -102,50 +101,6 @@ namespace FrozenTrain.Interaction
                 audioSource.Stop();
                 audioSource.PlayOneShot(isOpen ? openClip : closeClip, 1f);
             }
-        }
-
-        private void CreateRuntimeDetails()
-        {
-            Renderer sourceRenderer = GetComponent<Renderer>();
-            if (sourceRenderer == null)
-            {
-                return;
-            }
-
-            Material baseMaterial = sourceRenderer.material;
-            Material accentMaterial = new Material(baseMaterial);
-            Color accent = new Color(0.75f, 0.22f, 0.045f);
-            accentMaterial.color = accent;
-            if (accentMaterial.HasProperty("_BaseColor")) accentMaterial.SetColor("_BaseColor", accent);
-            if (accentMaterial.HasProperty("_EmissionColor"))
-            {
-                accentMaterial.EnableKeyword("_EMISSION");
-                accentMaterial.SetColor("_EmissionColor", accent * 1.8f);
-            }
-
-            CreateDetail("CenterSeam", new Vector3(0.066f, 0f, 0f), new Vector3(0.018f, 1.86f, 0.045f), baseMaterial);
-            CreateDetail("Handle", new Vector3(0.074f, -0.06f, 0.34f), new Vector3(0.035f, 0.30f, 0.055f), accentMaterial);
-            CreateDetail("WarningPlate", new Vector3(0.073f, 0.64f, 0f), new Vector3(0.022f, 0.14f, 0.52f), accentMaterial);
-            CreateDetail("LowerKickPlate", new Vector3(0.071f, -0.78f, 0f), new Vector3(0.020f, 0.30f, 1.10f), baseMaterial);
-        }
-
-        private void CreateDetail(string detailName, Vector3 worldSizedLocalOffset, Vector3 worldSize, Material material)
-        {
-            GameObject detail = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            detail.name = detailName;
-            Destroy(detail.GetComponent<Collider>());
-            detail.transform.SetParent(transform, false);
-
-            Vector3 parentScale = transform.localScale;
-            detail.transform.localPosition = new Vector3(
-                worldSizedLocalOffset.x / Mathf.Max(0.001f, parentScale.x),
-                worldSizedLocalOffset.y / Mathf.Max(0.001f, parentScale.y),
-                worldSizedLocalOffset.z / Mathf.Max(0.001f, parentScale.z));
-            detail.transform.localScale = new Vector3(
-                worldSize.x / Mathf.Max(0.001f, parentScale.x),
-                worldSize.y / Mathf.Max(0.001f, parentScale.y),
-                worldSize.z / Mathf.Max(0.001f, parentScale.z));
-            detail.GetComponent<Renderer>().sharedMaterial = material;
         }
 
         private AudioClip CreateDoorClip(string clipName, bool closing)

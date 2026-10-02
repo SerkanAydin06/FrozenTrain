@@ -1,31 +1,11 @@
-using UnityEngine;
-using UnityEngine.Rendering.Universal;
-
 namespace FrozenTrain.Atmosphere
 {
+    /// <summary>
+    /// Legacy compatibility shim. Camera post-processing is serialized directly on the
+    /// PlayerCamera by the scene/prefab authoring migration.
+    /// </summary>
+    [System.Obsolete("Camera post-processing is scene-authored.")]
     public static class UltraCameraPostEnable
     {
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        private static void Enable()
-        {
-            Camera camera = Camera.main;
-            if (camera == null)
-            {
-                GameObject cameraObject = GameObject.Find("PlayerCamera");
-                if (cameraObject != null)
-                {
-                    camera = cameraObject.GetComponent<Camera>();
-                }
-            }
-
-            if (camera == null)
-            {
-                return;
-            }
-
-            UniversalAdditionalCameraData data = camera.GetUniversalAdditionalCameraData();
-            data.renderPostProcessing = true;
-            data.dithering = true;
-        }
     }
 }

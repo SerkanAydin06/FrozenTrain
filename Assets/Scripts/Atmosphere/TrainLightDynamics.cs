@@ -2,6 +2,10 @@ using UnityEngine;
 
 namespace FrozenTrain.Atmosphere
 {
+    /// <summary>
+    /// Subtle per-light motion. This component must be present on authored InteriorLight objects;
+    /// it never searches the scene or adds itself at runtime.
+    /// </summary>
     public sealed class TrainLightDynamics : MonoBehaviour
     {
         private Light target;
@@ -9,20 +13,6 @@ namespace FrozenTrain.Atmosphere
         private float amplitude;
         private float speed;
         private float seed;
-
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        private static void Install()
-        {
-            Light[] lights = Object.FindObjectsByType<Light>(FindObjectsSortMode.None);
-            foreach (Light light in lights)
-            {
-                if (light == null || light.name != "InteriorLight" || light.GetComponent<TrainLightDynamics>() != null)
-                {
-                    continue;
-                }
-                light.gameObject.AddComponent<TrainLightDynamics>();
-            }
-        }
 
         private void Awake()
         {
@@ -66,7 +56,11 @@ namespace FrozenTrain.Atmosphere
 
         private void Update()
         {
-            if (target == null) return;
+            if (target == null)
+            {
+                return;
+            }
+
             float t = Time.time * speed;
             float noise = Mathf.PerlinNoise(seed, t) * 2f - 1f;
             float pulse = Mathf.Sin(t * 2.17f + seed) * 0.18f;
