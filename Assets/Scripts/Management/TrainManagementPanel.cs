@@ -256,7 +256,7 @@ namespace FrozenTrain.Management
             GUILayout.FlexibleSpace();
 
             string phase;
-            switch (trainState.GeneratorFaultPhase)
+            switch (trainState.CurrentGeneratorFaultPhase)
             {
                 case GeneratorFaultPhase.Alarm: phase = "PERSONEL BEKLİYOR"; break;
                 case GeneratorFaultPhase.EngineerEnRoute: phase = "MÜHENDİS YOLDA"; break;
@@ -268,7 +268,7 @@ namespace FrozenTrain.Management
 
             GUILayout.Space(4f);
 
-            if (trainState.GeneratorFaultPhase == GeneratorFaultPhase.Alarm)
+            if (trainState.CurrentGeneratorFaultPhase == GeneratorFaultPhase.Alarm)
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Ana jeneratör otomatik korumaya geçti. Mühendis Murat'ı jeneratör vagonuna sevk et.", rowBodyStyle);
@@ -279,11 +279,11 @@ namespace FrozenTrain.Management
                 }
                 GUILayout.EndHorizontal();
             }
-            else if (trainState.GeneratorFaultPhase == GeneratorFaultPhase.EngineerEnRoute)
+            else if (trainState.CurrentGeneratorFaultPhase == GeneratorFaultPhase.EngineerEnRoute)
             {
                 GUILayout.Label(trainState.AssignedEngineerName + " fiziksel olarak jeneratör vagonuna ilerliyor. Emir uzaktan verildi; işi NPC gerçekleştiriyor.", rowBodyStyle);
             }
-            else if (trainState.GeneratorFaultPhase == GeneratorFaultPhase.ManualIntervention)
+            else if (trainState.CurrentGeneratorFaultPhase == GeneratorFaultPhase.ManualIntervention)
             {
                 GUILayout.Label("Mühendis arıza noktasında. Güvenlik kilidi nedeniyle son işlem uzaktan yapılamıyor. Paneli kapat, jeneratör vagonuna git ve kırmızı bakım panelinde 3 aşamalı manuel onarımı tamamla.", warningStyle);
             }
@@ -322,7 +322,7 @@ namespace FrozenTrain.Management
 
             string description;
             string status;
-            switch (trainState.GeneratorFaultPhase)
+            switch (trainState.CurrentGeneratorFaultPhase)
             {
                 case GeneratorFaultPhase.Alarm:
                     description = "Koruma sistemi ana üretimi durdurdu — personel müdahalesi gerekli";
