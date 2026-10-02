@@ -22,6 +22,7 @@ namespace FrozenTrain.Interaction
         private AudioClip openClip;
         private AudioClip closeClip;
 
+        public bool IsOpen => isOpen;
         public override string InteractionText => isOpen ? "E - Kapıyı Kapat" : "E - Kapıyı Aç";
 
         private void Awake()
@@ -69,7 +70,28 @@ namespace FrozenTrain.Interaction
 
         public override void Interact(GameObject interactor)
         {
-            isOpen = !isOpen;
+            SetOpen(!isOpen);
+        }
+
+        public void Open()
+        {
+            if (!isOpen)
+            {
+                SetOpen(true);
+            }
+        }
+
+        public void Close()
+        {
+            if (isOpen)
+            {
+                SetOpen(false);
+            }
+        }
+
+        private void SetOpen(bool open)
+        {
+            isOpen = open;
             startLocalPosition = transform.localPosition;
             targetLocalPosition = closedLocalPosition + (isOpen ? openOffset : Vector3.zero);
             animationTime = 0f;
