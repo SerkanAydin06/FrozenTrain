@@ -3,10 +3,6 @@ using UnityEngine.InputSystem;
 
 namespace FrozenTrain.Interaction
 {
-    /// <summary>
-    /// Raycasts from the center of the FPS camera and interacts with nearby objects using E.
-    /// A lightweight OnGUI prompt is used for the prototype so no UI prefab is required yet.
-    /// </summary>
     public sealed class PlayerInteraction : MonoBehaviour
     {
         [SerializeField] private Camera playerCamera;
@@ -15,7 +11,10 @@ namespace FrozenTrain.Interaction
 
         private InteractableBase currentTarget;
         private GUIStyle promptStyle;
-        private GUIStyle crosshairStyle;
+        private GUIStyle keyStyle;
+        private Texture2D promptBackground;
+        private Texture2D keyBackground;
+        private Texture2D crosshairTexture;
 
         private void Awake()
         {
@@ -61,44 +60,68 @@ namespace FrozenTrain.Interaction
 
             EnsureStyles();
 
-            Rect crosshairRect = new Rect(Screen.width * 0.5f - 10f, Screen.height * 0.5f - 12f, 20f, 24f);
-            GUI.Label(crosshairRect, "+", crosshairStyle);
+            float cx = Screen.width * 0.5f;
+            float cy = Screen.height * 0.5f;
+            GUI.DrawTexture(new Rect(cx - 2f, cy - 2f, 4f, 4f), crosshairTexture);
 
             if (currentTarget == null)
             {
                 return;
             }
 
-            const float width = 280f;
-            const float height = 42f;
-            Rect promptRect = new Rect(
-                Screen.width * 0.5f - width * 0.5f,
-                Screen.height * 0.5f + 28f,
-                width,
-                height);
+            string text = currentTarget.InteractionText;
+            if (text.StartsWith("E - "))
+            {
+                text = text.Substring(4);
+            }
 
-            GUI.Label(promptRect, currentTarget.InteractionText, promptStyle);
+            const float width = 310f;
+            const float height = 48f;
+            Rect backgroundRect = new Rect(cx - width * 0.5f, cy + 34f, width, height);
+            GUI.DrawTexture(backgroundRect, promptBackground);
+
+            Rect keyRect = new Rect(backgroundRect.x + 9f, backgroundRect.y + 8f, 32f, 32f);
+            GUI.DrawTexture(keyRect, keyBackground);
+            GUI.Label(keyRect, "E", keyStyle);
+
+            Rect textRect = new Rect(backgroundRect.x + 50f, backgroundRect.y + 4f, width - 60f, height - 8f);
+            GUI.Label(textRect, text, promptStyle);
         }
 
         private void EnsureStyles()
         {
-            if (promptStyle == null)
+            if (promptStyle != null)
             {
-                promptStyle = new GUIStyle(GUI.skin.label);
-                promptStyle.alignment = TextAnchor.MiddleCenter;
-                promptStyle.fontSize = 18;
-                promptStyle.fontStyle = FontStyle.Bold;
-                promptStyle.normal.textColor = Color.white;
+                return;
             }
 
-            if (crosshairStyle == null)
+            promptBackground = SolidTexture(new Color(0.025f, 0.035f, 0.045f, 0.90f));
+            keyBackground = SolidTexture(new Color(0.72f, 0.24f, 0.055f, 0.96f));
+            crosshairTexture = SolidTexture(new Color(0.88f, 0.94f, 1f, 0.82f));
+
+            promptStyle = new GUIStyle(GUI.skin.label)
             {
-                crosshairStyle = new GUIStyle(GUI.skin.label);
-                crosshairStyle.alignment = TextAnchor.MiddleCenter;
-                crosshairStyle.fontSize = 20;
-                crosshairStyle.fontStyle = FontStyle.Bold;
-                crosshairStyle.normal.textColor = new Color(1f, 1f, 1f, 0.85f);
-            }
+                alignment = TextAnchor.MiddleLeft,
+                fontSize = 15,
+                fontStyle = FontStyle.Bold,
+                normal = { textColor = new Color(0.90f, 0.94f, 0.97f) }
+            };
+
+            keyStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 16,
+                fontStyle = FontStyle.Bold,
+                normal = { textColor = Color.white }
+            };
+        }
+
+        private static Texture2D SolidTexture(Color color)
+        {
+            Texture2D texture = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+            texture.SetPixel(0, 0, color);
+            texture.Apply();
+            return texture;
         }
     }
 }
