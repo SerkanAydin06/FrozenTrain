@@ -20,7 +20,6 @@ namespace FrozenTrain.Atmosphere
                 {
                     continue;
                 }
-
                 light.gameObject.AddComponent<TrainLightDynamics>();
             }
         }
@@ -35,47 +34,43 @@ namespace FrozenTrain.Atmosphere
             }
 
             baseIntensity = target.intensity;
-            seed = transform.position.x * 0.173f + transform.position.z * 0.291f + 17.3f;
+            seed = transform.position.x * 0.173f + 17.3f;
 
             float x = transform.position.x;
-            if (x < -6.2f)
-            {
-                amplitude = 0.025f;
-                speed = 0.65f;
-            }
-            else if (x < 6.2f)
-            {
-                amplitude = 0.085f;
-                speed = 1.85f;
-            }
-            else if (x < 18.6f)
+            if (x < -23.7f)
             {
                 amplitude = 0.018f;
-                speed = 0.52f;
+                speed = 0.55f;
             }
-            else if (x < 31.0f)
+            else if (x < -7.9f)
             {
-                amplitude = 0.032f;
-                speed = 0.92f;
+                amplitude = 0.055f;
+                speed = 1.35f;
+            }
+            else if (x < 7.9f)
+            {
+                amplitude = 0.012f;
+                speed = 0.45f;
+            }
+            else if (x < 23.7f)
+            {
+                amplitude = 0.022f;
+                speed = 0.72f;
             }
             else
             {
-                amplitude = 0.028f;
-                speed = 0.42f;
+                amplitude = 0.018f;
+                speed = 0.38f;
             }
         }
 
         private void Update()
         {
-            if (target == null)
-            {
-                return;
-            }
-
+            if (target == null) return;
             float t = Time.time * speed;
             float noise = Mathf.PerlinNoise(seed, t) * 2f - 1f;
-            float mechanicalPulse = Mathf.Sin(t * 2.17f + seed) * 0.22f;
-            target.intensity = baseIntensity * (1f + (noise + mechanicalPulse) * amplitude);
+            float pulse = Mathf.Sin(t * 2.17f + seed) * 0.18f;
+            target.intensity = baseIntensity * (1f + (noise + pulse) * amplitude);
         }
     }
 }

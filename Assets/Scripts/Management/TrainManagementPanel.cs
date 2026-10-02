@@ -51,20 +51,12 @@ namespace FrozenTrain.Management
 
         private void Awake()
         {
-            if (playerController == null)
-            {
-                playerController = GetComponent<FpsPlayerController>();
-            }
+            if (playerController == null) playerController = GetComponent<FpsPlayerController>();
         }
 
         private void Update()
         {
-            if (Keyboard.current == null)
-            {
-                return;
-            }
-
-            if (Keyboard.current.tabKey.wasPressedThisFrame)
+            if (Keyboard.current != null && Keyboard.current.tabKey.wasPressedThisFrame)
             {
                 if (isOpen) ClosePanel();
                 else OpenPanel();
@@ -74,41 +66,28 @@ namespace FrozenTrain.Management
         public void OpenPanel()
         {
             if (isOpen) return;
-
-            if (trainState == null)
-            {
-                trainState = FindFirstObjectByType<TrainPrototypeState>();
-            }
-
-            if (playerController == null)
-            {
-                playerController = GetComponent<FpsPlayerController>();
-            }
+            if (trainState == null) trainState = FindFirstObjectByType<TrainPrototypeState>();
+            if (playerController == null) playerController = GetComponent<FpsPlayerController>();
 
             previousTimeScale = Time.timeScale;
             Time.timeScale = openTimeScale;
-
             if (playerController != null)
             {
                 playerController.SetCursorCaptured(false);
                 playerController.enabled = false;
             }
-
             isOpen = true;
         }
 
         public void ClosePanel()
         {
             if (!isOpen) return;
-
             Time.timeScale = previousTimeScale;
-
             if (playerController != null)
             {
                 playerController.enabled = true;
                 playerController.SetCursorCaptured(true);
             }
-
             isOpen = false;
         }
 
@@ -122,17 +101,12 @@ namespace FrozenTrain.Management
         private void OnGUI()
         {
             if (!isOpen) return;
-
             EnsureStyles();
-            GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), backdropTexture);
 
-            float width = Mathf.Min(1120f, Screen.width - 48f);
-            float height = Mathf.Min(860f, Screen.height - 36f);
-            Rect panelRect = new Rect(
-                (Screen.width - width) * 0.5f,
-                (Screen.height - height) * 0.5f,
-                width,
-                height);
+            GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), backdropTexture);
+            float width = Mathf.Min(1180f, Screen.width - 42f);
+            float height = Mathf.Min(900f, Screen.height - 28f);
+            Rect panelRect = new Rect((Screen.width - width) * 0.5f, (Screen.height - height) * 0.5f, width, height);
 
             GUI.Box(panelRect, GUIContent.none, panelStyle);
             GUI.DrawTexture(new Rect(panelRect.x, panelRect.y, 5f, panelRect.height), accentTexture);
@@ -142,38 +116,43 @@ namespace FrozenTrain.Management
 
             if (trainState == null)
             {
-                GUILayout.Space(28f);
+                GUILayout.Space(24f);
                 GUILayout.Label("Tren durum sistemi bulunamadı.", rowBodyStyle);
                 GUILayout.EndArea();
                 return;
             }
 
-            GUILayout.Space(14f);
-            DrawEnergySection();
-
-            if (trainState.GeneratorFaultActive)
-            {
-                GUILayout.Space(10f);
-                DrawEmergencySection();
-            }
-
             GUILayout.Space(12f);
+            DrawEnergySection();
+            GUILayout.Space(10f);
             DrawResourceStrip();
-            GUILayout.Space(14f);
+            GUILayout.Space(8f);
+            DrawTrainStatusStrip();
+            GUILayout.Space(10f);
+            DrawWarnings();
+            GUILayout.Space(10f);
 
-            GUILayout.Label("VAGON KONTROLÜ", sectionTitleStyle);
-            GUILayout.Space(7f);
-
+            GUILayout.Label("VAGON SİSTEMLERİ", sectionTitleStyle);
+            GUILayout.Space(6f);
             scroll = GUILayout.BeginScrollView(scroll, false, true);
-            DrawFixedRow("01", "LOKOMOTİF", "Çekiş, rota ve ana kumanda", "ÇALIŞIYOR", true);
-            DrawGeneratorRow();
-            DrawToggleRow("03", "YAŞAM", trainState.LivingCarPowered ? "Isıtma ve yaşam sistemleri besleniyor" : "Güç kesildi — sıcaklık ve moral riski", trainState.LivingCarPowered, "GÜCÜ KES", "GÜÇ VER", trainState.ToggleLivingCarPower);
-            DrawToggleRow("04", "ATÖLYE", trainState.WorkshopPowered ? "Üretim ve tamir tezgâhları çalışıyor" : "Atölye bekleme modunda", trainState.WorkshopPowered, "KAPAT", "ÇALIŞTIR", trainState.ToggleWorkshopPower);
-            DrawToggleRow("05", "SERA", trainState.GreenhousePowered ? "Yetiştirme ışıkları ve pompalar aktif" : "Yiyecek üretimi durduruldu", trainState.GreenhousePowered, "KAPAT", "ÇALIŞTIR", trainState.ToggleGreenhousePower);
+            DrawLocomotiveRow();
+            DrawToggleRow("02", "JENERATÖR",
+                trainState.GeneratorOnline ? "Ana elektrik üretimi aktif; yakıt tüketiyor." : "Ana üretim kapalı; yalnızca acil güç mevcut.",
+                trainState.GeneratorOnline, "KAPAT", "DEVREYE AL", trainState.ToggleGenerator,
+                trainState.GeneratorOnline ? "ÜRETİYOR" : "KAPALI");
+            DrawLivingRow();
+            DrawToggleRow("04", "ATÖLYE",
+                trainState.WorkshopActuallyRepairing ? "Malzeme harcayarak tren kondisyonunu onarıyor." : trainState.WorkshopActuallyRunning ? "Atölye hazır; şu an onarım gerekmiyor." : "Atölye kapalı veya güç yetersiz.",
+                trainState.WorkshopPowered, "KAPAT", "ÇALIŞTIR", trainState.ToggleWorkshopPower,
+                trainState.WorkshopActuallyRepairing ? "ONARIYOR" : trainState.WorkshopActuallyRunning ? "HAZIR" : "BEKLEME");
+            DrawToggleRow("05", "SERA",
+                trainState.GreenhouseActuallyRunning ? "Su tüketerek yiyecek üretiyor." : "Üretim yok: güç, su veya sistem kapalı.",
+                trainState.GreenhousePowered, "KAPAT", "ÇALIŞTIR", trainState.ToggleGreenhousePower,
+                trainState.GreenhouseActuallyRunning ? "ÜRETİYOR" : "DURDU");
             GUILayout.EndScrollView();
 
-            GUILayout.Space(8f);
-            GUILayout.Label("TAB ile kapat  •  Yönetim açıkken simülasyon %20 hızında çalışır", subtitleStyle);
+            GUILayout.Space(6f);
+            GUILayout.Label("TAB ile kapat  •  Panel açıkken simülasyon %20 hızında devam eder", subtitleStyle);
             GUILayout.EndArea();
         }
 
@@ -181,26 +160,27 @@ namespace FrozenTrain.Management
         {
             GUILayout.BeginHorizontal();
             GUILayout.BeginVertical();
-            GUILayout.Label("FROZENTRAIN // TREN YÖNETİMİ", titleStyle);
-            GUILayout.Label("TAŞINABİLİR KOMUTA ARAYÜZÜ  •  YEREL BAĞLANTI", subtitleStyle);
+            GUILayout.Label("FROZENTRAIN // SURVIVAL CONTROL", titleStyle);
+            string travel = trainState == null ? "5 VAGON" : trainState.SpeedKmh + " km/h  •  " + trainState.DistanceKm.ToString("0.0") + " km  •  " + trainState.PaceLabel;
+            GUILayout.Label("GÜÇ DAĞITIMI  •  KAYNAK AKIŞI  •  " + travel, subtitleStyle);
             GUILayout.EndVertical();
 
             GUILayout.FlexibleSpace();
-            GUILayout.BeginVertical(GUILayout.Width(150f));
-            GUILayout.Label("SİSTEM", metricLabelStyle);
-            bool warning = trainState != null && (trainState.EnergyDeficit > 0 || trainState.GeneratorFaultActive);
-            GUILayout.Label(warning ? "ACİL DURUM" : "ONLINE", warning ? statusStyle : metricValueStyle);
-            GUILayout.EndVertical();
-
-            if (GUILayout.Button("KAPAT  [TAB]", smallButtonStyle, GUILayout.Width(138f), GUILayout.Height(36f)))
+            if (trainState != null)
             {
-                ClosePanel();
+                GUILayout.BeginVertical(GUILayout.Width(160f));
+                GUILayout.Label("SİSTEM DURUMU", metricLabelStyle);
+                bool warning = trainState.SurvivalWarningCount > 0;
+                GUILayout.Label(warning ? trainState.SurvivalWarningCount + " UYARI" : "KARARLI", warning ? statusStyle : metricValueStyle);
+                GUILayout.EndVertical();
             }
+
+            if (GUILayout.Button("KAPAT  [TAB]", smallButtonStyle, GUILayout.Width(138f), GUILayout.Height(36f))) ClosePanel();
             GUILayout.EndHorizontal();
 
-            GUILayout.Space(12f);
+            GUILayout.Space(11f);
             Rect line = GUILayoutUtility.GetRect(1f, 2f, GUILayout.ExpandWidth(true));
-            GUI.DrawTexture(line, trainState != null && trainState.GeneratorFaultActive ? dangerTexture : accentTexture);
+            GUI.DrawTexture(line, accentTexture);
         }
 
         private void DrawEnergySection()
@@ -209,172 +189,124 @@ namespace FrozenTrain.Management
             GUILayout.BeginHorizontal();
             GUILayout.Label("GÜÇ ŞEBEKESİ", sectionTitleStyle);
             GUILayout.FlexibleSpace();
-            string energyText = trainState.EnergyConsumption + " / " + trainState.EnergyCapacity + " BİRİM";
-            GUILayout.Label(energyText, metricValueStyle);
+            GUILayout.Label(trainState.EnergyConsumption + " / " + trainState.EnergyCapacity + " kW", metricValueStyle);
             GUILayout.EndHorizontal();
 
             GUILayout.Space(6f);
             Rect barRect = GUILayoutUtility.GetRect(1f, 16f, GUILayout.ExpandWidth(true));
             GUI.DrawTexture(barRect, mutedTexture);
+            float ratio = trainState.EnergyCapacity > 0 ? trainState.EnergyConsumption / (float)trainState.EnergyCapacity : 1f;
+            Texture2D fillTexture = ratio > 1f ? dangerTexture : ratio > 0.85f ? warningTexture : goodTexture;
+            GUI.DrawTexture(new Rect(barRect.x, barRect.y, barRect.width * Mathf.Clamp01(ratio), barRect.height), fillTexture);
 
-            float ratio = trainState.EnergyCapacity > 0
-                ? trainState.EnergyConsumption / (float)trainState.EnergyCapacity
-                : 1f;
-            float fill = Mathf.Clamp01(ratio);
-            Texture2D fillTexture = ratio > 1f ? dangerTexture : ratio > 0.82f ? warningTexture : goodTexture;
-            GUI.DrawTexture(new Rect(barRect.x, barRect.y, barRect.width * fill, barRect.height), fillTexture);
-
-            if (trainState.GeneratorFaultActive)
-            {
-                GUILayout.Space(7f);
-                GUILayout.Label(
-                    "ANA JENERATÖR ARIZALI  //  Acil güç kapasitesi: " + trainState.EnergyCapacity + " birim. Kritik olmayan sistemleri kapat.",
-                    warningStyle);
-            }
-            else if (trainState.EnergyDeficit > 0)
-            {
-                GUILayout.Space(7f);
-                GUILayout.Label(
-                    "ENERJİ AÇIĞI  //  " + trainState.EnergyDeficit + " birim fazla tüketim. Bir alt sistemi kapat veya ana jeneratörü devreye al.",
-                    warningStyle);
-            }
+            GUILayout.Space(6f);
+            if (trainState.EnergyDeficit > 0)
+                GUILayout.Label("GÜÇ AÇIĞI: " + trainState.EnergyDeficit + " kW  •  Alt sistemler verimsizleşiyor. Öncelik belirle.", warningStyle);
             else
-            {
-                int reserve = Mathf.Max(0, trainState.EnergyCapacity - trainState.EnergyConsumption);
-                GUILayout.Space(5f);
-                GUILayout.Label("Şebeke kararlı  •  Yedek kapasite: " + reserve + " birim", subtitleStyle);
-            }
-
-            GUILayout.EndVertical();
-        }
-
-        private void DrawEmergencySection()
-        {
-            GUILayout.BeginVertical(sectionStyle);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("ACİL DURUM // JENERATÖR", warningStyle);
-            GUILayout.FlexibleSpace();
-
-            string phase;
-            switch (trainState.CurrentGeneratorFaultPhase)
-            {
-                case GeneratorFaultPhase.Alarm: phase = "PERSONEL BEKLİYOR"; break;
-                case GeneratorFaultPhase.EngineerEnRoute: phase = "MÜHENDİS YOLDA"; break;
-                case GeneratorFaultPhase.ManualIntervention: phase = "MANUEL MÜDAHALE"; break;
-                default: phase = "NORMAL"; break;
-            }
-            GUILayout.Label(phase, statusStyle, GUILayout.Width(170f));
-            GUILayout.EndHorizontal();
-
-            GUILayout.Space(4f);
-
-            if (trainState.CurrentGeneratorFaultPhase == GeneratorFaultPhase.Alarm)
-            {
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("Ana jeneratör otomatik korumaya geçti. Mühendis Murat'ı jeneratör vagonuna sevk et.", rowBodyStyle);
-                GUILayout.FlexibleSpace();
-                if (GUILayout.Button("MÜHENDİS GÖNDER", buttonStyle, GUILayout.Width(175f), GUILayout.Height(36f)))
-                {
-                    trainState.AssignEngineerToGenerator("Müh. Murat");
-                }
-                GUILayout.EndHorizontal();
-            }
-            else if (trainState.CurrentGeneratorFaultPhase == GeneratorFaultPhase.EngineerEnRoute)
-            {
-                GUILayout.Label(trainState.AssignedEngineerName + " fiziksel olarak jeneratör vagonuna ilerliyor. Emir uzaktan verildi; işi NPC gerçekleştiriyor.", rowBodyStyle);
-            }
-            else if (trainState.CurrentGeneratorFaultPhase == GeneratorFaultPhase.ManualIntervention)
-            {
-                GUILayout.Label("Mühendis arıza noktasında. Güvenlik kilidi nedeniyle son işlem uzaktan yapılamıyor. Paneli kapat, jeneratör vagonuna git ve kırmızı bakım panelinde 3 aşamalı manuel onarımı tamamla.", warningStyle);
-            }
-
+                GUILayout.Label("Şebeke kararlı  •  Yedek kapasite: " + Mathf.Max(0, trainState.EnergyCapacity - trainState.EnergyConsumption) + " kW  •  Verim: %" + Mathf.RoundToInt(trainState.PowerEfficiency * 100f), subtitleStyle);
             GUILayout.EndVertical();
         }
 
         private void DrawResourceStrip()
         {
             GUILayout.BeginHorizontal();
-            DrawMetric("ISI", "%" + trainState.HeatPercent);
-            DrawMetric("YİYECEK", trainState.Food.ToString());
-            DrawMetric("SU", trainState.Water.ToString());
-            DrawMetric("MALZEME", trainState.Materials.ToString());
-            DrawMetric("İLAÇ", trainState.Medicine.ToString());
-            DrawMetric("NÜFUS", trainState.Population.ToString());
+            DrawMetric("YAKIT", trainState.Fuel.ToString(), trainState.FuelDeltaPerMinute);
+            DrawMetric("ISI", "%" + trainState.HeatPercent, trainState.HeatDeltaPerMinute);
+            DrawMetric("YİYECEK", trainState.Food.ToString(), trainState.FoodDeltaPerMinute);
+            DrawMetric("SU", trainState.Water.ToString(), trainState.WaterDeltaPerMinute);
+            DrawMetric("MALZEME", trainState.Materials.ToString(), trainState.MaterialsDeltaPerMinute);
+            DrawMetric("İLAÇ", trainState.Medicine.ToString(), 0f);
             GUILayout.EndHorizontal();
         }
 
-        private void DrawMetric(string label, string value)
+        private void DrawTrainStatusStrip()
         {
-            GUILayout.BeginVertical(sectionStyle, GUILayout.MinWidth(105f), GUILayout.Height(66f));
+            GUILayout.BeginHorizontal();
+            DrawStaticMetric("HIZ", trainState.SpeedKmh + " km/h");
+            DrawStaticMetric("MESAFE", trainState.DistanceKm.ToString("0.0") + " km");
+            DrawStaticMetric("TREN KONDİSYONU", "%" + trainState.TrainCondition);
+            DrawStaticMetric("NÜFUS SAĞLIĞI", "%" + trainState.PopulationHealth);
+            DrawStaticMetric("NÜFUS", trainState.Population.ToString());
+            GUILayout.EndHorizontal();
+        }
+
+        private void DrawMetric(string label, string value, float deltaPerMinute)
+        {
+            GUILayout.BeginVertical(sectionStyle, GUILayout.MinWidth(115f), GUILayout.Height(76f));
+            GUILayout.Label(label, metricLabelStyle);
+            GUILayout.Label(value, metricValueStyle);
+            string delta = Mathf.Abs(deltaPerMinute) < 0.005f ? "sabit" : (deltaPerMinute > 0f ? "+" : string.Empty) + deltaPerMinute.ToString("0.0") + "/dk";
+            GUILayout.Label(delta, deltaPerMinute < -0.01f ? statusStyle : subtitleStyle);
+            GUILayout.EndVertical();
+            GUILayout.Space(6f);
+        }
+
+        private void DrawStaticMetric(string label, string value)
+        {
+            GUILayout.BeginVertical(sectionStyle, GUILayout.MinWidth(130f), GUILayout.Height(62f));
             GUILayout.Label(label, metricLabelStyle);
             GUILayout.Label(value, metricValueStyle);
             GUILayout.EndVertical();
             GUILayout.Space(6f);
         }
 
-        private void DrawGeneratorRow()
+        private void DrawWarnings()
         {
-            if (!trainState.GeneratorFaultActive)
-            {
-                DrawToggleRow("02", "JENERATÖR", trainState.GeneratorOnline ? "Ana enerji üretimi çevrimiçi" : "Ana üretim kapalı — acil güç kullanılıyor", trainState.GeneratorOnline, "KAPAT", "DEVREYE AL", trainState.ToggleGenerator);
-                return;
-            }
-
-            string description;
-            string status;
-            switch (trainState.CurrentGeneratorFaultPhase)
-            {
-                case GeneratorFaultPhase.Alarm:
-                    description = "Koruma sistemi ana üretimi durdurdu — personel müdahalesi gerekli";
-                    status = "ARIZA";
-                    break;
-                case GeneratorFaultPhase.EngineerEnRoute:
-                    description = trainState.AssignedEngineerName + " jeneratör vagonuna ilerliyor";
-                    status = "YOLDA";
-                    break;
-                default:
-                    description = "Mühendis arıza noktasında — FPS manuel onarım gerekli";
-                    status = "MANUEL";
-                    break;
-            }
-
-            DrawFixedRow("02", "JENERATÖR", description, status, false);
+            if (trainState.SurvivalWarningCount == 0) return;
+            GUILayout.BeginVertical(sectionStyle);
+            GUILayout.Label("SURVIVAL UYARILARI", warningStyle);
+            if (!trainState.PowerStable) GUILayout.Label("• Güç tüketimi kapasitenin üzerinde.", rowBodyStyle);
+            if (trainState.Fuel <= 20) GUILayout.Label("• Yakıt kritik seviyeye yaklaşıyor.", rowBodyStyle);
+            if (trainState.Food <= 20) GUILayout.Label("• Yiyecek stoğu düşük.", rowBodyStyle);
+            if (trainState.Water <= 20) GUILayout.Label("• Su stoğu düşük.", rowBodyStyle);
+            if (trainState.HeatPercent <= 35) GUILayout.Label("• Tren iç sıcaklığı tehlikeli seviyede.", rowBodyStyle);
+            if (trainState.PopulationHealth <= 50) GUILayout.Label("• Nüfus sağlığı düşüyor.", rowBodyStyle);
+            if (trainState.TrainCondition <= 35) GUILayout.Label("• Tren kondisyonu kritik; atölyeyi çalıştır.", rowBodyStyle);
+            GUILayout.EndVertical();
         }
 
-        private void DrawFixedRow(string number, string title, string description, string status, bool active)
+        private void DrawLocomotiveRow()
         {
-            GUILayout.BeginHorizontal(rowStyle, GUILayout.Height(76f));
-            DrawRowIdentity(number, title, description);
+            GUILayout.BeginHorizontal(rowStyle, GUILayout.Height(78f));
+            DrawRowIdentity("01", "LOKOMOTİF", "Hız yükseldikçe yol daha hızlı alınır fakat yakıt ve mekanik aşınma artar.");
             GUILayout.FlexibleSpace();
-            GUILayout.Label(status, active ? metricValueStyle : statusStyle, GUILayout.Width(120f));
-            GUILayout.Space(8f);
+            GUILayout.BeginVertical(GUILayout.Width(105f));
+            GUILayout.Label("HIZ MODU", metricLabelStyle);
+            GUILayout.Label(trainState.PaceLabel, metricValueStyle);
+            GUILayout.EndVertical();
+            if (GUILayout.Button("MOD DEĞİŞTİR", buttonStyle, GUILayout.Width(142f), GUILayout.Height(38f))) trainState.CyclePace();
+            GUILayout.Space(4f);
             GUILayout.EndHorizontal();
             GUILayout.Space(6f);
         }
 
-        private void DrawToggleRow(
-            string number,
-            string title,
-            string description,
-            bool active,
-            string activeText,
-            string inactiveText,
-            System.Action toggle)
+        private void DrawLivingRow()
         {
-            GUILayout.BeginHorizontal(rowStyle, GUILayout.Height(76f));
+            GUILayout.BeginHorizontal(rowStyle, GUILayout.Height(86f));
+            DrawRowIdentity("03", "YAŞAM", trainState.LivingActuallyRunning ? "Isıtma ve yaşam desteği çalışıyor; nüfus sağlığı korunuyor." : "Isıtma verimsiz veya kapalı; ısı ve sağlık düşebilir.");
+            GUILayout.FlexibleSpace();
+            GUILayout.BeginVertical(GUILayout.Width(105f));
+            GUILayout.Label("DURUM", metricLabelStyle);
+            GUILayout.Label(trainState.LivingActuallyRunning ? "ÇALIŞIYOR" : "VERİMSİZ", trainState.LivingActuallyRunning ? metricValueStyle : statusStyle);
+            GUILayout.EndVertical();
+            if (GUILayout.Button(trainState.LivingCarPowered ? "GÜCÜ KES" : "GÜÇ VER", buttonStyle, GUILayout.Width(128f), GUILayout.Height(38f))) trainState.ToggleLivingCarPower();
+            if (GUILayout.Button("İLAÇ KULLAN", buttonStyle, GUILayout.Width(128f), GUILayout.Height(38f))) trainState.UseMedicine();
+            GUILayout.Space(4f);
+            GUILayout.EndHorizontal();
+            GUILayout.Space(6f);
+        }
+
+        private void DrawToggleRow(string number, string title, string description, bool active, string activeText, string inactiveText, System.Action toggle, string actualStatus)
+        {
+            GUILayout.BeginHorizontal(rowStyle, GUILayout.Height(78f));
             DrawRowIdentity(number, title, description);
             GUILayout.FlexibleSpace();
-
-            GUILayout.BeginVertical(GUILayout.Width(88f));
-            GUILayout.Label("DURUM", metricLabelStyle);
-            GUILayout.Label(active ? "AKTİF" : "KAPALI", active ? metricValueStyle : statusStyle);
+            GUILayout.BeginVertical(GUILayout.Width(105f));
+            GUILayout.Label("GERÇEK DURUM", metricLabelStyle);
+            bool good = actualStatus == "ÜRETİYOR" || actualStatus == "ONARIYOR" || actualStatus == "HAZIR" || actualStatus == "ÇALIŞIYOR";
+            GUILayout.Label(actualStatus, good ? metricValueStyle : statusStyle);
             GUILayout.EndVertical();
-
-            if (GUILayout.Button(active ? activeText : inactiveText, buttonStyle, GUILayout.Width(142f), GUILayout.Height(38f)))
-            {
-                toggle?.Invoke();
-            }
-
+            if (GUILayout.Button(active ? activeText : inactiveText, buttonStyle, GUILayout.Width(142f), GUILayout.Height(38f))) toggle?.Invoke();
             GUILayout.Space(4f);
             GUILayout.EndHorizontal();
             GUILayout.Space(6f);
@@ -392,12 +324,11 @@ namespace FrozenTrain.Management
         private void EnsureStyles()
         {
             if (titleStyle != null) return;
-
-            backdropTexture = SolidTexture(new Color(0.006f, 0.010f, 0.014f, 0.86f));
-            panelTexture = SolidTexture(new Color(0.026f, 0.035f, 0.044f, 0.98f));
-            sectionTexture = SolidTexture(new Color(0.042f, 0.054f, 0.064f, 0.98f));
-            rowTexture = SolidTexture(new Color(0.034f, 0.044f, 0.052f, 0.98f));
-            accentTexture = SolidTexture(new Color(0.78f, 0.25f, 0.055f, 1f));
+            backdropTexture = SolidTexture(new Color(0.006f, 0.010f, 0.014f, 0.88f));
+            panelTexture = SolidTexture(new Color(0.024f, 0.032f, 0.040f, 0.99f));
+            sectionTexture = SolidTexture(new Color(0.040f, 0.052f, 0.062f, 0.99f));
+            rowTexture = SolidTexture(new Color(0.032f, 0.042f, 0.050f, 0.99f));
+            accentTexture = SolidTexture(new Color(0.72f, 0.22f, 0.045f, 1f));
             warningTexture = SolidTexture(new Color(0.95f, 0.48f, 0.08f, 1f));
             dangerTexture = SolidTexture(new Color(0.82f, 0.13f, 0.09f, 1f));
             goodTexture = SolidTexture(new Color(0.18f, 0.60f, 0.52f, 1f));
@@ -406,74 +337,17 @@ namespace FrozenTrain.Management
             buttonHoverTexture = SolidTexture(new Color(0.28f, 0.32f, 0.35f, 1f));
 
             panelStyle = new GUIStyle(GUI.skin.box) { normal = { background = panelTexture } };
-            sectionStyle = new GUIStyle(GUI.skin.box)
-            {
-                padding = new RectOffset(14, 14, 10, 10),
-                margin = new RectOffset(0, 0, 0, 0),
-                normal = { background = sectionTexture }
-            };
-            rowStyle = new GUIStyle(GUI.skin.box)
-            {
-                padding = new RectOffset(14, 12, 10, 10),
-                normal = { background = rowTexture }
-            };
-
-            titleStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 23,
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = new Color(0.94f, 0.97f, 1f) }
-            };
-            subtitleStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 11,
-                normal = { textColor = new Color(0.46f, 0.56f, 0.62f) }
-            };
-            sectionTitleStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 14,
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = new Color(0.70f, 0.78f, 0.82f) }
-            };
-            metricLabelStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 10,
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = new Color(0.46f, 0.56f, 0.62f) }
-            };
-            metricValueStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 16,
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = new Color(0.84f, 0.93f, 0.95f) }
-            };
-            rowTitleStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 15,
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = new Color(0.90f, 0.94f, 0.97f) }
-            };
-            rowBodyStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 12,
-                wordWrap = true,
-                normal = { textColor = new Color(0.57f, 0.65f, 0.69f) }
-            };
-            statusStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 12,
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = new Color(0.92f, 0.42f, 0.16f) }
-            };
-            warningStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 12,
-                fontStyle = FontStyle.Bold,
-                wordWrap = true,
-                normal = { textColor = new Color(1f, 0.58f, 0.22f) }
-            };
-
+            sectionStyle = new GUIStyle(GUI.skin.box) { padding = new RectOffset(14, 14, 10, 10), margin = new RectOffset(0, 0, 0, 0), normal = { background = sectionTexture } };
+            rowStyle = new GUIStyle(GUI.skin.box) { padding = new RectOffset(14, 12, 10, 10), normal = { background = rowTexture } };
+            titleStyle = new GUIStyle(GUI.skin.label) { fontSize = 23, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.94f, 0.97f, 1f) } };
+            subtitleStyle = new GUIStyle(GUI.skin.label) { fontSize = 11, normal = { textColor = new Color(0.46f, 0.56f, 0.62f) } };
+            sectionTitleStyle = new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.70f, 0.78f, 0.82f) } };
+            metricLabelStyle = new GUIStyle(GUI.skin.label) { fontSize = 10, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.46f, 0.56f, 0.62f) } };
+            metricValueStyle = new GUIStyle(GUI.skin.label) { fontSize = 16, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.84f, 0.93f, 0.95f) } };
+            rowTitleStyle = new GUIStyle(GUI.skin.label) { fontSize = 15, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.90f, 0.94f, 0.97f) } };
+            rowBodyStyle = new GUIStyle(GUI.skin.label) { fontSize = 12, wordWrap = true, normal = { textColor = new Color(0.57f, 0.65f, 0.69f) } };
+            statusStyle = new GUIStyle(GUI.skin.label) { fontSize = 11, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, normal = { textColor = new Color(0.92f, 0.42f, 0.16f) } };
+            warningStyle = new GUIStyle(GUI.skin.label) { fontSize = 12, fontStyle = FontStyle.Bold, wordWrap = true, normal = { textColor = new Color(1f, 0.58f, 0.22f) } };
             buttonStyle = new GUIStyle(GUI.skin.button)
             {
                 fontSize = 11,
