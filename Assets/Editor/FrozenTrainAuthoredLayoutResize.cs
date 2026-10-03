@@ -10,8 +10,8 @@ using UnityEngine.SceneManagement;
 namespace FrozenTrain.EditorTools
 {
     /// <summary>
-    /// Resizes the authored five-car train without moving visual construction back into runtime code.
-    /// If prefabs do not exist yet, the scene/prefab migration is run first, then the saved assets are resized.
+    /// Internal helper used by the single Frozen Train authoring command.
+    /// Resizes the fixed five-car authored train to the locked footprint.
     /// </summary>
     public static class FrozenTrainAuthoredLayoutResize
     {
@@ -46,7 +46,6 @@ namespace FrozenTrain.EditorTools
             2f * TargetSpacing
         };
 
-        [MenuItem("Frozen Train/Resize Authored Train (16.5m x 8.4m)", priority = 2)]
         public static void ResizeAuthoredTrain()
         {
             if (AssetDatabase.LoadAssetAtPath<GameObject>(TrainPrefabFolder + "/01_Locomotive.prefab") == null)
@@ -64,7 +63,6 @@ namespace FrozenTrain.EditorTools
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("FrozenTrain authored layout resized to 16.5m length x 8.4m width per car. Five-car count preserved.");
         }
 
         private static void ResizeCarPrefab(string path)
@@ -79,7 +77,6 @@ namespace FrozenTrain.EditorTools
                     return;
                 }
 
-                // Idempotent: do not scale the same authored prefab twice.
                 if (floor.localScale.x >= TargetLength - 0.05f && floor.localScale.z >= TargetWidth - 0.05f)
                 {
                     return;
@@ -95,7 +92,6 @@ namespace FrozenTrain.EditorTools
                     originalRootPositions[t] = root.transform.InverseTransformPoint(t.position);
                 }
 
-                // Spread every authored object through the larger floor plan without stretching props.
                 foreach (Transform t in descendants.OrderBy(GetDepth))
                 {
                     Vector3 p = originalRootPositions[t];
@@ -104,15 +100,10 @@ namespace FrozenTrain.EditorTools
                     t.position = root.transform.TransformPoint(p);
                 }
 
-                // Only structural shell pieces are physically enlarged. Furniture/machinery keep real-world size.
                 for (int i = 0; i < root.transform.childCount; i++)
                 {
                     Transform child = root.transform.GetChild(i);
-                    if (!IsStructuralShell(child.name))
-                    {
-                        continue;
-                    }
-
+                    if (!IsStructuralShell(child.name)) continue;
                     Vector3 scale = child.localScale;
                     scale.x *= LengthFactor;
                     scale.z *= WidthFactor;
@@ -135,19 +126,13 @@ namespace FrozenTrain.EditorTools
         private static void ResizeConnectorPrefab()
         {
             GameObject asset = AssetDatabase.LoadAssetAtPath<GameObject>(ConnectorPrefabPath);
-            if (asset == null)
-            {
-                return;
-            }
+            if (asset == null) return;
 
             GameObject root = PrefabUtility.LoadPrefabContents(ConnectorPrefabPath);
             try
             {
                 Transform floor = FindDirectChild(root.transform, "ConnectorFloor");
-                if (floor != null && floor.localScale.z >= 2.45f)
-                {
-                    return;
-                }
+                if (floor != null && floor.localScale.z >= 2.45f) return;
 
                 Transform[] descendants = root.GetComponentsInChildren<Transform>(true)
                     .Where(t => t != root.transform)
@@ -208,11 +193,7 @@ namespace FrozenTrain.EditorTools
             for (int i = 0; i < CarNames.Length; i++)
             {
                 Transform car = trainRoot.transform.Find(CarNames[i]);
-                if (car == null)
-                {
-                    continue;
-                }
-
+                if (car == null) continue;
                 Vector3 p = car.localPosition;
                 p.x = TargetCenters[i];
                 p.z = 0f;
@@ -223,10 +204,7 @@ namespace FrozenTrain.EditorTools
             for (int i = 0; i < trainRoot.transform.childCount; i++)
             {
                 Transform child = trainRoot.transform.GetChild(i);
-                if (child.name == "CarConnector")
-                {
-                    connectors.Add(child);
-                }
+                if (child.name == "CarConnector") connectors.Add(child);
             }
 
             connectors.Sort((a, b) => a.localPosition.x.CompareTo(b.localPosition.x));
@@ -264,10 +242,7 @@ namespace FrozenTrain.EditorTools
             for (int i = 0; i < root.childCount; i++)
             {
                 Transform child = root.GetChild(i);
-                if (child.name == name)
-                {
-                    return child;
-                }
+                if (child.name == name) return child;
             }
             return null;
         }
