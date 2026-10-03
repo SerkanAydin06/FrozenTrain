@@ -13,9 +13,9 @@ using UnityEngine.SceneManagement;
 namespace FrozenTrain.EditorTools
 {
     /// <summary>
-    /// One-time authoring migration. It uses the old procedural source only to materialize
-    /// editable Unity assets, then converts the result to scene objects + prefab instances.
-    /// Runtime gameplay never builds train geometry.
+    /// Internal first-run helper used by FrozenTrainUnifiedAuthoring.
+    /// It materializes the legacy procedural source exactly once, then converts the result
+    /// into editable scene/prefab assets. It intentionally has no public menu entry.
     /// </summary>
     public static class FrozenTrainScenePrefabMigration
     {
@@ -35,7 +35,6 @@ namespace FrozenTrain.EditorTools
             "05_Greenhouse"
         };
 
-        [MenuItem("Frozen Train/Convert To Scene + Prefabs", priority = 1)]
         public static void ConvertToScenePrefabs()
         {
             EnsureFolder("Assets/Prefabs");
@@ -45,45 +44,35 @@ namespace FrozenTrain.EditorTools
             EnsureFolder(AtmosphereMaterialFolder);
             EnsureFolder("Assets/Settings");
 
-            // Materialize the latest clean five-car authoring layout once.
             FrozenTrainPlayablePrototypeBuilder.BuildPlayablePrototype();
 
             Scene scene = SceneManager.GetActiveScene();
             GameObject trainRoot = GameObject.Find("TRAIN_INTERIOR_PROTOTYPE");
             if (trainRoot == null)
             {
-                Debug.LogError("FrozenTrain: TRAIN_INTERIOR_PROTOTYPE not found after authoring build.");
+                Debug.LogError("FrozenTrain: train root not found after base authoring build.");
                 return;
             }
 
             ReparentFunctionalContentIntoCars(trainRoot.transform);
             AddAuthoredDoorDetails(trainRoot.transform);
-            AddAuthoredWindowFrost(trainRoot.transform);
             AttachSceneComponents(trainRoot);
-
             ConvertCarsToPrefabs(trainRoot.transform);
             ConvertConnectorsToPrefab(trainRoot.transform);
             ConvertEnvironmentToPrefab();
-            CreateSceneAtmosphere();
             ConfigurePlayerAsSceneObject();
+            CreateBaseSceneAtmosphere();
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-
             Selection.activeGameObject = trainRoot;
-            Debug.Log(
-                "FrozenTrain scene authoring complete. Train visuals are now editable prefab/scene assets. " +
-                "Use FPSPrototype.unity and Assets/Prefabs/Train from now on; do not rebuild geometry from code.");
         }
 
-        // Keep the old generator callable only by this migration, but disable its public menu path.
+        // The old procedural builder is retained only as an implementation detail.
         [MenuItem("Frozen Train/Build Playable Prototype", true)]
-        private static bool DisableLegacyBuilderMenu()
-        {
-            return false;
-        }
+        private static bool DisableLegacyBuilderMenu() => false;
 
         private static void ReparentFunctionalContentIntoCars(Transform trainRoot)
         {
@@ -91,10 +80,7 @@ namespace FrozenTrain.EditorTools
             foreach (string carName in CarNames)
             {
                 Transform car = trainRoot.Find(carName);
-                if (car != null)
-                {
-                    cars.Add(car);
-                }
+                if (car != null) cars.Add(car);
             }
 
             if (cars.Count != CarNames.Length)
@@ -104,23 +90,13 @@ namespace FrozenTrain.EditorTools
             }
 
             var directChildren = new List<Transform>();
-            for (int i = 0; i < trainRoot.childCount; i++)
-            {
-                directChildren.Add(trainRoot.GetChild(i));
-            }
+            for (int i = 0; i < trainRoot.childCount; i++) directChildren.Add(trainRoot.GetChild(i));
 
             foreach (Transform child in directChildren)
             {
-                if (cars.Contains(child) || child.name == "CarConnector")
-                {
-                    continue;
-                }
-
-                Transform nearestCar = FindNearestCar(child.position.x, cars);
-                if (nearestCar != null)
-                {
-                    child.SetParent(nearestCar, true);
-                }
+                if (cars.Contains(child) || child.name == "CarConnector") continue;
+                Transform nearest = FindNearestCar(child.position.x, cars);
+                if (nearest != null) child.SetParent(nearest, true);
             }
         }
 
@@ -148,96 +124,42 @@ namespace FrozenTrain.EditorTools
             SlidingDoor[] doors = trainRoot.GetComponentsInChildren<SlidingDoor>(true);
             foreach (SlidingDoor door in doors)
             {
-                if (door.transform.Find("AuthoredDoorDetails") != null)
-                {
-                    continue;
-                }
+                if (door.transform.Find("AuthoredDoorDetails") != null) continue;
 
-                GameObject root = new GameObject("AuthoredDoorDetails");
-                root.transform.SetParent(door.transform, false);
-
-                CreateWorldSizedChild(root.transform, door.transform, "CenterSeam",
-                    new Vector3(0.066f, 0f, 0f), new Vector3(0.018f, 1.95f, 0.045f), frame);
-                CreateWorldSizedChild(root.transform, door.transform, "Handle",
-                    new Vector3(0.074f, -0.05f, 0.40f), new Vector3(0.035f, 0.34f, 0.060f), accent);
-                CreateWorldSizedChild(root.transform, door.transform, "WarningPlate",
-                    new Vector3(0.073f, 0.72f, 0f), new Vector3(0.022f, 0.16f, 0.62f), accent);
-                CreateWorldSizedChild(root.transform, door.transform, "LowerKickPlate",
-                    new Vector3(0.071f, -0.88f, 0f), new Vector3(0.020f, 0.32f, 1.32f), frame);
+                GameObject details = new GameObject("AuthoredDoorDetails");
+                details.transform.SetParent(door.transform, false);
+                CreateWorldSizedChild(details.transform, door.transform, "CenterSeam", new Vector3(0.066f, 0f, 0f), new Vector3(0.018f, 1.95f, 0.045f), frame);
+                CreateWorldSizedChild(details.transform, door.transform, "Handle", new Vector3(0.074f, -0.05f, 0.40f), new Vector3(0.035f, 0.34f, 0.060f), accent);
+                CreateWorldSizedChild(details.transform, door.transform, "WarningPlate", new Vector3(0.073f, 0.72f, 0f), new Vector3(0.022f, 0.16f, 0.62f), accent);
+                CreateWorldSizedChild(details.transform, door.transform, "LowerKickPlate", new Vector3(0.071f, -0.88f, 0f), new Vector3(0.020f, 0.32f, 1.32f), frame);
             }
         }
 
-        private static void CreateWorldSizedChild(
-            Transform parent,
-            Transform scaledReference,
-            string name,
-            Vector3 worldSizedLocalOffset,
-            Vector3 worldSize,
-            Material material)
+        private static void CreateWorldSizedChild(Transform parent, Transform scaledReference, string name, Vector3 worldOffset, Vector3 worldSize, Material material)
         {
             GameObject detail = GameObject.CreatePrimitive(PrimitiveType.Cube);
             detail.name = name;
             detail.transform.SetParent(parent, false);
 
-            Vector3 parentScale = scaledReference.localScale;
+            Vector3 scale = scaledReference.localScale;
             detail.transform.localPosition = new Vector3(
-                worldSizedLocalOffset.x / Mathf.Max(0.001f, parentScale.x),
-                worldSizedLocalOffset.y / Mathf.Max(0.001f, parentScale.y),
-                worldSizedLocalOffset.z / Mathf.Max(0.001f, parentScale.z));
+                worldOffset.x / Mathf.Max(0.001f, scale.x),
+                worldOffset.y / Mathf.Max(0.001f, scale.y),
+                worldOffset.z / Mathf.Max(0.001f, scale.z));
             detail.transform.localScale = new Vector3(
-                worldSize.x / Mathf.Max(0.001f, parentScale.x),
-                worldSize.y / Mathf.Max(0.001f, parentScale.y),
-                worldSize.z / Mathf.Max(0.001f, parentScale.z));
-            detail.GetComponent<Renderer>().sharedMaterial = material;
+                worldSize.x / Mathf.Max(0.001f, scale.x),
+                worldSize.y / Mathf.Max(0.001f, scale.y),
+                worldSize.z / Mathf.Max(0.001f, scale.z));
+            if (material != null) detail.GetComponent<Renderer>().sharedMaterial = material;
             Object.DestroyImmediate(detail.GetComponent<Collider>());
-        }
-
-        private static void AddAuthoredWindowFrost(Transform trainRoot)
-        {
-            Material frost = GetOrCreateTransparentMaterial(
-                AtmosphereMaterialFolder + "/Train_Frost.mat",
-                new Color(0.78f, 0.90f, 0.96f, 0.26f));
-
-            Renderer[] renderers = trainRoot.GetComponentsInChildren<Renderer>(true);
-            foreach (Renderer renderer in renderers)
-            {
-                if (renderer.name != "WindowGlass" && renderer.name != "CabWindshield")
-                {
-                    continue;
-                }
-
-                if (renderer.transform.Find("FrostEdges") != null)
-                {
-                    continue;
-                }
-
-                GameObject frostRoot = new GameObject("FrostEdges");
-                frostRoot.transform.SetParent(renderer.transform, false);
-
-                if (renderer.name == "WindowGlass")
-                {
-                    CreateLocalVisual(frostRoot.transform, "FrostTop", new Vector3(0f, 0.44f, -0.58f), new Vector3(0.96f, 0.10f, 0.26f), frost);
-                    CreateLocalVisual(frostRoot.transform, "FrostBottom", new Vector3(0f, -0.44f, -0.58f), new Vector3(0.96f, 0.10f, 0.26f), frost);
-                    CreateLocalVisual(frostRoot.transform, "FrostLeft", new Vector3(-0.47f, 0f, -0.58f), new Vector3(0.07f, 0.78f, 0.26f), frost);
-                    CreateLocalVisual(frostRoot.transform, "FrostRight", new Vector3(0.47f, 0f, -0.58f), new Vector3(0.07f, 0.78f, 0.26f), frost);
-                }
-                else
-                {
-                    CreateLocalVisual(frostRoot.transform, "FrostTop", new Vector3(-0.58f, 0.43f, 0f), new Vector3(0.26f, 0.10f, 0.95f), frost);
-                    CreateLocalVisual(frostRoot.transform, "FrostBottom", new Vector3(-0.58f, -0.43f, 0f), new Vector3(0.26f, 0.10f, 0.95f), frost);
-                }
-            }
         }
 
         private static void AttachSceneComponents(GameObject trainRoot)
         {
-            Light[] lights = trainRoot.GetComponentsInChildren<Light>(true);
-            foreach (Light light in lights)
+            foreach (Light light in trainRoot.GetComponentsInChildren<Light>(true))
             {
                 if (light.name == "InteriorLight" && light.GetComponent<TrainLightDynamics>() == null)
-                {
                     light.gameObject.AddComponent<TrainLightDynamics>();
-                }
             }
         }
 
@@ -245,16 +167,9 @@ namespace FrozenTrain.EditorTools
         {
             foreach (string carName in CarNames)
             {
-                Transform carTransform = trainRoot.Find(carName);
-                if (carTransform == null)
-                {
-                    continue;
-                }
-
-                SaveAndReplaceWithPrefab(
-                    carTransform.gameObject,
-                    TrainPrefabFolder + "/" + carName + ".prefab",
-                    trainRoot);
+                Transform car = trainRoot.Find(carName);
+                if (car == null) continue;
+                SaveAndReplaceWithPrefab(car.gameObject, TrainPrefabFolder + "/" + carName + ".prefab", trainRoot);
             }
         }
 
@@ -264,16 +179,9 @@ namespace FrozenTrain.EditorTools
             for (int i = 0; i < trainRoot.childCount; i++)
             {
                 Transform child = trainRoot.GetChild(i);
-                if (child.name == "CarConnector")
-                {
-                    connectors.Add(child.gameObject);
-                }
+                if (child.name == "CarConnector") connectors.Add(child.gameObject);
             }
-
-            if (connectors.Count == 0)
-            {
-                return;
-            }
+            if (connectors.Count == 0) return;
 
             string path = SharedPrefabFolder + "/CarConnector.prefab";
             GameObject template = Object.Instantiate(connectors[0]);
@@ -305,15 +213,8 @@ namespace FrozenTrain.EditorTools
         private static void ConvertEnvironmentToPrefab()
         {
             GameObject environment = GameObject.Find("OUTSIDE_ENVIRONMENT");
-            if (environment == null)
-            {
-                return;
-            }
-
-            SaveAndReplaceWithPrefab(
-                environment,
-                EnvironmentPrefabFolder + "/FrozenExterior.prefab",
-                null);
+            if (environment == null) return;
+            SaveAndReplaceWithPrefab(environment, EnvironmentPrefabFolder + "/FrozenExterior.prefab", null);
         }
 
         private static GameObject SaveAndReplaceWithPrefab(GameObject source, string path, Transform parent)
@@ -329,7 +230,6 @@ namespace FrozenTrain.EditorTools
             template.transform.position = Vector3.zero;
             template.transform.rotation = Quaternion.identity;
             template.transform.localScale = Vector3.one;
-
             GameObject prefabAsset = PrefabUtility.SaveAsPrefabAsset(template, path);
             Object.DestroyImmediate(template);
             Object.DestroyImmediate(source);
@@ -337,7 +237,6 @@ namespace FrozenTrain.EditorTools
             GameObject instance = parent == null
                 ? (GameObject)PrefabUtility.InstantiatePrefab(prefabAsset)
                 : (GameObject)PrefabUtility.InstantiatePrefab(prefabAsset, parent);
-
             instance.name = sourceName;
             instance.transform.localPosition = localPosition;
             instance.transform.localRotation = localRotation;
@@ -348,15 +247,10 @@ namespace FrozenTrain.EditorTools
         private static void ConfigurePlayerAsSceneObject()
         {
             GameObject player = GameObject.Find("FPS_Player");
-            if (player == null)
-            {
-                return;
-            }
+            if (player == null) return;
 
             if (player.GetComponent<ProceduralMetalFootsteps>() == null)
-            {
                 player.AddComponent<ProceduralMetalFootsteps>();
-            }
 
             Camera camera = player.GetComponentInChildren<Camera>(true);
             if (camera != null)
@@ -367,14 +261,10 @@ namespace FrozenTrain.EditorTools
             }
         }
 
-        private static void CreateSceneAtmosphere()
+        private static void CreateBaseSceneAtmosphere()
         {
             GameObject existing = GameObject.Find("SCENE_ATMOSPHERE");
-            if (existing != null)
-            {
-                Object.DestroyImmediate(existing);
-            }
-
+            if (existing != null) Object.DestroyImmediate(existing);
             GameObject root = new GameObject("SCENE_ATMOSPHERE");
 
             VolumeProfile profile = CreatePostProcessProfile();
@@ -385,39 +275,7 @@ namespace FrozenTrain.EditorTools
             volume.priority = 50f;
             volume.sharedProfile = profile;
 
-            Material snowMaterial = GetOrCreateParticleMaterial(
-                AtmosphereMaterialFolder + "/Train_SnowParticles.mat");
-
-            GameObject snowObject = new GameObject("ExteriorSnow");
-            snowObject.transform.SetParent(root.transform, false);
-            snowObject.transform.position = new Vector3(0f, 7f, 0f);
-
-            ParticleSystem particles = snowObject.AddComponent<ParticleSystem>();
-            var main = particles.main;
-            main.loop = true;
-            main.startLifetime = 5.5f;
-            main.startSpeed = 11f;
-            main.startSize = 0.075f;
-            main.maxParticles = 850;
-            main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.gravityModifier = 0.05f;
-
-            var emission = particles.emission;
-            emission.rateOverTime = 90f;
-
-            var shape = particles.shape;
-            shape.shapeType = ParticleSystemShapeType.Box;
-            shape.scale = new Vector3(110f, 8f, 34f);
-
-            var velocity = particles.velocityOverLifetime;
-            velocity.enabled = true;
-            velocity.x = -10f;
-            velocity.y = -1.6f;
-            velocity.z = 0.6f;
-
-            ParticleSystemRenderer renderer = snowObject.GetComponent<ParticleSystemRenderer>();
-            renderer.sharedMaterial = snowMaterial;
-            renderer.renderMode = ParticleSystemRenderMode.Billboard;
+            GetOrCreateParticleMaterial(AtmosphereMaterialFolder + "/Train_SnowParticles.mat");
         }
 
         private static VolumeProfile CreatePostProcessProfile()
@@ -429,51 +287,17 @@ namespace FrozenTrain.EditorTools
 
             Tonemapping tonemapping = profile.Add<Tonemapping>(true);
             tonemapping.mode.Override(TonemappingMode.ACES);
-
             Bloom bloom = profile.Add<Bloom>(true);
             bloom.intensity.Override(0.13f);
             bloom.threshold.Override(1.10f);
-            bloom.scatter.Override(0.48f);
-
             ColorAdjustments color = profile.Add<ColorAdjustments>(true);
-            color.postExposure.Override(-0.05f);
             color.contrast.Override(7f);
             color.saturation.Override(-5f);
-
-            WhiteBalance white = profile.Add<WhiteBalance>(true);
-            white.temperature.Override(-5f);
-
             Vignette vignette = profile.Add<Vignette>(true);
             vignette.intensity.Override(0.11f);
             vignette.smoothness.Override(0.58f);
-
             EditorUtility.SetDirty(profile);
             return profile;
-        }
-
-        private static Material GetOrCreateTransparentMaterial(string path, Color color)
-        {
-            Material material = AssetDatabase.LoadAssetAtPath<Material>(path);
-            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-            if (material == null)
-            {
-                material = new Material(shader) { name = "Train_Frost" };
-                AssetDatabase.CreateAsset(material, path);
-            }
-
-            material.shader = shader;
-            material.SetOverrideTag("RenderType", "Transparent");
-            material.renderQueue = (int)RenderQueue.Transparent;
-            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
-            if (material.HasProperty("_Surface")) material.SetFloat("_Surface", 1f);
-            if (material.HasProperty("_Blend")) material.SetFloat("_Blend", 0f);
-            if (material.HasProperty("_SrcBlend")) material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
-            if (material.HasProperty("_DstBlend")) material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
-            if (material.HasProperty("_ZWrite")) material.SetFloat("_ZWrite", 0f);
-            if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.72f);
-            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-            EditorUtility.SetDirty(material);
-            return material;
         }
 
         private static Material GetOrCreateParticleMaterial(string path)
@@ -485,40 +309,19 @@ namespace FrozenTrain.EditorTools
                 material = new Material(shader) { name = "Train_SnowParticles" };
                 AssetDatabase.CreateAsset(material, path);
             }
-
             material.shader = shader;
             if (material.HasProperty("_BaseColor"))
-            {
                 material.SetColor("_BaseColor", new Color(0.92f, 0.96f, 1f, 0.72f));
-            }
             EditorUtility.SetDirty(material);
             return material;
         }
 
-        private static void CreateLocalVisual(Transform parent, string name, Vector3 localPosition, Vector3 localScale, Material material)
-        {
-            GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            visual.name = name;
-            visual.transform.SetParent(parent, false);
-            visual.transform.localPosition = localPosition;
-            visual.transform.localScale = localScale;
-            visual.GetComponent<Renderer>().sharedMaterial = material;
-            Object.DestroyImmediate(visual.GetComponent<Collider>());
-        }
-
         private static void EnsureFolder(string folderPath)
         {
-            if (AssetDatabase.IsValidFolder(folderPath))
-            {
-                return;
-            }
-
+            if (AssetDatabase.IsValidFolder(folderPath)) return;
             string parent = System.IO.Path.GetDirectoryName(folderPath)?.Replace('\\', '/');
             string name = System.IO.Path.GetFileName(folderPath);
-            if (!string.IsNullOrEmpty(parent) && !AssetDatabase.IsValidFolder(parent))
-            {
-                EnsureFolder(parent);
-            }
+            if (!string.IsNullOrEmpty(parent) && !AssetDatabase.IsValidFolder(parent)) EnsureFolder(parent);
             AssetDatabase.CreateFolder(parent ?? "Assets", name);
         }
     }
