@@ -60,6 +60,12 @@ namespace FrozenTrain.Management
         [SerializeField] private float deficitHeatLoss = 0.035f;
         [SerializeField] private float workshopMaterialUse = 0.008f;
         [SerializeField] private float workshopRepairRate = 0.026f;
+        [SerializeField] private float snowIntakePerSecondAtCruise = 0.012f;
+        [SerializeField] private float waterReserveCapacity = 120f;
+        [SerializeField] private float populationLossIntervalSeconds = 45f;
+
+        private const float CruiseSpeedKmh = 60f;
+        private float populationLossTimer;
 
         public bool GeneratorOnline => generatorOnline;
         public bool LivingCarPowered => livingCarPowered;
@@ -97,6 +103,14 @@ namespace FrozenTrain.Management
             TrainPace.Push => 85,
             _ => 60
         };
+
+        public bool IsLost => population <= 0;
+
+        /// <summary>Current speed relative to cruise pace (0 = stopped, ~1.4 = push).</summary>
+        public float MotionFactor => SpeedKmh / CruiseSpeedKmh;
+
+        /// <summary>The locomotive plough feeds snow into the melter while moving; melting needs generator heat.</summary>
+        public bool SnowIntakeActive => SpeedKmh > 0 && generatorOnline && waterReserve < waterReserveCapacity - 0.01f;
 
         public bool CanMove => generatorOnline && fuel > 0.01f && trainCondition > 1f;
 
@@ -146,6 +160,7 @@ namespace FrozenTrain.Management
 
         public float FoodDeltaPerMinute => (-population * foodUsePerPerson + (GreenhouseActuallyRunning ? CurrentGreenhouseProduction : 0f)) * 60f;
         public float WaterDeltaPerMinute => (-population * waterUsePerPerson - (GreenhouseActuallyRunning ? CurrentGreenhouseWaterUse : 0f)) * 60f;
+        public float WaterReserveDeltaPerMinute => SnowIntakeActive ? snowIntakePerSecondAtCruise * MotionFactor * 60f : 0f;
         public float MaterialsDeltaPerMinute => WorkshopActuallyRepairing ? -workshopMaterialUse * 60f : 0f;
         public float HeatDeltaPerMinute
         {
@@ -171,7 +186,7 @@ namespace FrozenTrain.Management
                 int warnings = 0;
                 if (fuel <= 20f) warnings++;
                 if (food <= 20f) warnings++;
-                if (water <= 20f && waterReserve <= 5f) warnings++;
+                if (water <= 20f) warnings++;
                 if (heatPercent <= 35f) warnings++;
                 if (populationHealth <= 50f) warnings++;
                 if (trainCondition <= 35f) warnings++;
@@ -183,6 +198,7 @@ namespace FrozenTrain.Management
 
         public void ToggleGenerator()
         {
+            if (IsLost) return;
             if (!generatorOnline && fuel <= 0.01f) return;
             generatorOnline = !generatorOnline;
         }
@@ -236,10 +252,13 @@ namespace FrozenTrain.Management
 
         public void SimulateSecond(float deltaSeconds)
         {
-            if (deltaSeconds <= 0f) return;
+            if (deltaSeconds <= 0f || IsLost) return;
 
             if (greenhouseBoostSeconds > 0f)
                 greenhouseBoostSeconds = Mathf.Max(0f, greenhouseBoostSeconds - deltaSeconds);
+
+            // Sample motion before fuel is spent so this step stays internally consistent.
+            float snowIntake = SnowIntakeActive ? snowIntakePerSecondAtCruise * MotionFactor * deltaSeconds : 0f;
 
             if (SpeedKmh > 0)
             {
@@ -257,6 +276,8 @@ namespace FrozenTrain.Management
                     generatorOnline = false;
                 }
             }
+
+            waterReserve = Mathf.Min(waterReserveCapacity, waterReserve + snowIntake);
 
             food = Mathf.Max(0f, food - population * foodUsePerPerson * deltaSeconds);
             water = Mathf.Max(0f, water - population * waterUsePerPerson * deltaSeconds);
@@ -287,6 +308,25 @@ namespace FrozenTrain.Management
             if (water <= 0.01f) healthDelta -= 0.045f;
             if (heatPercent >= 55f && food > 10f && water > 10f && LivingActuallyRunning) healthDelta += 0.004f;
             populationHealth = Mathf.Clamp(populationHealth + healthDelta * deltaSeconds, 0f, 100f);
+
+            // Collapsed health costs lives; recovering above zero resets the countdown.
+            if (populationHealth <= 0.5f)
+            {
+                populationLossTimer += deltaSeconds;
+                if (populationLossTimer >= populationLossIntervalSeconds)
+                {
+                    populationLossTimer = 0f;
+                    population = Mathf.Max(0, population - 1);
+                    if (IsLost)
+                    {
+                        generatorOnline = false;
+                    }
+                }
+            }
+            else
+            {
+                populationLossTimer = 0f;
+            }
         }
     }
 }

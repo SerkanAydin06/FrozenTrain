@@ -1,6 +1,7 @@
 using FrozenTrain.Player;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 namespace FrozenTrain.Management
 {
@@ -11,6 +12,7 @@ namespace FrozenTrain.Management
         [SerializeField, Range(0.05f, 1f)] private float openTimeScale = 0.2f;
 
         private bool isOpen;
+        private bool gameOverShown;
         private float previousTimeScale = 1f;
         private Vector2 scroll;
 
@@ -56,16 +58,49 @@ namespace FrozenTrain.Management
 
         private void Update()
         {
-            if (Keyboard.current != null && Keyboard.current.tabKey.wasPressedThisFrame)
+            if (trainState == null) trainState = FindFirstObjectByType<TrainPrototypeState>();
+            Keyboard keyboard = Keyboard.current;
+
+            if (trainState != null && trainState.IsLost)
+            {
+                if (!gameOverShown) ShowGameOver();
+                if (keyboard != null && keyboard.rKey.wasPressedThisFrame) RestartRun();
+                return;
+            }
+
+            if (keyboard == null) return;
+            if (keyboard.tabKey.wasPressedThisFrame)
             {
                 if (isOpen) ClosePanel();
                 else OpenPanel();
             }
+            else if (isOpen && keyboard.escapeKey.wasPressedThisFrame)
+            {
+                ClosePanel();
+            }
+        }
+
+        private void ShowGameOver()
+        {
+            ClosePanel();
+            gameOverShown = true;
+            Time.timeScale = 0f;
+            if (playerController != null)
+            {
+                playerController.SetCursorCaptured(false);
+                playerController.enabled = false;
+            }
+        }
+
+        private void RestartRun()
+        {
+            Time.timeScale = 1f;
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
         public void OpenPanel()
         {
-            if (isOpen) return;
+            if (isOpen || gameOverShown) return;
             if (trainState == null) trainState = FindFirstObjectByType<TrainPrototypeState>();
             if (playerController == null) playerController = GetComponent<FpsPlayerController>();
 
@@ -95,11 +130,29 @@ namespace FrozenTrain.Management
         {
             if (!isOpen) return;
             Time.timeScale = previousTimeScale;
+            if (playerController != null) playerController.enabled = true;
             isOpen = false;
+        }
+
+        private void OnDestroy()
+        {
+            if (gameOverShown) Time.timeScale = 1f;
+            Texture2D[] textures = { backdropTexture, panelTexture, sectionTexture, rowTexture, accentTexture, warningTexture, dangerTexture, goodTexture, mutedTexture, buttonTexture, buttonHoverTexture };
+            foreach (Texture2D texture in textures)
+            {
+                if (texture != null) Destroy(texture);
+            }
         }
 
         private void OnGUI()
         {
+            if (gameOverShown)
+            {
+                EnsureStyles();
+                DrawGameOver();
+                return;
+            }
+
             if (!isOpen) return;
             EnsureStyles();
 
@@ -137,7 +190,7 @@ namespace FrozenTrain.Management
             scroll = GUILayout.BeginScrollView(scroll, false, true);
             DrawLocomotiveRow();
             DrawToggleRow("02", "JENERATÖR",
-                trainState.GeneratorOnline ? "Ana elektrik üretimi aktif; yakıt tüketiyor." : "Ana üretim kapalı; yalnızca acil güç mevcut.",
+                trainState.GeneratorOnline ? (trainState.SnowIntakeActive ? "Ana üretim aktif; atık ısı kar eritip yedek su tankını dolduruyor." : "Ana elektrik üretimi aktif; yakıt tüketiyor.") : "Ana üretim kapalı; yalnızca acil güç mevcut.",
                 trainState.GeneratorOnline, "KAPAT", "DEVREYE AL", trainState.ToggleGenerator,
                 trainState.GeneratorOnline ? "ÜRETİYOR" : "KAPALI");
             DrawLivingRow();
@@ -152,7 +205,25 @@ namespace FrozenTrain.Management
             GUILayout.EndScrollView();
 
             GUILayout.Space(6f);
-            GUILayout.Label("TAB ile kapat  •  Panel açıkken simülasyon %20 hızında devam eder", subtitleStyle);
+            GUILayout.Label("TAB / ESC ile kapat  •  Panel açıkken simülasyon %20 hızında devam eder", subtitleStyle);
+            GUILayout.EndArea();
+        }
+
+        private void DrawGameOver()
+        {
+            GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), backdropTexture);
+            float width = Mathf.Min(620f, Screen.width - 42f);
+            Rect rect = new Rect((Screen.width - width) * 0.5f, Screen.height * 0.5f - 110f, width, 220f);
+            GUI.Box(rect, GUIContent.none, panelStyle);
+            GUI.DrawTexture(new Rect(rect.x, rect.y, 5f, rect.height), dangerTexture);
+
+            GUILayout.BeginArea(new Rect(rect.x + 28f, rect.y + 22f, rect.width - 56f, rect.height - 44f));
+            GUILayout.Label("TREN SESSİZLEŞTİ", titleStyle);
+            GUILayout.Space(6f);
+            GUILayout.Label("Son yolcu da dondurucu soğuğa yenik düştü.", rowBodyStyle);
+            GUILayout.Label("Kat edilen mesafe: " + trainState.DistanceKm.ToString("0.0") + " km", metricValueStyle);
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button("YENİDEN BAŞLA  [R]", buttonStyle, GUILayout.Height(38f))) RestartRun();
             GUILayout.EndArea();
         }
 
@@ -214,6 +285,7 @@ namespace FrozenTrain.Management
             DrawMetric("ISI", "%" + trainState.HeatPercent, trainState.HeatDeltaPerMinute);
             DrawMetric("YİYECEK", trainState.Food.ToString(), trainState.FoodDeltaPerMinute);
             DrawMetric("SU", trainState.Water.ToString(), trainState.WaterDeltaPerMinute);
+            DrawMetric("YEDEK SU", trainState.WaterReserve.ToString(), trainState.WaterReserveDeltaPerMinute);
             DrawMetric("MALZEME", trainState.Materials.ToString(), trainState.MaterialsDeltaPerMinute);
             DrawMetric("İLAÇ", trainState.Medicine.ToString(), 0f);
             GUILayout.EndHorizontal();
@@ -258,10 +330,13 @@ namespace FrozenTrain.Management
             if (!trainState.PowerStable) GUILayout.Label("• Güç tüketimi kapasitenin üzerinde.", rowBodyStyle);
             if (trainState.Fuel <= 20) GUILayout.Label("• Yakıt kritik seviyeye yaklaşıyor.", rowBodyStyle);
             if (trainState.Food <= 20) GUILayout.Label("• Yiyecek stoğu düşük.", rowBodyStyle);
-            if (trainState.Water <= 20) GUILayout.Label("• Su stoğu düşük.", rowBodyStyle);
+            if (trainState.Water <= 20)
+                GUILayout.Label(trainState.WaterReserve > 0 ? "• Su stoğu düşük; yedek tanktan aktar." : "• Su stoğu düşük ve yedek tank boş.", rowBodyStyle);
             if (trainState.HeatPercent <= 35) GUILayout.Label("• Tren iç sıcaklığı tehlikeli seviyede.", rowBodyStyle);
             if (trainState.PopulationHealth <= 50) GUILayout.Label("• Nüfus sağlığı düşüyor.", rowBodyStyle);
             if (trainState.TrainCondition <= 35) GUILayout.Label("• Tren kondisyonu kritik; atölyeyi çalıştır.", rowBodyStyle);
+            if (!trainState.CanMove) GUILayout.Label("• Tren duruyor; kar toplama ve ilerleme durdu.", rowBodyStyle);
+            if (trainState.PopulationHealth <= 0) GUILayout.Label("• Nüfus sağlığı çöktü; yolcular kaybediliyor!", warningStyle);
             GUILayout.EndVertical();
         }
 

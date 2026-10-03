@@ -1,3 +1,4 @@
+using FrozenTrain.Management;
 using UnityEngine;
 
 namespace FrozenTrain.Atmosphere
@@ -9,16 +10,34 @@ namespace FrozenTrain.Atmosphere
         [SerializeField] private float baseFrequency = 42f;
         [SerializeField] private float secondaryFrequency = 84f;
         [SerializeField] private float wheelRhythmHz = 1.85f;
+        [SerializeField, Range(0f, 1f)] private float stoppedVolumeScale = 0.25f;
+
+        private AudioSource source;
+        private TrainPrototypeState trainState;
+        private float motion = 1f;
 
         private void Awake()
         {
-            AudioSource source = GetComponent<AudioSource>();
+            source = GetComponent<AudioSource>();
+            trainState = GetComponent<TrainPrototypeState>();
+            if (trainState == null) trainState = FindFirstObjectByType<TrainPrototypeState>();
             source.loop = true;
             source.playOnAwake = false;
             source.spatialBlend = 0f;
             source.volume = volume;
             source.clip = CreateAmbienceClip();
             source.Play();
+        }
+
+        private void Update()
+        {
+            if (source == null || trainState == null) return;
+
+            // Wheel rhythm and rumble follow train speed; a stopped train only keeps a faint hum.
+            motion = Mathf.MoveTowards(motion, trainState.MotionFactor, 0.35f * Time.deltaTime);
+            float moving = Mathf.Clamp01(motion);
+            source.volume = volume * Mathf.Lerp(stoppedVolumeScale, 1f, moving);
+            source.pitch = Mathf.Lerp(0.55f, 1f, moving) + Mathf.Max(0f, motion - 1f) * 0.25f;
         }
 
         private AudioClip CreateAmbienceClip()
