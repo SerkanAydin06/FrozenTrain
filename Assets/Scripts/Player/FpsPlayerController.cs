@@ -1,3 +1,4 @@
+using FrozenTrain.Management;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -43,6 +44,9 @@ namespace FrozenTrain.Player
         private float bobPhase;
         private float baseFov;
         private bool cursorCaptured = true;
+        private TrainPrototypeState trainState;
+        private float trainMotion = 1f;
+        private int enabledFrame = -1;
 
         private void Awake()
         {
@@ -60,8 +64,14 @@ namespace FrozenTrain.Player
             }
         }
 
+        private void OnEnable()
+        {
+            enabledFrame = Time.frameCount;
+        }
+
         private void Start()
         {
+            trainState = FindFirstObjectByType<TrainPrototypeState>();
             SetCursorCaptured(true);
         }
 
@@ -96,7 +106,8 @@ namespace FrozenTrain.Player
 
         private void HandleCursorToggle()
         {
-            if (Keyboard.current.escapeKey.wasPressedThisFrame)
+            // Ignore the Esc press that just closed the management panel and re-enabled this controller.
+            if (Keyboard.current.escapeKey.wasPressedThisFrame && Time.frameCount != enabledFrame)
             {
                 SetCursorCaptured(!cursorCaptured);
             }
@@ -191,11 +202,16 @@ namespace FrozenTrain.Player
             float bobY = Mathf.Sin(bobPhase * 2f) * targetAmplitude * moveBlend;
             float bobX = Mathf.Sin(bobPhase) * targetAmplitude * 0.45f * moveBlend;
 
+            // Carriage sway fades out when the train stops and grows a little when pushing.
+            float targetMotion = trainState != null ? trainState.MotionFactor : 1f;
+            trainMotion = Mathf.MoveTowards(trainMotion, targetMotion, 0.35f * Time.deltaTime);
+            float sway = trainSwayAmplitude * Mathf.Clamp(trainMotion, 0f, 1.4f);
+
             float trainTime = Time.time;
-            float swayX = Mathf.Sin(trainTime * 1.35f) * trainSwayAmplitude;
-            float swayY = Mathf.Sin(trainTime * 2.6f + 0.8f) * trainSwayAmplitude * 0.45f;
+            float swayX = Mathf.Sin(trainTime * 1.35f) * sway;
+            float swayY = Mathf.Sin(trainTime * 2.6f + 0.8f) * sway * 0.45f;
             float microY = Mathf.PerlinNoise(trainTime * 3.5f, 0.17f) - 0.5f;
-            microY *= trainSwayAmplitude * 0.55f;
+            microY *= sway * 0.55f;
 
             Vector3 targetPosition = cameraBaseLocalPosition + new Vector3(bobX + swayX, bobY + swayY + microY, 0f);
             playerCamera.transform.localPosition = Vector3.Lerp(
@@ -203,7 +219,7 @@ namespace FrozenTrain.Player
                 targetPosition,
                 1f - Mathf.Exp(-cameraReturnSharpness * Time.deltaTime));
 
-            float roll = Mathf.Sin(trainTime * 1.15f + 0.4f) * trainRollDegrees;
+            float roll = Mathf.Sin(trainTime * 1.15f + 0.4f) * trainRollDegrees * Mathf.Clamp(trainMotion, 0f, 1.4f);
             float bobPitch = moving ? Mathf.Sin(bobPhase * 2f) * 0.20f * moveBlend : 0f;
             Quaternion targetRotation = Quaternion.Euler(pitch + bobPitch, 0f, roll);
             playerCamera.transform.localRotation = Quaternion.Slerp(
