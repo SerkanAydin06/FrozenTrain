@@ -18,26 +18,24 @@ namespace FrozenTrain.EditorTools
             EnsureBaseAssets();
             FrozenTrainAuthoredLayoutResize.ResizeAuthoredTrain();
 
-            // Rebuild the human/work main-deck content first.
+            // Human/work content belongs to the middle deck.
             FrozenTrainFiveCarDesignAuthoring.ApplyAll();
 
-            // Final authority: 18m x 9.2m, three full-size decks, continuous upper/lower corridors.
-            FrozenTrainArchitectureRevision.ApplyAll();
+            // Final authority: 18m x 9.2m, three full-size decks.
+            FrozenTrainFinalThreeDeckAuthoring.ApplyAll();
 
-            // Bind interactions after final objects have been created/moved.
+            // Bind interactions only after final objects have been created/moved.
             FrozenTrainPhysicalSystemsAuthoring.InstallOrRefresh();
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("FrozenTrain authored train rebuilt: 18m x 9.2m cars, full lower technical deck, human/work main deck, continuous upper sleeping corridor.");
+            Debug.Log("FrozenTrain rebuilt: 18m x 9.2m cars, full lower technical deck, occupied middle deck, continuous upper sleeping corridor.");
         }
 
         private static void EnsureBaseAssets()
         {
             if (AssetDatabase.LoadAssetAtPath<GameObject>(TrainPrefabFolder + "/01_Locomotive.prefab") == null)
-            {
                 FrozenTrainScenePrefabMigration.ConvertToScenePrefabs();
-            }
         }
     }
 }
