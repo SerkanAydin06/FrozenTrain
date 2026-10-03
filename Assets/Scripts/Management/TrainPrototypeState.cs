@@ -220,7 +220,7 @@ namespace FrozenTrain.Management
 
         public bool PerformWorkshopMaintenance()
         {
-            if (materials < 2f || trainCondition >= 99.9f) return false;
+            if (!WorkshopActuallyRunning || materials < 2f || trainCondition >= 99.9f) return false;
             materials -= 2f;
             trainCondition = Mathf.Min(100f, trainCondition + 7f);
             return true;
@@ -228,9 +228,9 @@ namespace FrozenTrain.Management
 
         public bool PerformGreenhouseFlush()
         {
-            if (water < 4f) return false;
+            if (!GreenhouseActuallyRunning || water < 4f || GreenhouseBoostActive) return false;
             water -= 4f;
-            greenhouseBoostSeconds = Mathf.Max(greenhouseBoostSeconds, 120f);
+            greenhouseBoostSeconds = 120f;
             return true;
         }
 
