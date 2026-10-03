@@ -1,0 +1,813 @@
+#if UNITY_EDITOR
+using System.Collections.Generic;
+using System.Linq;
+using FrozenTrain.Atmosphere;
+using FrozenTrain.Interaction;
+using FrozenTrain.Management;
+using FrozenTrain.Player;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
+using UnityEngine.SceneManagement;
+using L = FrozenTrain.EditorTools.FrozenTrainLayout;
+
+namespace FrozenTrain.EditorTools
+{
+    /// <summary>
+    /// Builds the whole train from FrozenTrainLayout in one pass. Every car prefab, the connector prefab
+    /// and the train's scene placement are regenerated from scratch on each run, so nothing depends on
+    /// objects left behind by an earlier build. Player, lighting and atmosphere are created when missing.
+    /// </summary>
+    public static class FrozenTrainBuilder
+    {
+        public const string ScenePath = "Assets/Scenes/FPSPrototype.unity";
+        public const string TrainRootName = "TRAIN_INTERIOR_PROTOTYPE";
+        private const string TrainPrefabFolder = "Assets/Prefabs/Train";
+        private const string ConnectorPath = TrainPrefabFolder + "/Shared/CarConnector.prefab";
+        private const string MaterialFolder = "Assets/Materials/Prototype";
+        private const string SnowParticleMaterialPath = "Assets/Materials/Atmosphere/Train_SnowParticles.mat";
+        private const string PostProfilePath = "Assets/Settings/FrozenTrain_PostProcess.asset";
+        private const string ExteriorRootName = "OUTSIDE_ENVIRONMENT";
+        private const string AtmosphereRootName = "SCENE_ATMOSPHERE";
+        private const string PlayerName = "FPS_Player";
+
+        private static Dictionary<TrainMat, Material> mats;
+
+        public static bool Build()
+        {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return false;
+
+            EnsureFolder(TrainPrefabFolder + "/Shared");
+            EnsureFolder(MaterialFolder);
+            EnsureFolder("Assets/Materials/Atmosphere");
+            EnsureFolder("Assets/Settings");
+            EnsureFolder("Assets/Scenes");
+
+            Scene scene = OpenOrCreateScene();
+            mats = CreateMaterials();
+            try
+            {
+                GameObject connector = BuildConnectorPrefab();
+                GameObject[] cars = new GameObject[L.Cars.Length];
+                for (int i = 0; i < cars.Length; i++) cars[i] = BuildCarPrefab(L.Cars[i], i);
+
+                ConfigureLighting();
+                TrainPrototypeState state = PlaceTrain(cars, connector);
+                BuildExterior();
+                BuildAtmosphere(scene);
+                EnsurePlayer(state);
+            }
+            finally { mats = null; }
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene, ScenePath);
+            AssetDatabase.SaveAssets();
+            return true;
+        }
+
+        // ---- Car prefabs --------------------------------------------------------------------
+
+        private static GameObject BuildCarPrefab(CarSpec car, int index)
+        {
+            bool first = index == 0, last = index == L.Cars.Length - 1;
+            // Upper sleeping deck and its ladders are authored for +X; s = -1 mirrors them to the front.
+            float s = car.UpperLaddersAtFront ? -1f : 1f;
+
+            GameObject root = new GameObject(car.Name);
+            try
+            {
+                Transform shell = Group(root.transform, "Shell");
+                BuildFloors(shell, car, s);
+                BuildSides(shell, car);
+                BuildEnds(shell, first, last);
+                if (car.PanoramicFront)
+                    Cube(shell, "PanoramicWindshield", new Vector3(-L.HalfL - .015f, 1.925f, 0f), new Vector3(.035f, 1.65f, 8.66f), M(TrainMat.Glass));
+                BuildUnderframe(shell);
+
+                Transform lower = Group(root.transform, "LowerTechnicalDeck");
+                BuildProps(lower, L.LowerServices);
+                BuildProps(lower, car.Lower);
+
+                BuildProps(Group(root.transform, car.MainGroupName), car.Main);
+                BuildUpperSleeping(Group(root.transform, "UpperSleepingDeck"), s);
+
+                Transform access = Group(root.transform, "VerticalAccess");
+                BuildUpperLadders(access, s);
+                if (car.TechnicalLadder) BuildTechnicalLadder(access);
+
+                BuildLights(Group(root.transform, "Lighting"), car);
+
+                return PrefabUtility.SaveAsPrefabAsset(root, TrainPrefabFolder + "/" + car.Name + ".prefab");
+            }
+            finally { Object.DestroyImmediate(root); }
+        }
+
+        private static void BuildFloors(Transform p, CarSpec car, float s)
+        {
+            Material floor = M(TrainMat.Floor);
+            var mainHoles = new List<Rect>();
+            if (car.TechnicalLadder)
+                mainHoles.Add(HoleRect(L.TechnicalHoleX0, L.TechnicalHoleX1, L.TechnicalHoleZ0, L.TechnicalHoleZ1));
+            var upperHoles = new List<Rect>
+            {
+                HoleRect(s * L.UpperHoleX0, s * L.UpperHoleX1, -L.UpperHoleZ1, -L.UpperHoleZ0),
+                HoleRect(s * L.UpperHoleX0, s * L.UpperHoleX1, L.UpperHoleZ0, L.UpperHoleZ1),
+            };
+
+            Cube(p, "LowerFloor", new Vector3(0f, L.LowerY, 0f), new Vector3(L.CarLength, L.LowerFloorT, L.CarWidth), floor);
+            FloorWithHoles(p, "MainFloor", L.MainY, L.MainFloorT, mainHoles, floor);
+            FloorWithHoles(p, "UpperFloor", L.UpperY, L.UpperFloorT, upperHoles, floor);
+            Cube(p, "Roof", new Vector3(0f, L.RoofY, 0f), new Vector3(L.CarLength, L.RoofT, L.CarWidth), M(TrainMat.Wall));
+        }
+
+        private static Rect HoleRect(float x0, float x1, float z0, float z1) =>
+            Rect.MinMaxRect(Mathf.Min(x0, x1), Mathf.Min(z0, z1), Mathf.Max(x0, x1), Mathf.Max(z0, z1));
+
+        /// <summary>Splits a full-footprint floor into tiles around rectangular openings.</summary>
+        private static void FloorWithHoles(Transform p, string prefix, float y, float t, List<Rect> holes, Material m)
+        {
+            List<float> xs = new List<float> { -L.HalfL, L.HalfL }, zs = new List<float> { -L.HalfW, L.HalfW };
+            foreach (Rect h in holes) { xs.Add(h.xMin); xs.Add(h.xMax); zs.Add(h.yMin); zs.Add(h.yMax); }
+            xs = xs.Distinct().OrderBy(v => v).ToList();
+            zs = zs.Distinct().OrderBy(v => v).ToList();
+            int n = 0;
+            for (int xi = 0; xi < xs.Count - 1; xi++)
+                for (int zi = 0; zi < zs.Count - 1; zi++)
+                {
+                    float x0 = xs[xi], x1 = xs[xi + 1], z0 = zs[zi], z1 = zs[zi + 1];
+                    Vector2 c = new Vector2((x0 + x1) * .5f, (z0 + z1) * .5f);
+                    if (holes.Any(h => h.Contains(c))) continue;
+                    Cube(p, prefix + n++, new Vector3(c.x, y, c.y), new Vector3(x1 - x0, t, z1 - z0), m);
+                }
+        }
+
+        private static void BuildSides(Transform p, CarSpec car)
+        {
+            Material wall = M(TrainMat.Wall);
+            float lowerH = L.MainY - L.LowerY, upperH = L.RoofY - L.UpperY;
+            foreach (float z in new[] { -L.HalfW, L.HalfW })
+            {
+                string side = z < 0f ? "L" : "R";
+                Cube(p, "LowerSide" + side, new Vector3(0f, L.LowerY + lowerH * .5f, z), new Vector3(L.CarLength, lowerH, L.WallT), wall);
+                Cube(p, "UpperSide" + side, new Vector3(0f, L.UpperY + upperH * .5f, z), new Vector3(L.CarLength, upperH, L.WallT), wall);
+                BuildMainSide(p, car, z, side);
+            }
+        }
+
+        private static void BuildMainSide(Transform p, CarSpec car, float z, string side)
+        {
+            Material wall = M(TrainMat.Wall);
+            float top = L.UpperY - L.UpperFloorT * .5f;
+            if (car.MainWindows.Length == 0)
+            {
+                Cube(p, "MainSide" + side, new Vector3(0f, top * .5f, z), new Vector3(L.CarLength, top, L.WallT), wall);
+                return;
+            }
+
+            float wb = L.WindowBottom, wt = L.WindowTop, wy = (wb + wt) * .5f, wh = wt - wb;
+            Cube(p, "MainSideBelowWindows" + side, new Vector3(0f, wb * .5f, z), new Vector3(L.CarLength, wb, L.WallT), wall);
+            Cube(p, "MainSideAboveWindows" + side, new Vector3(0f, wt + (top - wt) * .5f, z), new Vector3(L.CarLength, top - wt, L.WallT), wall);
+
+            float cursor = -L.HalfL;
+            foreach (WindowSpan w in car.MainWindows.OrderBy(w => w.CenterX))
+            {
+                float left = w.CenterX - w.Width * .5f;
+                if (left > cursor)
+                    Cube(p, "MainSidePier" + side, new Vector3((cursor + left) * .5f, wy, z), new Vector3(left - cursor, wh, L.WallT), wall);
+                Window(p, w.CenterX, w.Width, z, wb, wt);
+                cursor = w.CenterX + w.Width * .5f;
+            }
+            if (cursor < L.HalfL)
+                Cube(p, "MainSidePier" + side, new Vector3((cursor + L.HalfL) * .5f, wy, z), new Vector3(L.HalfL - cursor, wh, L.WallT), wall);
+        }
+
+        private static void Window(Transform p, float x, float w, float z, float b, float t)
+        {
+            Material frame = M(TrainMat.Frame);
+            float y = (b + t) * .5f, h = t - b, inward = z > 0f ? -1f : 1f;
+            Transform g = Group(p, "Window");
+            Cube(g, "WindowTopFrame", new Vector3(x, t, z), new Vector3(w + .16f, .10f, .14f), frame);
+            Cube(g, "WindowBottomFrame", new Vector3(x, b, z), new Vector3(w + .16f, .10f, .14f), frame);
+            Cube(g, "WindowLeftFrame", new Vector3(x - w * .5f, y, z), new Vector3(.10f, h, .14f), frame);
+            Cube(g, "WindowRightFrame", new Vector3(x + w * .5f, y, z), new Vector3(.10f, h, .14f), frame);
+            Cube(g, "WindowGlass", new Vector3(x, y, z + inward * .025f), new Vector3(w - .12f, h - .12f, .035f), M(TrainMat.Glass));
+        }
+
+        private static void BuildEnds(Transform p, bool first, bool last)
+        {
+            float mainTop = L.UpperY - L.UpperFloorT * .5f;
+            float lowerTop = L.MainY - L.MainFloorT * .5f;
+            foreach (float sign in new[] { -1f, 1f })
+            {
+                bool closed = sign < 0f ? first : last;
+                string end = sign < 0f ? "Front" : "Rear";
+                float x = sign * L.HalfL;
+
+                if (closed) SolidEnd(p, x, L.LowerY, lowerTop, "Lower" + end + "Solid");
+                else EndOpening(p, x, L.LowerY, lowerTop, L.LowerEndOpening, "Lower" + end);
+
+                if (!closed) EndOpening(p, x, L.MainY, mainTop, L.MainEndOpening, "Main" + end);
+                else if (sign > 0f) SolidEnd(p, x, L.MainY, mainTop, "MainRearSolid");
+                else BuildCabFront(p, x);
+
+                if (closed) SolidEnd(p, x, L.UpperY, L.RoofY, "Upper" + end + "Solid");
+                else EndOpening(p, x, L.UpperY, L.RoofY, L.UpperEndOpening, "Upper" + end);
+            }
+        }
+
+        /// <summary>Locomotive nose: a wall below and above one panoramic windshield (1.10 m to 2.75 m).</summary>
+        private static void BuildCabFront(Transform p, float x)
+        {
+            Material wall = M(TrainMat.Wall), frame = M(TrainMat.Frame);
+            float mainTop = L.UpperY - L.UpperFloorT * .5f;
+            Cube(p, "CabFrontLower", new Vector3(x, .55f, 0f), new Vector3(L.WallT, 1.10f, L.CarWidth), wall);
+            Cube(p, "CabFrontHeader", new Vector3(x, (2.75f + mainTop) * .5f, 0f), new Vector3(L.WallT, mainTop - 2.75f, L.CarWidth), wall);
+            Cube(p, "CabFrontEdgeL", new Vector3(x, 1.925f, -4.43f), new Vector3(L.WallT, 1.65f, .22f), frame);
+            Cube(p, "CabFrontEdgeR", new Vector3(x, 1.925f, 4.43f), new Vector3(L.WallT, 1.65f, .22f), frame);
+        }
+
+        private static void SolidEnd(Transform p, float x, float bottom, float top, string name) =>
+            Cube(p, name, new Vector3(x, (bottom + top) * .5f, 0f), new Vector3(L.WallT, top - bottom, L.CarWidth), M(TrainMat.Wall));
+
+        private static void EndOpening(Transform p, float x, float bottom, float top, Vector2 opening, string prefix)
+        {
+            float width = opening.x, height = opening.y;
+            float h = top - bottom, cy = (bottom + top) * .5f, side = (L.CarWidth - width) * .5f, sc = width * .5f + side * .5f;
+            Cube(p, prefix + "L", new Vector3(x, cy, -sc), new Vector3(L.WallT, h, side), M(TrainMat.Wall));
+            Cube(p, prefix + "R", new Vector3(x, cy, sc), new Vector3(L.WallT, h, side), M(TrainMat.Wall));
+            float lintel = Mathf.Max(.1f, h - height);
+            Cube(p, prefix + "Lintel", new Vector3(x, top - lintel * .5f, 0f), new Vector3(L.WallT, lintel, width), M(TrainMat.Frame));
+        }
+
+        private static void BuildUnderframe(Transform p)
+        {
+            float frameTop = L.LowerY - L.LowerFloorT * .5f;
+            Cube(p, "Underframe", new Vector3(0f, (frameTop + L.UnderframeBottom) * .5f, 0f),
+                new Vector3(L.CarLength - .6f, frameTop - L.UnderframeBottom, L.CarWidth - .8f), M(TrainMat.Frame));
+            float bogieH = L.UnderframeBottom - L.RailTopY;
+            foreach (float x in new[] { -L.HalfL + 3f, L.HalfL - 3f })
+                Cube(p, "Bogie", new Vector3(x, L.RailTopY + bogieH * .5f, 0f), new Vector3(3.2f, bogieH, 6.0f), M(TrainMat.Steel));
+        }
+
+        private static void BuildUpperSleeping(Transform u, float s)
+        {
+            Material wall = M(TrainMat.Wall);
+            float top = L.UpperTop, ceiling = L.RoofBottom, h = ceiling - top, cy = top + h * .5f;
+            float[] doors = L.CorridorDoorX.Select(x => s * x).ToArray();
+
+            foreach (float z in new[] { -L.CorridorHalf, L.CorridorHalf })
+            {
+                CorridorWall(u, z, cy, h, doors, wall);
+                float lintelH = h - L.CorridorDoorHeight;
+                foreach (float x in doors)
+                    Cube(u, "CorridorDoorLintel", new Vector3(x, ceiling - lintelH * .5f, z), new Vector3(L.CorridorDoorWidth, lintelH, .12f), wall);
+            }
+
+            float sideDepth = L.HalfW - L.CorridorHalf;
+            foreach (float x in L.SleepingDividerX)
+                foreach (float sign in new[] { -1f, 1f })
+                    Cube(u, "RoomDivider", new Vector3(s * x, cy, sign * (L.CorridorHalf + sideDepth * .5f)), new Vector3(.12f, h, sideDepth - .04f), wall);
+
+            foreach (float x in L.SleepingPodX)
+                foreach (float sign in new[] { -1f, 1f })
+                    SleepPod(u, s * x, sign * L.SleepingPodZ, s);
+
+            Cube(u, "CorridorRunner", new Vector3(0f, top + .005f, 0f), new Vector3(L.CarLength - .8f, .01f, 2f * L.CorridorHalf - .2f), M(TrainMat.Living));
+        }
+
+        private static void CorridorWall(Transform p, float z, float y, float h, float[] doorCenters, Material wall)
+        {
+            float half = L.CorridorDoorWidth * .5f, cursor = -L.HalfL;
+            foreach (float c in doorCenters.OrderBy(v => v))
+            {
+                if (c - half > cursor)
+                {
+                    float w = c - half - cursor;
+                    Cube(p, "CorridorWall", new Vector3(cursor + w * .5f, y, z), new Vector3(w, h, .12f), wall);
+                }
+                cursor = Mathf.Max(cursor, c + half);
+            }
+            if (cursor < L.HalfL)
+            {
+                float w = L.HalfL - cursor;
+                Cube(p, "CorridorWall", new Vector3(cursor + w * .5f, y, z), new Vector3(w, h, .12f), wall);
+            }
+        }
+
+        private static void SleepPod(Transform p, float x, float z, float s)
+        {
+            float top = L.UpperTop, outer = Mathf.Sign(z);
+            Transform g = Group(p, "SleepPod");
+            Cube(g, "BedFrame", new Vector3(x, top + .22f, z), new Vector3(2.30f, .44f, .92f), M(TrainMat.Frame));
+            Cube(g, "Mattress", new Vector3(x, top + .51f, z), new Vector3(2.14f, .14f, .80f), M(TrainMat.Mattress));
+            Cube(g, "Locker", new Vector3(x + s * 1.28f, top + .90f, outer * 4.08f), new Vector3(.62f, 1.80f, .54f), M(TrainMat.Steel));
+            Cube(g, "Shelf", new Vector3(x - s * .75f, top + 1.30f, outer * 4.36f), new Vector3(.74f, .08f, .24f), M(TrainMat.Living));
+        }
+
+        private static void BuildUpperLadders(Transform p, float s)
+        {
+            float wallX = s * (L.HalfL - .22f), exitX = s * (L.HalfL - 1.20f);
+            foreach (float sign in new[] { -1f, 1f })
+            {
+                float z = sign * L.UpperLadderZ;
+                Ladder(p, sign < 0f ? "UpperLadderLeft" : "UpperLadderRight", wallX, z, L.MainY, L.UpperY,
+                    new Vector3(exitX, L.MainY + .12f, z), new Vector3(exitX, L.UpperY + .12f, z),
+                    "E - Üst kata çık", "E - Ana kata in");
+            }
+        }
+
+        private static void BuildTechnicalLadder(Transform p)
+        {
+            float exitX = -L.HalfL + 1.20f, exitZ = -3.25f;
+            Ladder(p, "TechnicalLadder", -L.HalfL + .22f, L.TechnicalLadderZ, L.LowerY, L.MainY,
+                new Vector3(exitX, L.LowerY + .12f, exitZ), new Vector3(exitX, L.MainY + .12f, exitZ),
+                "E - Teknik kata in", "E - Ana kata çık");
+        }
+
+        private static void Ladder(Transform p, string name, float x, float z, float lowY, float highY, Vector3 lowExit, Vector3 highExit, string upText, string downText)
+        {
+            Material frame = M(TrainMat.Frame), steel = M(TrainMat.Steel);
+            Transform l = Group(p, name);
+            l.localPosition = new Vector3(x, (lowY + highY) * .5f, z);
+            float h = highY - lowY;
+            Cube(l, "RailL", new Vector3(0f, 0f, -.43f), new Vector3(.08f, h, .08f), frame);
+            Cube(l, "RailR", new Vector3(0f, 0f, .43f), new Vector3(.08f, h, .08f), frame);
+            int count = Mathf.Max(8, Mathf.RoundToInt(h / .28f));
+            for (int i = 0; i <= count; i++)
+                Cube(l, "Rung", new Vector3(-.02f, Mathf.Lerp(-h * .5f, h * .5f, i / (float)count), 0f), new Vector3(.08f, .055f, .94f), steel);
+
+            GameObject hit = new GameObject("LadderInteraction");
+            hit.transform.SetParent(l, false);
+            hit.AddComponent<BoxCollider>().size = new Vector3(.45f, h, 1.25f);
+            Transform low = Empty(l, "LowerExit", lowExit - l.localPosition);
+            Transform high = Empty(l, "UpperExit", highExit - l.localPosition);
+            hit.AddComponent<DeckLadder>().Configure(low, high, upText, downText);
+        }
+
+        private static void BuildLights(Transform l, CarSpec car)
+        {
+            PointLight(l, "LowerDeckLight", new Vector3(0f, -.52f, 0f), .78f, new Color(.72f, .82f, .90f));
+            PointLight(l, "MainDeckLight", new Vector3(0f, 2.72f, 0f), car.MainLightIntensity, car.MainLightColor);
+            PointLight(l, "UpperDeckLight", new Vector3(0f, 5.58f, 0f), .82f, new Color(.86f, .80f, .70f));
+            float[] ceilings = { L.MainY - L.MainFloorT * .5f, L.UpperY - L.UpperFloorT * .5f, L.RoofBottom };
+            foreach (float ceiling in ceilings)
+                foreach (float x in new[] { -5.8f, 0f, 5.8f })
+                {
+                    Cube(l, "LightHousing", new Vector3(x, ceiling - .035f, 0f), new Vector3(2.8f, .07f, .28f), M(TrainMat.Frame));
+                    Cube(l, "LightStrip", new Vector3(x, ceiling - .08f, 0f), new Vector3(2.4f, .03f, .16f), M(TrainMat.Amber));
+                }
+        }
+
+        private static void PointLight(Transform p, string name, Vector3 pos, float intensity, Color color)
+        {
+            Transform t = Empty(p, name, pos);
+            Light light = t.gameObject.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.range = 9.5f;
+            light.intensity = intensity;
+            light.color = color;
+            light.shadows = LightShadows.None;
+            t.gameObject.AddComponent<TrainLightDynamics>();
+        }
+
+        // ---- Props --------------------------------------------------------------------------
+
+        private static void BuildProps(Transform parent, IEnumerable<Prop> props)
+        {
+            foreach (Prop prop in props) BuildProp(parent, prop);
+        }
+
+        private static GameObject BuildProp(Transform parent, Prop prop)
+        {
+            GameObject go;
+            switch (prop.Shape)
+            {
+                case PropShape.Box:
+                    go = Cube(parent, prop.Name, prop.Position, prop.Size, M(prop.Body));
+                    break;
+                case PropShape.Pipe:
+                    go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                    go.name = prop.Name;
+                    go.transform.SetParent(parent, false);
+                    go.transform.localPosition = prop.Position;
+                    go.transform.localEulerAngles = new Vector3(0f, 0f, 90f);
+                    go.transform.localScale = new Vector3(prop.Size.y, prop.Size.x * .5f, prop.Size.z);
+                    go.GetComponent<Renderer>().sharedMaterial = M(prop.Body);
+                    break;
+                case PropShape.Machine:
+                case PropShape.Cabinet:
+                {
+                    go = Empty(parent, prop.Name, prop.Position).gameObject;
+                    // Detail faces the car centreline (the aisle) whichever wall the object stands against.
+                    float face = parent.TransformPoint(prop.Position).z > .001f ? -1f : 1f;
+                    Vector3 size = prop.Size;
+                    Cube(go.transform, "Body", Vector3.zero, size, M(prop.Body));
+                    if (prop.Shape == PropShape.Machine)
+                        Cube(go.transform, "Trim", new Vector3(0f, size.y * .18f, face * size.z * .5f), new Vector3(size.x * .84f, size.y * .18f, .08f), M(prop.Trim));
+                    else
+                        Cube(go.transform, "Door", new Vector3(0f, 0f, face * size.z * .51f), new Vector3(size.x * .88f, size.y * .86f, .04f), M(prop.Trim));
+                    break;
+                }
+                default:
+                    go = Empty(parent, prop.Name, prop.Position).gameObject;
+                    go.transform.localRotation = Quaternion.Euler(0f, prop.Yaw, 0f);
+                    BuildProps(go.transform, prop.Children);
+                    break;
+            }
+
+            if (prop.Control.HasValue) go.AddComponent<TrainSystemInteractable>().Configure(null, prop.Control.Value);
+            if (prop.Terminal) go.AddComponent<ManagementTerminal>();
+            return go;
+        }
+
+        // ---- Connector ----------------------------------------------------------------------
+
+        private static GameObject BuildConnectorPrefab()
+        {
+            const float len = .82f, width = 2.30f, side = 1.15f;
+            Material floor = M(TrainMat.Floor), rubber = M(TrainMat.Rubber), frame = M(TrainMat.Frame);
+            GameObject root = new GameObject("CarConnector");
+            try
+            {
+                Transform g = root.transform;
+                float lowerCeiling = L.MainY - L.MainFloorT * .5f, mainCeiling = L.UpperY - L.UpperFloorT * .5f;
+                Cube(g, "LowerFloor", new Vector3(0f, L.LowerY, 0f), new Vector3(len, L.LowerFloorT, width), floor);
+                Cube(g, "MainFloor", new Vector3(0f, L.MainY, 0f), new Vector3(len, L.MainFloorT, width), floor);
+                Cube(g, "UpperFloor", new Vector3(0f, L.UpperY, 0f), new Vector3(len, L.UpperFloorT, width), floor);
+                Cube(g, "UpperRoof", new Vector3(0f, L.RoofY, 0f), new Vector3(len, L.RoofT, width), frame);
+                foreach (float sign in new[] { -1f, 1f })
+                {
+                    string s = sign < 0f ? "L" : "R";
+                    Bellows(g, "LowerBellows" + s, sign * side, L.LowerY, lowerCeiling, len, rubber);
+                    Bellows(g, "MainBellows" + s, sign * side, L.MainY, mainCeiling, len, rubber);
+                    Bellows(g, "UpperBellows" + s, sign * side, L.UpperY, L.RoofY, len, rubber);
+                }
+                BuildSlidingDoor(g);
+                return PrefabUtility.SaveAsPrefabAsset(root, ConnectorPath);
+            }
+            finally { Object.DestroyImmediate(root); }
+        }
+
+        private static void Bellows(Transform p, string name, float z, float bottom, float top, float len, Material m) =>
+            Cube(p, name, new Vector3(0f, (bottom + top) * .5f, z), new Vector3(len, top - bottom, .12f), m);
+
+        /// <summary>Main-deck connector door; the root moves, the panel and trim ride along.</summary>
+        private static void BuildSlidingDoor(Transform p)
+        {
+            Transform door = Empty(p, "SlidingDoor", new Vector3(0f, L.MainTop + 1.24f, 0f));
+            Cube(door, "DoorPanel", Vector3.zero, new Vector3(.12f, 2.48f, 1.82f), M(TrainMat.Frame));
+            foreach (float face in new[] { -1f, 1f })
+            {
+                Detail(door, "CenterSeam", new Vector3(face * .066f, 0f, 0f), new Vector3(.018f, 1.95f, .045f), TrainMat.Frame);
+                Detail(door, "Handle", new Vector3(face * .074f, -.05f, .40f), new Vector3(.035f, .34f, .060f), TrainMat.Amber);
+                Detail(door, "WarningPlate", new Vector3(face * .073f, .72f, 0f), new Vector3(.022f, .16f, .62f), TrainMat.Amber);
+                Detail(door, "LowerKickPlate", new Vector3(face * .071f, -.88f, 0f), new Vector3(.020f, .32f, 1.32f), TrainMat.Frame);
+            }
+            door.gameObject.AddComponent<SlidingDoor>().Configure(new Vector3(0f, 0f, -1.90f), 2.8f);
+        }
+
+        private static void Detail(Transform p, string name, Vector3 pos, Vector3 size, TrainMat mat)
+        {
+            GameObject go = Cube(p, name, pos, size, M(mat));
+            Object.DestroyImmediate(go.GetComponent<Collider>());
+        }
+
+        // ---- Scene --------------------------------------------------------------------------
+
+        private static Scene OpenOrCreateScene()
+        {
+            if (System.IO.File.Exists(ScenePath))
+                return EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            EditorSceneManager.SaveScene(scene, ScenePath);
+            return scene;
+        }
+
+        /// <summary>Recreates the cars and connectors under the train root; the root keeps its survival state values.</summary>
+        private static TrainPrototypeState PlaceTrain(GameObject[] cars, GameObject connector)
+        {
+            GameObject train = GameObject.Find(TrainRootName);
+            if (train == null) train = new GameObject(TrainRootName);
+            train.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+            TrainPrototypeState state = GetOrAdd<TrainPrototypeState>(train);
+            GetOrAdd<SurvivalSimulation>(train);
+            GetOrAdd<AudioSource>(train);
+            GetOrAdd<TrainAmbience>(train);
+
+            for (int i = train.transform.childCount - 1; i >= 0; i--)
+                Object.DestroyImmediate(train.transform.GetChild(i).gameObject);
+
+            for (int i = 0; i < cars.Length; i++)
+            {
+                var car = (GameObject)PrefabUtility.InstantiatePrefab(cars[i], train.transform);
+                car.transform.localPosition = new Vector3(L.CarCenterX(i), 0f, 0f);
+                if (i == cars.Length - 1) continue;
+                var c = (GameObject)PrefabUtility.InstantiatePrefab(connector, train.transform);
+                c.transform.localPosition = new Vector3((L.CarCenterX(i) + L.CarCenterX(i + 1)) * .5f, 0f, 0f);
+            }
+            return state;
+        }
+
+        private static void ConfigureLighting()
+        {
+            Light sun = Object.FindObjectsByType<Light>(FindObjectsSortMode.None).FirstOrDefault(l => l.type == LightType.Directional);
+            if (sun == null)
+            {
+                sun = new GameObject("ColdExteriorLight").AddComponent<Light>();
+                sun.type = LightType.Directional;
+                sun.intensity = .58f;
+                sun.color = new Color(.60f, .72f, .94f);
+                sun.shadows = LightShadows.Soft;
+                sun.transform.rotation = Quaternion.Euler(33f, -28f, 0f);
+            }
+
+            RenderSettings.ambientMode = AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = new Color(.085f, .12f, .17f);
+            RenderSettings.ambientEquatorColor = new Color(.045f, .055f, .070f);
+            RenderSettings.ambientGroundColor = new Color(.018f, .022f, .028f);
+            RenderSettings.fog = true;
+            RenderSettings.fogColor = new Color(.46f, .53f, .60f);
+            RenderSettings.fogMode = FogMode.Linear;
+            RenderSettings.fogStartDistance = 42f;
+            RenderSettings.fogEndDistance = 155f;
+        }
+
+        /// <summary>Ground, track and passing scenery at the height the train actually stands on.</summary>
+        private static void BuildExterior()
+        {
+            GameObject old = GameObject.Find(ExteriorRootName);
+            if (old != null) Object.DestroyImmediate(old);
+            Transform env = new GameObject(ExteriorRootName).transform;
+            Random.State saved = Random.state;
+            Random.InitState(1907);
+            try
+            {
+                float g = L.GroundY;
+                GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
+                ground.name = "SnowGround";
+                ground.transform.SetParent(env, false);
+                ground.transform.localPosition = new Vector3(0f, g, 0f);
+                ground.transform.localScale = new Vector3(28f, 1f, 18f);
+                ground.GetComponent<Renderer>().sharedMaterial = M(TrainMat.Snow);
+
+                Cube(env, "TrackBed", new Vector3(0f, g + .02f, 0f), new Vector3(280f, .04f, 6.4f), M(TrainMat.NearRock));
+                foreach (float z in new[] { -2.4f, 2.4f })
+                    Cube(env, "Rail", new Vector3(0f, L.RailTopY - .07f, z), new Vector3(280f, .14f, .12f), M(TrainMat.Steel));
+
+                Transform near = Group(env, "NEAR_SCENERY");
+                near.gameObject.AddComponent<MovingScenery>().Configure(14f, -55f, 90f);
+                const float sleeperStep = 1.45f;
+                for (int i = 0; i < 100; i++)
+                    Cube(near, "Sleeper", new Vector3(-55f + i * sleeperStep, g + .07f, 0f), new Vector3(.30f, .10f, 6.0f), M(TrainMat.Frame));
+                for (int i = 0; i < 18; i++)
+                {
+                    float side = i % 2 == 0 ? -1f : 1f;
+                    Vector3 size = new Vector3(Random.Range(1.4f, 4.2f), Random.Range(1.0f, 3.6f), Random.Range(1.3f, 4.0f));
+                    GameObject rock = Cube(near, "PassingRock", new Vector3(-55f + i * 7.2f, g + size.y * .3f, side * Random.Range(9.5f, 14f)), size, M(TrainMat.NearRock));
+                    rock.transform.localRotation = Quaternion.Euler(Random.Range(-8f, 8f), Random.Range(0f, 180f), Random.Range(-8f, 8f));
+                }
+                for (int i = 0; i < 14; i++)
+                {
+                    float x = -58f + i * 9f, z = i % 2 == 0 ? -8.2f : 8.2f;
+                    Cube(near, "TrackSidePost", new Vector3(x, g + 3.5f, z), new Vector3(.18f, 7f, .18f), M(TrainMat.Frame));
+                    Cube(near, "PostCrossArm", new Vector3(x, g + 6.6f, z), new Vector3(.12f, .12f, 1.6f), M(TrainMat.Frame));
+                }
+
+                Transform far = Group(env, "DISTANT_SCENERY");
+                far.gameObject.AddComponent<MovingScenery>().Configure(4f, -75f, 115f);
+                for (int i = 0; i < 12; i++)
+                {
+                    float side = i % 2 == 0 ? -1f : 1f;
+                    Vector3 size = new Vector3(Random.Range(9f, 17f), Random.Range(8f, 16f), Random.Range(6f, 11f));
+                    GameObject m = Cube(far, "DistantMountain", new Vector3(-75f + i * 15f, g + size.y * .3f, side * Random.Range(22f, 34f)), size, M(TrainMat.FarRock));
+                    m.transform.localRotation = Quaternion.Euler(0f, Random.Range(20f, 70f), Random.Range(20f, 40f));
+                }
+            }
+            finally { Random.state = saved; }
+        }
+
+        private static void BuildAtmosphere(Scene scene)
+        {
+            GameObject root = GameObject.Find(AtmosphereRootName);
+            if (root == null) root = new GameObject(AtmosphereRootName);
+            if (root.GetComponentInChildren<Volume>(true) == null)
+            {
+                Volume volume = new GameObject("GlobalPostProcessing").AddComponent<Volume>();
+                volume.transform.SetParent(root.transform, false);
+                volume.isGlobal = true;
+                volume.priority = 50f;
+                volume.sharedProfile = GetOrCreatePostProfile();
+            }
+
+            foreach (GameObject r in scene.GetRootGameObjects())
+                foreach (ParticleSystem ps in r.GetComponentsInChildren<ParticleSystem>(true))
+                {
+                    string n = ps.name.ToLowerInvariant();
+                    if (n.Contains("snow") || n.Contains("kar")) Object.DestroyImmediate(ps.gameObject);
+                }
+
+            Material snow = GetOrCreateSnowParticleMaterial();
+            SnowEmitter(root.transform, "ExteriorSnowFar_Left", -20.5f, snow);
+            SnowEmitter(root.transform, "ExteriorSnowFar_Right", 20.5f, snow);
+        }
+
+        /// <summary>Snow falls well outside the car body and drifts +X with the passing world.</summary>
+        private static void SnowEmitter(Transform p, string name, float z, Material m)
+        {
+            GameObject go = new GameObject(name);
+            go.transform.SetParent(p, false);
+            go.transform.localPosition = new Vector3(0f, 3f, z);
+            ParticleSystem ps = go.AddComponent<ParticleSystem>();
+            var main = ps.main;
+            main.loop = true; main.startLifetime = 6.5f; main.startSpeed = 0f; main.startSize = .075f;
+            main.maxParticles = 600; main.simulationSpace = ParticleSystemSimulationSpace.Local; main.gravityModifier = .025f;
+            var emission = ps.emission; emission.rateOverTime = 60f;
+            var shape = ps.shape; shape.shapeType = ParticleSystemShapeType.Box; shape.scale = new Vector3(135f, 16f, 1.4f);
+            var velocity = ps.velocityOverLifetime; velocity.enabled = true; velocity.x = 10f; velocity.y = -1.35f; velocity.z = 0f;
+            ParticleSystemRenderer r = go.GetComponent<ParticleSystemRenderer>();
+            r.sharedMaterial = m;
+            r.renderMode = ParticleSystemRenderMode.Billboard;
+        }
+
+        private static void EnsurePlayer(TrainPrototypeState state)
+        {
+            GameObject player = GameObject.Find(PlayerName);
+            if (player == null)
+            {
+                player = new GameObject(PlayerName);
+                player.transform.position = new Vector3(L.CarCenterX(2), L.MainTop + .01f, 0f);
+                CharacterController cc = player.AddComponent<CharacterController>();
+                cc.height = 1.8f; cc.radius = .34f; cc.center = new Vector3(0f, .9f, 0f); cc.stepOffset = .32f; cc.slopeLimit = 50f;
+
+                GameObject camObject = new GameObject("PlayerCamera");
+                camObject.transform.SetParent(player.transform, false);
+                camObject.transform.localPosition = new Vector3(0f, 1.62f, 0f);
+                camObject.tag = "MainCamera";
+                Camera cam = camObject.AddComponent<Camera>();
+                cam.fieldOfView = 72f; cam.nearClipPlane = .04f; cam.farClipPlane = 260f;
+                camObject.AddComponent<AudioListener>();
+            }
+
+            Camera camera = player.GetComponentInChildren<Camera>(true);
+            FpsPlayerController controller = GetOrAdd<FpsPlayerController>(player);
+            GetOrAdd<PlayerInteraction>(player).Configure(camera, 3.1f);
+            GetOrAdd<TrainManagementPanel>(player).Configure(state, controller);
+            GetOrAdd<ProceduralMetalFootsteps>(player);
+            if (camera != null)
+            {
+                UniversalAdditionalCameraData data = camera.GetUniversalAdditionalCameraData();
+                data.renderPostProcessing = true;
+                data.dithering = true;
+            }
+        }
+
+        // ---- Assets -------------------------------------------------------------------------
+
+        private static Dictionary<TrainMat, Material> CreateMaterials() => new Dictionary<TrainMat, Material>
+        {
+            [TrainMat.Floor] = Lit("Train_Floor", new Color(.075f, .085f, .095f), .24f, .44f),
+            [TrainMat.Wall] = Lit("Train_Wall", new Color(.16f, .18f, .19f), .24f, .34f),
+            [TrainMat.Frame] = Lit("Train_Frame", new Color(.045f, .052f, .060f), .38f, .78f),
+            [TrainMat.Steel] = Lit("Train_Steel", new Color(.23f, .26f, .28f), .42f, .80f),
+            [TrainMat.Rubber] = Lit("Train_Rubber", new Color(.025f, .030f, .035f), .10f, .02f),
+            [TrainMat.Generator] = Lit("Train_Generator", new Color(.26f, .10f, .045f), .32f, .56f),
+            [TrainMat.Living] = Lit("Train_Living", new Color(.10f, .19f, .22f), .18f, .05f),
+            [TrainMat.Mattress] = Lit("Train_Mattress", new Color(.20f, .25f, .27f), .08f, 0f),
+            [TrainMat.Workshop] = Lit("Train_Workshop", new Color(.25f, .18f, .08f), .23f, .36f),
+            [TrainMat.Greenhouse] = Lit("Train_Greenhouse", new Color(.07f, .25f, .12f), .16f, .04f),
+            [TrainMat.Plant] = Lit("Train_Plant", new Color(.035f, .18f, .07f), .08f, 0f),
+            [TrainMat.Screen] = Lit("Train_Screen", new Color(.025f, .21f, .28f), .58f, .10f, new Color(.03f, .70f, .90f) * 1.5f),
+            [TrainMat.Amber] = Lit("Train_Amber", new Color(.46f, .16f, .025f), .30f, .10f, new Color(.95f, .31f, .035f) * 1.35f),
+            [TrainMat.Snow] = Lit("Train_Snow", new Color(.76f, .83f, .90f), .08f, 0f),
+            [TrainMat.NearRock] = Lit("Train_ExteriorRock", new Color(.090f, .105f, .12f), .06f, 0f),
+            [TrainMat.FarRock] = Lit("Train_DistantRock", new Color(.16f, .19f, .22f), .04f, 0f),
+            [TrainMat.Glass] = Transparent("Train_WindowGlass", new Color(.42f, .62f, .72f, .13f), .80f, .04f),
+        };
+
+        private static Material M(TrainMat m) => mats[m];
+
+        private static Material Lit(string fileName, Color color, float smoothness, float metallic, Color? emission = null)
+        {
+            string path = MaterialFolder + "/" + fileName + ".mat";
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null) throw new System.InvalidOperationException("URP/Lit shader not found.");
+            Material material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(shader) { name = fileName };
+                AssetDatabase.CreateAsset(material, path);
+            }
+            material.shader = shader;
+            material.color = color;
+            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
+            if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", smoothness);
+            if (material.HasProperty("_Metallic")) material.SetFloat("_Metallic", metallic);
+            if (emission.HasValue && material.HasProperty("_EmissionColor"))
+            {
+                material.EnableKeyword("_EMISSION");
+                material.SetColor("_EmissionColor", emission.Value);
+            }
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        private static Material Transparent(string fileName, Color color, float smoothness, float metallic)
+        {
+            Material material = Lit(fileName, color, smoothness, metallic);
+            material.SetOverrideTag("RenderType", "Transparent");
+            material.renderQueue = (int)RenderQueue.Transparent;
+            if (material.HasProperty("_Surface")) material.SetFloat("_Surface", 1f);
+            if (material.HasProperty("_Blend")) material.SetFloat("_Blend", 0f);
+            if (material.HasProperty("_SrcBlend")) material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+            if (material.HasProperty("_DstBlend")) material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+            if (material.HasProperty("_ZWrite")) material.SetFloat("_ZWrite", 0f);
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.DisableKeyword("_ALPHATEST_ON");
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        private static Material GetOrCreateSnowParticleMaterial()
+        {
+            Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            Material material = AssetDatabase.LoadAssetAtPath<Material>(SnowParticleMaterialPath);
+            if (material == null)
+            {
+                material = new Material(shader) { name = "Train_SnowParticles" };
+                AssetDatabase.CreateAsset(material, SnowParticleMaterialPath);
+            }
+            material.shader = shader;
+            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", new Color(.92f, .96f, 1f, .72f));
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        private static VolumeProfile GetOrCreatePostProfile()
+        {
+            VolumeProfile profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(PostProfilePath);
+            if (profile != null) return profile;
+
+            profile = ScriptableObject.CreateInstance<VolumeProfile>();
+            profile.name = "FrozenTrain_PostProcess";
+            AssetDatabase.CreateAsset(profile, PostProfilePath);
+            profile.Add<Tonemapping>(true).mode.Override(TonemappingMode.ACES);
+            Bloom bloom = profile.Add<Bloom>(true);
+            bloom.intensity.Override(.13f);
+            bloom.threshold.Override(1.10f);
+            ColorAdjustments color = profile.Add<ColorAdjustments>(true);
+            color.contrast.Override(7f);
+            color.saturation.Override(-5f);
+            Vignette vignette = profile.Add<Vignette>(true);
+            vignette.intensity.Override(.11f);
+            vignette.smoothness.Override(.58f);
+            EditorUtility.SetDirty(profile);
+            return profile;
+        }
+
+        // ---- Helpers ------------------------------------------------------------------------
+
+        // Explicit null checks: Unity's fake-null objects defeat the ?? operator.
+        private static T GetOrAdd<T>(GameObject go) where T : Component
+        {
+            T existing = go.GetComponent<T>();
+            return existing != null ? existing : go.AddComponent<T>();
+        }
+
+        private static Transform Group(Transform p, string name)
+        {
+            GameObject go = new GameObject(name);
+            go.transform.SetParent(p, false);
+            return go.transform;
+        }
+
+        private static Transform Empty(Transform p, string name, Vector3 pos)
+        {
+            Transform t = Group(p, name);
+            t.localPosition = pos;
+            return t;
+        }
+
+        private static GameObject Cube(Transform p, string name, Vector3 pos, Vector3 scale, Material m)
+        {
+            GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = name;
+            go.transform.SetParent(p, false);
+            go.transform.localPosition = pos;
+            go.transform.localScale = scale;
+            if (m != null) go.GetComponent<Renderer>().sharedMaterial = m;
+            return go;
+        }
+
+        private static void EnsureFolder(string folderPath)
+        {
+            if (AssetDatabase.IsValidFolder(folderPath)) return;
+            string parent = System.IO.Path.GetDirectoryName(folderPath)?.Replace('\\', '/');
+            string name = System.IO.Path.GetFileName(folderPath);
+            if (!string.IsNullOrEmpty(parent) && !AssetDatabase.IsValidFolder(parent)) EnsureFolder(parent);
+            AssetDatabase.CreateFolder(parent ?? "Assets", name);
+        }
+    }
+}
+#endif

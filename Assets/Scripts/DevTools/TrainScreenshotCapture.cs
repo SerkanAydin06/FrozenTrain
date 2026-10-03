@@ -27,7 +27,7 @@ namespace FrozenTrain.DevTools
         private const float StartDelaySeconds = 2.5f;
         private const float ReviewFov = 80f;
 
-        // Must match FrozenTrainFinalThreeDeckAuthoring (car order, spacing and deck floor levels).
+        // Must match FrozenTrainLayout (car order, spacing and deck floor levels).
         private static readonly string[] CarNames = { "01_Locomotive", "02_Generator", "03_Living", "04_Workshop", "05_Greenhouse" };
         private static readonly string[] CarLabels = { "Lokomotif", "Jeneratör", "Yaşam", "Atölye", "Sera" };
         private const float CarSpacing = 18.8f;
