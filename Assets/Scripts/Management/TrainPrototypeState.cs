@@ -91,12 +91,24 @@ namespace FrozenTrain.Management
         public bool GreenhouseBoostActive => greenhouseBoostSeconds > 0.01f;
         public int GreenhouseBoostSecondsRemaining => Mathf.CeilToInt(greenhouseBoostSeconds);
 
-        public int SpeedKmh => pace switch
+        public int TargetSpeedKmh => pace switch
         {
             TrainPace.Economy => 35,
             TrainPace.Push => 85,
             _ => 60
         };
+
+        public bool CanMove => generatorOnline && fuel > 0.01f && trainCondition > 1f;
+
+        public int SpeedKmh
+        {
+            get
+            {
+                if (!CanMove) return 0;
+                float conditionFactor = Mathf.Lerp(0.55f, 1f, trainCondition / 100f);
+                return Mathf.RoundToInt(TargetSpeedKmh * conditionFactor);
+            }
+        }
 
         public string PaceLabel => pace switch
         {
@@ -122,7 +134,16 @@ namespace FrozenTrain.Management
         private float CurrentGreenhouseProduction => greenhouseFoodProduction * (GreenhouseBoostActive ? 1.65f : 1f);
         private float CurrentGreenhouseWaterUse => greenhouseWaterUse * (GreenhouseBoostActive ? 1.30f : 1f);
 
-        public float FuelDeltaPerMinute => -(LocomotiveFuelUse + (generatorOnline ? generatorFuelUse : 0f)) * 60f;
+        public float FuelDeltaPerMinute
+        {
+            get
+            {
+                float perSecond = generatorOnline ? generatorFuelUse : 0f;
+                if (SpeedKmh > 0) perSecond += LocomotiveFuelUse;
+                return -perSecond * 60f;
+            }
+        }
+
         public float FoodDeltaPerMinute => (-population * foodUsePerPerson + (GreenhouseActuallyRunning ? CurrentGreenhouseProduction : 0f)) * 60f;
         public float WaterDeltaPerMinute => (-population * waterUsePerPerson - (GreenhouseActuallyRunning ? CurrentGreenhouseWaterUse : 0f)) * 60f;
         public float MaterialsDeltaPerMinute => WorkshopActuallyRepairing ? -workshopMaterialUse * 60f : 0f;
@@ -155,6 +176,7 @@ namespace FrozenTrain.Management
                 if (populationHealth <= 50f) warnings++;
                 if (trainCondition <= 35f) warnings++;
                 if (!PowerStable) warnings++;
+                if (!CanMove) warnings++;
                 return warnings;
             }
         }
@@ -219,9 +241,12 @@ namespace FrozenTrain.Management
             if (greenhouseBoostSeconds > 0f)
                 greenhouseBoostSeconds = Mathf.Max(0f, greenhouseBoostSeconds - deltaSeconds);
 
-            distanceKm += (SpeedKmh / 3600f) * deltaSeconds;
-            fuel = Mathf.Max(0f, fuel - LocomotiveFuelUse * deltaSeconds);
-            trainCondition = Mathf.Max(0f, trainCondition - TravelWearPerSecond * deltaSeconds);
+            if (SpeedKmh > 0)
+            {
+                distanceKm += (SpeedKmh / 3600f) * deltaSeconds;
+                fuel = Mathf.Max(0f, fuel - LocomotiveFuelUse * deltaSeconds);
+                trainCondition = Mathf.Max(0f, trainCondition - TravelWearPerSecond * deltaSeconds);
+            }
 
             if (generatorOnline)
             {
