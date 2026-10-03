@@ -23,14 +23,16 @@ namespace FrozenTrain.Atmosphere
                 return;
             }
 
+            // The locomotive front faces -X, so scenery must travel toward +X
+            // to create the correct forward-motion illusion.
             foreach (Transform child in transform)
             {
                 Vector3 position = child.localPosition;
-                position.x -= speed * Time.deltaTime;
+                position.x += speed * Time.deltaTime;
 
-                while (position.x < minX)
+                while (position.x > maxX)
                 {
-                    position.x += span;
+                    position.x -= span;
                 }
 
                 child.localPosition = position;
