@@ -4,13 +4,21 @@ The train remains fixed at five cars. No story content and no additional cars ar
 
 ## Global structure
 
-Every car now has three usable vertical zones:
+The train uses three vertical functional zones, but they are **not all public circulation decks**:
 
-1. **Basement / infrastructure deck** — pipes, cable trays, tanks, batteries, waste/water/fuel infrastructure and maintenance access.
-2. **Main deck** — driving, social life, work, production and survival-system interaction.
-3. **Upper sleeping deck** — bunks, lockers and quiet sleeping circulation.
+1. **Basement / infrastructure deck** — restricted technical service space for pipes, cable trays, tanks, batteries, HVAC, fuel/water and maintenance infrastructure.
+2. **Main deck** — normal driving, social life, work, production and survival interaction.
+3. **Upper deck** — sleeping/private accommodation belonging to that specific car.
 
-The upper and basement decks continue between cars through multi-level connector passages. The living car contains the main vertical circulation between all three levels.
+## Access rules
+
+- Upper decks **do not connect from car to car**.
+- Every upper deck is reached from its own main deck using a compact **wall-mounted ladder** and a real floor opening.
+- Upper-deck front/rear ends are sealed.
+- Basement access is deliberately limited: the main public deck only has technical access hatches/ladders in **02 Generator** and **04 Workshop**.
+- Once technical staff enter the basement, the basement service corridor can continue between cars through the lower connector route.
+- Living/social passengers do not have a basement opening in the living car.
+- All vertical access uses wall ladders to preserve usable floor area; the previous stair-flight layout is obsolete.
 
 ## Global rules
 
@@ -18,105 +26,100 @@ The upper and basement decks continue between cars through multi-level connector
 - No story/event content in this pass.
 - Technical cars remain sealed and windowless on the main deck.
 - Windows exist only where they make functional sense.
-- Tall furniture, cabinets, machinery and bunks never block a window opening.
+- Tall furniture, cabinets and machinery never block a window opening.
 - Main-deck circulation remains clear.
-- Upper sleeping decks keep a continuous central corridor.
-- Basement decks keep a continuous service corridor.
-- Runtime gameplay code does not generate train geometry; the editor authoring command writes the layout into scene/prefab assets.
-- `Frozen Train > Rebuild Authored Train` is the primary authoring command going forward.
+- Runtime gameplay code does not generate the authored train layout.
+- `Frozen Train > Rebuild Authored Train` remains the single public authoring workflow.
 
 ## 01 — Locomotive
 
 ### Main deck
-- Forward cab remains windowed.
-- Main driving console and operator seats face the direction of travel.
+- The front is one **single-piece panoramic windshield** with no central mullions.
+- Driving console and operator seats face the direction of travel.
 - Rear half is a sealed technical/control zone.
 - Tall cabinets and management terminal remain in solid-wall zones.
-- Forward/side sight-lines remain unobstructed.
+- Cab sight-lines stay unobstructed.
 
 ### Upper deck
-- Compact crew sleeping berths and lockers.
-- Sealed walls for insulation and darkness.
+- Private crew sleeping area for this car only.
+- Reached by the car's own wall ladder.
+- No upper-deck connection to neighbouring cars.
 
 ### Basement
-- Traction battery bank.
-- Drive electronics and cable trunks.
-- Clear service corridor.
+- Traction battery bank and drive electronics.
+- No public main-deck basement hatch in this car.
+- Accessible through the technical basement route after entering from an authorised access car.
 
 ## 02 — Generator
 
 ### Main deck
 - Fully sealed machine room with no side windows.
-- Generator mass occupies one machinery side.
-- Electrical cabinets occupy the opposite wall.
+- Generator mass on the machinery side, electrical cabinets opposite.
 - Central service route remains clear.
 
 ### Upper deck
-- Insulated sleeping berths above the machinery deck.
-- Central sleeping corridor remains clear.
+- Crew sleeping/private space for this car.
+- Own wall ladder; no inter-car upper passage.
 
 ### Basement
-- Fuel tanks.
-- Generator manifold and utility pipes.
-- Cable/service route through the center.
+- **Primary technical basement access point.**
+- Wall ladder/hatch from the main generator deck.
+- Fuel tanks, generator manifold, pipes and cable service route.
 
 ## 03 — Living
 
 ### Main deck
-- Central social/lounge zone is windowed.
-- Seating uses real train-style **four-person bays**: two double seats face each other along the train axis with a table between them.
-- Seats do not face the glass directly.
-- Galley, medical cabinet and heater sit in solid end zones.
-- Window sight-lines remain completely open above the low seating/table level.
-- This car contains the stairs to the upper sleeping deck and basement infrastructure deck.
+- Main social/living level.
+- Central lounge remains windowed.
+- Seating uses real train-style four-person bays: paired double seats face each other along the train axis with a table between them.
+- Seats do not face directly into the glass.
+- Galley, medical storage and heater remain in solid end zones.
+- Window sight-lines remain clear.
+- **No basement hatch** in the passenger living area.
 
 ### Upper deck
-- Primary sleeping deck with the highest bunk capacity.
-- Bunks stay against the sides with a clear central corridor.
-- Lockers occupy end/solid zones.
+- This is the residents' private accommodation level.
+- Four compact private sleeping rooms are arranged around a central corridor.
+- Each room has a bed, locker and shelf.
+- Wall ladder lands in a dedicated clear landing area.
+- No upper-deck connection to another car.
 
 ### Basement
-- Fresh-water tank.
-- Waste-water tank.
-- HVAC/service plant.
-- Main service corridor remains clear.
+- Fresh/waste water and HVAC infrastructure may exist below, but passengers do not enter from this car.
+- Technical staff reach it from the restricted basement route.
 
 ## 04 — Workshop
 
 ### Main deck
-- Fully sealed, no side windows.
-- Workbenches follow the walls.
-- Machine station and cabinets stay outside the central aisle.
-- Open assembly/service route through the middle.
+- Fully sealed workshop with wall benches, machine station and clear central work route.
 
 ### Upper deck
-- Sleeping berths and lockers.
-- Clear center corridor.
+- Crew sleeping/private area reached by the car's own wall ladder.
+- No upper inter-car passage.
 
 ### Basement
-- Compressor.
-- Parts storage.
-- Tool power bus and cable trays.
+- **Second technical basement access point.**
+- Wall ladder/hatch from the workshop.
+- Compressor, parts storage, tool power bus and cable trays.
 
 ## 05 — Greenhouse
 
 ### Main deck
 - Fully sealed climate-controlled grow room.
-- Two hydroponic crop lanes run along the sides.
-- Wide central working aisle.
-- Water tank, pump and climate controls occupy utility zones.
+- Two hydroponic crop lanes with a clear central working aisle.
 
 ### Upper deck
-- Sleeping berths/lockers separated from the grow room by the structural upper-deck slab.
+- Sleeping/private space for this car, reached only by its own wall ladder.
+- No upper inter-car passage.
 
 ### Basement
-- Nutrient tank.
-- Irrigation reserve.
-- Climate-service rack.
-- Continuous pipe/cable service corridor.
+- Nutrient tank, irrigation reserve and climate-service equipment.
+- No public hatch from the greenhouse main deck; technical route access only.
 
 ## Exterior and interaction rules
 
-- The locomotive front faces **-X**. Exterior scenery must move toward **+X** to create the correct forward-motion illusion.
-- Snow emitters stay outside the train body on both lateral sides; snow must never spawn inside cars.
-- Interaction targeting uses a forgiving aim radius and a short target-retention grace period so the `E` prompt does not flicker with tiny camera movements.
+- The locomotive front faces **-X**. Exterior scenery moves toward **+X** to create the correct forward-motion illusion.
+- Snow emitters are rebuilt as narrow **far-exterior strips at Z +/-18.5m** with zero lateral drift toward the train.
+- Any old snow particle systems in the playable scene are removed before the exterior emitters are created.
+- Snow must never spawn or travel through the interior volume.
+- Interaction targeting keeps its forgiving aim radius and short target-retention grace period so the `E` prompt remains stable with small camera movement.
