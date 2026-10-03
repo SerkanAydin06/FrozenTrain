@@ -18,7 +18,7 @@ namespace FrozenTrain.EditorTools
         {
             if (AssetDatabase.LoadAssetAtPath<GameObject>(TrainPrefabFolder + "/01_Locomotive.prefab") == null)
             {
-                FrozenTrainScenePrefabMigration.ConvertToScenePrefabs();
+                FrozenTrainAuthoredLayoutResize.ResizeAuthoredTrain();
             }
 
             InstallOrRefresh();
