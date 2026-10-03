@@ -49,7 +49,9 @@ namespace FrozenTrain.Interaction
                         return (state.GreenhousePowered ? "E - Sera Gücünü Kes" : "E - Sera Gücünü Aç") +
                                $"  // Su {state.Water}";
                     case TrainSystemControlType.CyclePace:
-                        return $"E - Hız Modu: {state.PaceLabel} → değiştir  // {state.SpeedKmh} km/h";
+                        return state.CanMove
+                            ? $"E - Hız Modu: {state.PaceLabel} → değiştir  // {state.SpeedKmh} km/h"
+                            : $"E - Hız Modu: {state.PaceLabel} → değiştir  // TREN DURUYOR";
                     case TrainSystemControlType.UseMedicine:
                         return state.Medicine > 0
                             ? $"E - 1 İlaç Kullan  // İlaç {state.Medicine} • Sağlık %{state.PopulationHealth}"
@@ -59,12 +61,16 @@ namespace FrozenTrain.Interaction
                             ? $"E - Yedek Sudan 8 Birim Aktar  // Ana {state.Water} • Rezerv {state.WaterReserve}"
                             : $"Yedek Su Boş  // Ana {state.Water}";
                     case TrainSystemControlType.WorkshopMaintenanceBoost:
+                        if (!state.WorkshopActuallyRunning)
+                            return $"Hızlı Bakım İçin Atölyeyi Çalıştır  // Kondisyon %{state.TrainCondition}";
                         return state.Materials >= 2
                             ? $"E - 2 Malzeme Harca / Hızlı Bakım  // Kondisyon %{state.TrainCondition} • Malzeme {state.Materials}"
                             : $"En Az 2 Malzeme Gerekli  // Kondisyon %{state.TrainCondition}";
                     case TrainSystemControlType.GreenhouseNutrientFlush:
                         if (state.GreenhouseBoostActive)
                             return $"Sera Verim Takviyesi Aktif  // {state.GreenhouseBoostSecondsRemaining} sn";
+                        if (!state.GreenhouseActuallyRunning)
+                            return $"Verim Takviyesi İçin Serayı Çalıştır  // Su {state.Water}";
                         return state.Water >= 4
                             ? $"E - 4 Su Harca / 120 sn Verim Takviyesi  // Su {state.Water}"
                             : $"En Az 4 Su Gerekli  // Su {state.Water}";
@@ -106,8 +112,7 @@ namespace FrozenTrain.Interaction
                     state.PerformWorkshopMaintenance();
                     break;
                 case TrainSystemControlType.GreenhouseNutrientFlush:
-                    if (!state.GreenhouseBoostActive)
-                        state.PerformGreenhouseFlush();
+                    state.PerformGreenhouseFlush();
                     break;
             }
         }
