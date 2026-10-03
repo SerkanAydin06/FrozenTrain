@@ -37,23 +37,37 @@ namespace FrozenTrain.Interaction
                 switch (controlType)
                 {
                     case TrainSystemControlType.GeneratorToggle:
-                        return state.GeneratorOnline ? "E - Jeneratörü Durdur" : "E - Jeneratörü Çalıştır";
+                        return (state.GeneratorOnline ? "E - Jeneratörü Durdur" : "E - Jeneratörü Çalıştır") +
+                               $"  // Yakıt {state.Fuel}";
                     case TrainSystemControlType.LivingPowerToggle:
-                        return state.LivingCarPowered ? "E - Yaşam Gücünü Kes" : "E - Yaşam Gücünü Aç";
+                        return (state.LivingCarPowered ? "E - Yaşam Gücünü Kes" : "E - Yaşam Gücünü Aç") +
+                               $"  // Isı %{state.HeatPercent}";
                     case TrainSystemControlType.WorkshopPowerToggle:
-                        return state.WorkshopPowered ? "E - Atölye Gücünü Kes" : "E - Atölye Gücünü Aç";
+                        return (state.WorkshopPowered ? "E - Atölye Gücünü Kes" : "E - Atölye Gücünü Aç") +
+                               $"  // Kondisyon %{state.TrainCondition}";
                     case TrainSystemControlType.GreenhousePowerToggle:
-                        return state.GreenhousePowered ? "E - Sera Gücünü Kes" : "E - Sera Gücünü Aç";
+                        return (state.GreenhousePowered ? "E - Sera Gücünü Kes" : "E - Sera Gücünü Aç") +
+                               $"  // Su {state.Water}";
                     case TrainSystemControlType.CyclePace:
-                        return "E - Hız Modu: " + state.PaceLabel + " → değiştir";
+                        return $"E - Hız Modu: {state.PaceLabel} → değiştir  // {state.SpeedKmh} km/h";
                     case TrainSystemControlType.UseMedicine:
-                        return state.Medicine > 0 ? "E - 1 İlaç Kullan" : "İlaç Yok";
+                        return state.Medicine > 0
+                            ? $"E - 1 İlaç Kullan  // İlaç {state.Medicine} • Sağlık %{state.PopulationHealth}"
+                            : $"İlaç Yok  // Sağlık %{state.PopulationHealth}";
                     case TrainSystemControlType.RefillWaterFromReserve:
-                        return state.WaterReserve > 0 ? "E - Yedek Sudan 8 Birim Aktar" : "Yedek Su Boş";
+                        return state.WaterReserve > 0
+                            ? $"E - Yedek Sudan 8 Birim Aktar  // Ana {state.Water} • Rezerv {state.WaterReserve}"
+                            : $"Yedek Su Boş  // Ana {state.Water}";
                     case TrainSystemControlType.WorkshopMaintenanceBoost:
-                        return state.Materials >= 2 ? "E - 2 Malzeme Harca / Hızlı Bakım" : "En Az 2 Malzeme Gerekli";
+                        return state.Materials >= 2
+                            ? $"E - 2 Malzeme Harca / Hızlı Bakım  // Kondisyon %{state.TrainCondition} • Malzeme {state.Materials}"
+                            : $"En Az 2 Malzeme Gerekli  // Kondisyon %{state.TrainCondition}";
                     case TrainSystemControlType.GreenhouseNutrientFlush:
-                        return state.Water >= 4 ? "E - 4 Su Harca / Sera Verimini Artır" : "En Az 4 Su Gerekli";
+                        if (state.GreenhouseBoostActive)
+                            return $"Sera Verim Takviyesi Aktif  // {state.GreenhouseBoostSecondsRemaining} sn";
+                        return state.Water >= 4
+                            ? $"E - 4 Su Harca / 120 sn Verim Takviyesi  // Su {state.Water}"
+                            : $"En Az 4 Su Gerekli  // Su {state.Water}";
                     default:
                         return "E - Kullan";
                 }
@@ -92,7 +106,8 @@ namespace FrozenTrain.Interaction
                     state.PerformWorkshopMaintenance();
                     break;
                 case TrainSystemControlType.GreenhouseNutrientFlush:
-                    state.PerformGreenhouseFlush();
+                    if (!state.GreenhouseBoostActive)
+                        state.PerformGreenhouseFlush();
                     break;
             }
         }
