@@ -28,6 +28,7 @@ namespace FrozenTrain.Management
         [SerializeField] private float fuel = 100f;
         [SerializeField] private float food = 100f;
         [SerializeField] private float water = 100f;
+        [SerializeField] private float waterReserve = 45f;
         [SerializeField] private float materials = 60f;
         [SerializeField] private float medicine = 20f;
         [SerializeField, Range(0f, 100f)] private float heatPercent = 72f;
@@ -44,6 +45,9 @@ namespace FrozenTrain.Management
         [SerializeField] private bool livingCarPowered = true;
         [SerializeField] private bool workshopPowered;
         [SerializeField] private bool greenhousePowered;
+
+        [Header("Manual system effects")]
+        [SerializeField] private float greenhouseBoostSeconds;
 
         [Header("Balance / real second")]
         [SerializeField] private float generatorFuelUse = 0.035f;
@@ -77,12 +81,15 @@ namespace FrozenTrain.Management
         public int HeatPercent => Mathf.RoundToInt(heatPercent);
         public int Food => Mathf.CeilToInt(food);
         public int Water => Mathf.CeilToInt(water);
+        public int WaterReserve => Mathf.CeilToInt(waterReserve);
         public int Materials => Mathf.CeilToInt(materials);
         public int Medicine => Mathf.CeilToInt(medicine);
         public int Population => population;
         public int PopulationHealth => Mathf.RoundToInt(populationHealth);
         public int TrainCondition => Mathf.RoundToInt(trainCondition);
         public float DistanceKm => distanceKm;
+        public bool GreenhouseBoostActive => greenhouseBoostSeconds > 0.01f;
+        public int GreenhouseBoostSecondsRemaining => Mathf.CeilToInt(greenhouseBoostSeconds);
 
         public int SpeedKmh => pace switch
         {
@@ -112,9 +119,12 @@ namespace FrozenTrain.Management
             _ => 0.005f
         };
 
+        private float CurrentGreenhouseProduction => greenhouseFoodProduction * (GreenhouseBoostActive ? 1.65f : 1f);
+        private float CurrentGreenhouseWaterUse => greenhouseWaterUse * (GreenhouseBoostActive ? 1.30f : 1f);
+
         public float FuelDeltaPerMinute => -(LocomotiveFuelUse + (generatorOnline ? generatorFuelUse : 0f)) * 60f;
-        public float FoodDeltaPerMinute => (-population * foodUsePerPerson + (GreenhouseActuallyRunning ? greenhouseFoodProduction : 0f)) * 60f;
-        public float WaterDeltaPerMinute => (-population * waterUsePerPerson - (GreenhouseActuallyRunning ? greenhouseWaterUse : 0f)) * 60f;
+        public float FoodDeltaPerMinute => (-population * foodUsePerPerson + (GreenhouseActuallyRunning ? CurrentGreenhouseProduction : 0f)) * 60f;
+        public float WaterDeltaPerMinute => (-population * waterUsePerPerson - (GreenhouseActuallyRunning ? CurrentGreenhouseWaterUse : 0f)) * 60f;
         public float MaterialsDeltaPerMinute => WorkshopActuallyRepairing ? -workshopMaterialUse * 60f : 0f;
         public float HeatDeltaPerMinute
         {
@@ -140,7 +150,7 @@ namespace FrozenTrain.Management
                 int warnings = 0;
                 if (fuel <= 20f) warnings++;
                 if (food <= 20f) warnings++;
-                if (water <= 20f) warnings++;
+                if (water <= 20f && waterReserve <= 5f) warnings++;
                 if (heatPercent <= 35f) warnings++;
                 if (populationHealth <= 50f) warnings++;
                 if (trainCondition <= 35f) warnings++;
@@ -177,9 +187,37 @@ namespace FrozenTrain.Management
             return true;
         }
 
+        public bool TransferWaterFromReserve(float requestedAmount)
+        {
+            if (requestedAmount <= 0f || waterReserve <= 0.01f || water >= 199.9f) return false;
+            float transfer = Mathf.Min(requestedAmount, waterReserve, 200f - water);
+            waterReserve -= transfer;
+            water += transfer;
+            return transfer > 0.01f;
+        }
+
+        public bool PerformWorkshopMaintenance()
+        {
+            if (materials < 2f || trainCondition >= 99.9f) return false;
+            materials -= 2f;
+            trainCondition = Mathf.Min(100f, trainCondition + 7f);
+            return true;
+        }
+
+        public bool PerformGreenhouseFlush()
+        {
+            if (water < 4f) return false;
+            water -= 4f;
+            greenhouseBoostSeconds = Mathf.Max(greenhouseBoostSeconds, 120f);
+            return true;
+        }
+
         public void SimulateSecond(float deltaSeconds)
         {
             if (deltaSeconds <= 0f) return;
+
+            if (greenhouseBoostSeconds > 0f)
+                greenhouseBoostSeconds = Mathf.Max(0f, greenhouseBoostSeconds - deltaSeconds);
 
             distanceKm += (SpeedKmh / 3600f) * deltaSeconds;
             fuel = Mathf.Max(0f, fuel - LocomotiveFuelUse * deltaSeconds);
@@ -200,8 +238,8 @@ namespace FrozenTrain.Management
 
             if (GreenhouseActuallyRunning)
             {
-                food = Mathf.Min(200f, food + greenhouseFoodProduction * deltaSeconds);
-                water = Mathf.Max(0f, water - greenhouseWaterUse * deltaSeconds);
+                food = Mathf.Min(200f, food + CurrentGreenhouseProduction * deltaSeconds);
+                water = Mathf.Max(0f, water - CurrentGreenhouseWaterUse * deltaSeconds);
             }
 
             if (WorkshopActuallyRepairing)
