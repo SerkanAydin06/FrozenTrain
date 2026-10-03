@@ -6,10 +6,9 @@ description: Focused workflow for changing FrozenTrain car dimensions, three-dec
 
 For train architecture/layout work, start with only these files:
 
-1. `Assets/Editor/FrozenTrainFinalThreeDeckAuthoring.cs`
-2. `Assets/Editor/FrozenTrainUnifiedAuthoring.cs`
-3. `Assets/Editor/FrozenTrainAuthoredLayoutResize.cs`
-4. `Docs/FiveCarArchitecture.md`
+1. `Assets/Editor/FrozenTrainLayout.cs` (data: dimensions, decks, per-car props, E bindings)
+2. `Assets/Editor/FrozenTrainBuilder.cs` (shell, floors, ladders, connectors, scene)
+3. `Docs/FiveCarArchitecture.md`
 
 Read another file only if one of these directly references behavior that must change.
 
@@ -24,7 +23,7 @@ Read another file only if one of these directly references behavior that must ch
 - Locomotive front = one-piece panoramic glass.
 
 ## Implementation rules
-- Modify the final authoring system; do not add another revision/postprocessor layer.
+- Change the layout data first; touch the builder only for new kinds of geometry. Do not add another revision/postprocessor layer.
 - Keep corridors, connector openings, windows and ladder landings unobstructed.
 - Move technical machinery below rather than duplicating it on middle deck.
 - Preserve object names used by physical interactions where possible.

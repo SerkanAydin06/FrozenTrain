@@ -17,10 +17,9 @@ Work on the existing Unity survival-management game efficiently. Prefer focused 
 - Public authoring workflow: `Frozen Train > Rebuild Authored Train`.
 
 ## Source of truth
-- Final train layout: `Assets/Editor/FrozenTrainFinalThreeDeckAuthoring.cs`
+- Train layout data (sizes, decks, every car's contents, E bindings): `Assets/Editor/FrozenTrainLayout.cs`
+- Builder (turns the layout into prefabs + scene, from scratch each run): `Assets/Editor/FrozenTrainBuilder.cs`
 - Rebuild entry point: `Assets/Editor/FrozenTrainUnifiedAuthoring.cs`
-- Size/placement normalization: `Assets/Editor/FrozenTrainAuthoredLayoutResize.cs`
-- Physical interaction binding: `Assets/Editor/FrozenTrainPhysicalSystemsAuthoring.cs`
 - Architecture contract: `Docs/FiveCarArchitecture.md`
 - Survival state: `Assets/Scripts/Management/TrainPrototypeState.cs`
 - Simulation: `Assets/Scripts/Management/SurvivalSimulation.cs`

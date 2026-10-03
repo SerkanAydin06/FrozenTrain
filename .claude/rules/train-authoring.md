@@ -5,7 +5,8 @@ paths:
 ---
 # Train authoring rules
 
-- `FrozenTrainFinalThreeDeckAuthoring.cs` is the final layout source of truth. Do not create a second architecture layer or postprocessor.
+- `FrozenTrainLayout.cs` is the layout source of truth and `FrozenTrainBuilder.cs` the only builder. Change data in the layout; do not create a second architecture layer, revision pass or postprocessor.
+- E interactions are declared in the layout with `.Bind(...)` / `.AsTerminal()`, never bound afterwards by object name.
 - Keep exactly 5 cars unless the user explicitly changes that constraint.
 - Current car footprint is 18.0 m x 9.2 m; all three decks use the same footprint.
 - Lower deck: propulsion, generator, batteries, fuel, electric, water/waste, heating/HVAC, hydraulics, pumps and other technical infrastructure.

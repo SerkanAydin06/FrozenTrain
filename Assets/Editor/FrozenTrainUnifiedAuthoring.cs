@@ -5,37 +5,17 @@ using UnityEngine;
 namespace FrozenTrain.EditorTools
 {
     /// <summary>
-    /// Single public authoring entry point. Visual architecture is materialized into prefabs/scenes;
-    /// runtime code only controls gameplay systems.
+    /// Single public authoring entry point. The train is described by FrozenTrainLayout and
+    /// rebuilt from scratch by FrozenTrainBuilder; runtime code only controls gameplay systems.
     /// </summary>
     public static class FrozenTrainUnifiedAuthoring
     {
-        private const string TrainPrefabFolder = "Assets/Prefabs/Train";
-
         [MenuItem("Frozen Train/Rebuild Authored Train", priority = 1)]
         public static void RebuildAuthoredTrain()
         {
-            EnsureBaseAssets();
-            FrozenTrainAuthoredLayoutResize.ResizeAuthoredTrain();
-
-            // Human/work content belongs to the middle deck.
-            FrozenTrainFiveCarDesignAuthoring.ApplyAll();
-
-            // Final authority: 18m x 9.2m, three full-size decks.
-            FrozenTrainFinalThreeDeckAuthoring.ApplyAll();
-
-            // Bind interactions only after final objects have been created/moved.
-            FrozenTrainPhysicalSystemsAuthoring.InstallOrRefresh();
-
-            AssetDatabase.SaveAssets();
+            if (!FrozenTrainBuilder.Build()) return;
             AssetDatabase.Refresh();
-            Debug.Log("FrozenTrain rebuilt: 18m x 9.2m cars, full lower technical deck, occupied middle deck, continuous upper sleeping corridor.");
-        }
-
-        private static void EnsureBaseAssets()
-        {
-            if (AssetDatabase.LoadAssetAtPath<GameObject>(TrainPrefabFolder + "/01_Locomotive.prefab") == null)
-                FrozenTrainScenePrefabMigration.ConvertToScenePrefabs();
+            Debug.Log("FrozenTrain rebuilt from FrozenTrainLayout: 5 cars, 18m x 9.2m, technical / main / sleeping decks.");
         }
     }
 }

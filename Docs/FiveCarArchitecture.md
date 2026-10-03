@@ -29,7 +29,7 @@ This is the normal occupied deck.
 
 - 01 Locomotive: driving, supervision and train controls. Electrical drive hardware stays below.
 - 02 Generator: operator/control room. The actual generator machinery stays below.
-- 03 Living: social/dining/galley/medical area with train-style four-person seating bays.
+- 03 Living: social/dining/galley/medical area with train-style four-person seating bays. The galley counter stays below the window sill; the medical cabinet (medicine control) sits between two windows.
 - 04 Workshop: human-operated production, repair benches and work machines.
 - 05 Greenhouse: crops and human work area. Pumps, tanks and climate machinery stay below.
 - Passenger circulation continues between cars through the normal center connector doors.
@@ -58,4 +58,5 @@ The upper deck is a sleeping/accommodation level across all five cars.
 
 - Locomotive front faces -X; exterior scenery moves +X to read as forward travel.
 - Snow emitters are kept far outside the train body and have no lateral velocity toward the train.
-- Runtime gameplay does not construct train geometry. `Frozen Train > Rebuild Authored Train` materializes the final scene/prefab architecture.
+- The train stands on a track: underframe and bogies sit below the technical deck, and the snow ground is at rail level, below the whole car body.
+- Runtime gameplay does not construct train geometry. `Frozen Train > Rebuild Authored Train` regenerates every car prefab, the connector prefab, the train's scene placement and the exterior from `Assets/Editor/FrozenTrainLayout.cs` in one pass.
