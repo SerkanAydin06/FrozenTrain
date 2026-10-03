@@ -124,10 +124,10 @@ namespace FrozenTrain.DevTools
                 }
             }
 
-            // Exterior overviews of the whole train.
+            // Exterior overviews of the whole train. The side view looks over the ridges, not through them.
             Vector3 trainCenter = trainRoot != null ? trainRoot.position : Vector3.zero;
             yield return ShootWorld(cam, image, rt, folder, "tren_dis_yan", "Tüm tren, yandan",
-                trainCenter + new Vector3(0f, 5f, -58f), Quaternion.Euler(4f, 0f, 0f), manifest, () => saved++);
+                trainCenter + new Vector3(0f, 24f, -58f), Quaternion.Euler(20f, 0f, 0f), manifest, () => saved++);
             yield return ShootWorld(cam, image, rt, folder, "tren_dis_on", "Lokomotif önü, çapraz",
                 trainCenter + new Vector3(-2.5f * CarSpacing - 14f, 6f, -16f), Quaternion.Euler(10f, 50f, 0f), manifest, () => saved++);
 

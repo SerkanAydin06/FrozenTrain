@@ -59,4 +59,6 @@ The upper deck is a sleeping/accommodation level across all five cars.
 - Locomotive front faces -X; exterior scenery moves +X to read as forward travel.
 - Snow emitters are kept far outside the train body and have no lateral velocity toward the train.
 - The train stands on a track: underframe and bogies sit below the technical deck, and the snow ground is at rail level, below the whole car body.
+- Exterior dressing (outside only, no colliders on fine detail): snow on every roof, icicles along the eaves, and on the locomotive a 3.2 m wedge snowplow below the windshield (never above 0 m, so the panoramic glass stays clear) plus two headlights.
+- Passing scenery keeps the train readable: low snow-capped rocks at 11–17 m, snow drifts at 5.6–8 m, snow-crested ridges at 30–42 m.
 - Runtime gameplay does not construct train geometry. `Frozen Train > Rebuild Authored Train` regenerates every car prefab, the connector prefab, the train's scene placement and the exterior from `Assets/Editor/FrozenTrainLayout.cs` in one pass.

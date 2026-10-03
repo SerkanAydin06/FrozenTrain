@@ -8,7 +8,7 @@ namespace FrozenTrain.EditorTools
     public enum TrainMat
     {
         Floor, Wall, Frame, Steel, Rubber, Glass, Mattress, Living, Amber, Screen,
-        Generator, Workshop, Greenhouse, Plant, Snow, NearRock, FarRock
+        Generator, Workshop, Greenhouse, Plant, Snow, NearRock, FarRock, Ice, Headlamp
     }
 
     public enum PropShape
