@@ -6,26 +6,12 @@ using UnityEngine;
 namespace FrozenTrain.EditorTools
 {
     /// <summary>
+    /// Internal helper used by the single Frozen Train authoring command.
     /// Binds survival mechanics to already-authored prefab objects.
-    /// It never creates train geometry at runtime.
     /// </summary>
     public static class FrozenTrainPhysicalSystemsAuthoring
     {
         private const string TrainPrefabFolder = "Assets/Prefabs/Train";
-
-        [MenuItem("Frozen Train/Refresh Physical Survival Systems", priority = 3)]
-        public static void RefreshFromMenu()
-        {
-            if (AssetDatabase.LoadAssetAtPath<GameObject>(TrainPrefabFolder + "/01_Locomotive.prefab") == null)
-            {
-                FrozenTrainAuthoredLayoutResize.ResizeAuthoredTrain();
-            }
-
-            InstallOrRefresh();
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-            Debug.Log("FrozenTrain physical survival controls refreshed on all five authored car prefabs.");
-        }
 
         public static void InstallOrRefresh()
         {
