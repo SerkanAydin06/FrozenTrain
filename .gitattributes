@@ -169,3 +169,6 @@ Packages/packages-lock.json linguist-generated
 
 # Exceptions for .asset files such as lightning pre-baking
 LightingData.asset     binary
+
+# Review screenshots are plain git (not LFS) so they can be read directly after a pull.
+Docs/Screenshots/*.jpg -filter binary
