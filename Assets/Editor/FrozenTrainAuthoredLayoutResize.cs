@@ -1,7 +1,6 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using System.Linq;
-using FrozenTrain.Interaction;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -10,23 +9,16 @@ using UnityEngine.SceneManagement;
 namespace FrozenTrain.EditorTools
 {
     /// <summary>
-    /// Internal helper used by the single Frozen Train authoring command.
-    /// Resizes the fixed five-car authored train to the locked footprint.
+    /// Internal footprint normalizer used before final prefab authoring.
+    /// It spreads existing authored content into the 18m x 9.2m footprint without stretching props.
     /// </summary>
     public static class FrozenTrainAuthoredLayoutResize
     {
         private const string ScenePath = "Assets/Scenes/FPSPrototype.unity";
         private const string TrainPrefabFolder = "Assets/Prefabs/Train";
-        private const string ConnectorPrefabPath = "Assets/Prefabs/Train/Shared/CarConnector.prefab";
-
-        private const float SourceLength = 15f;
-        private const float SourceWidth = 7.2f;
-        private const float TargetLength = 16.5f;
-        private const float TargetWidth = 8.4f;
-        private const float TargetSpacing = 17.3f;
-
-        private const float LengthFactor = TargetLength / SourceLength;
-        private const float WidthFactor = TargetWidth / SourceWidth;
+        private const float TargetLength = 18.0f;
+        private const float TargetWidth = 9.2f;
+        private const float TargetSpacing = 18.8f;
 
         private static readonly string[] CarNames =
         {
@@ -49,18 +41,12 @@ namespace FrozenTrain.EditorTools
         public static void ResizeAuthoredTrain()
         {
             if (AssetDatabase.LoadAssetAtPath<GameObject>(TrainPrefabFolder + "/01_Locomotive.prefab") == null)
-            {
                 FrozenTrainScenePrefabMigration.ConvertToScenePrefabs();
-            }
 
-            for (int i = 0; i < CarNames.Length; i++)
-            {
-                ResizeCarPrefab(TrainPrefabFolder + "/" + CarNames[i] + ".prefab");
-            }
+            foreach (string carName in CarNames)
+                ResizeCarPrefab(TrainPrefabFolder + "/" + carName + ".prefab");
 
-            ResizeConnectorPrefab();
             ResizeScenePlacements();
-
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
@@ -73,106 +59,35 @@ namespace FrozenTrain.EditorTools
                 Transform floor = FindDirectChild(root.transform, "Floor");
                 if (floor == null)
                 {
-                    Debug.LogWarning("FrozenTrain: Floor not found in " + path);
+                    Debug.LogWarning("FrozenTrain: Floor marker not found in " + path);
                     return;
                 }
 
-                if (floor.localScale.x >= TargetLength - 0.05f && floor.localScale.z >= TargetWidth - 0.05f)
-                {
+                float currentLength = Mathf.Max(0.01f, Mathf.Abs(floor.localScale.x));
+                float currentWidth = Mathf.Max(0.01f, Mathf.Abs(floor.localScale.z));
+                if (Mathf.Abs(currentLength - TargetLength) < 0.05f && Mathf.Abs(currentWidth - TargetWidth) < 0.05f)
                     return;
-                }
+
+                float lengthFactor = TargetLength / currentLength;
+                float widthFactor = TargetWidth / currentWidth;
 
                 Transform[] descendants = root.GetComponentsInChildren<Transform>(true)
-                    .Where(t => t != root.transform)
+                    .Where(t => t != root.transform && t != floor)
                     .ToArray();
-
-                var originalRootPositions = new Dictionary<Transform, Vector3>(descendants.Length);
-                foreach (Transform t in descendants)
-                {
-                    originalRootPositions[t] = root.transform.InverseTransformPoint(t.position);
-                }
-
-                foreach (Transform t in descendants.OrderBy(GetDepth))
-                {
-                    Vector3 p = originalRootPositions[t];
-                    p.x *= LengthFactor;
-                    p.z *= WidthFactor;
-                    t.position = root.transform.TransformPoint(p);
-                }
-
-                for (int i = 0; i < root.transform.childCount; i++)
-                {
-                    Transform child = root.transform.GetChild(i);
-                    if (!IsStructuralShell(child.name)) continue;
-                    Vector3 scale = child.localScale;
-                    scale.x *= LengthFactor;
-                    scale.z *= WidthFactor;
-                    child.localScale = scale;
-                }
-
-                foreach (Light light in root.GetComponentsInChildren<Light>(true))
-                {
-                    light.range *= 1.08f;
-                }
-
-                PrefabUtility.SaveAsPrefabAsset(root, path);
-            }
-            finally
-            {
-                PrefabUtility.UnloadPrefabContents(root);
-            }
-        }
-
-        private static void ResizeConnectorPrefab()
-        {
-            GameObject asset = AssetDatabase.LoadAssetAtPath<GameObject>(ConnectorPrefabPath);
-            if (asset == null) return;
-
-            GameObject root = PrefabUtility.LoadPrefabContents(ConnectorPrefabPath);
-            try
-            {
-                Transform floor = FindDirectChild(root.transform, "ConnectorFloor");
-                if (floor != null && floor.localScale.z >= 2.45f) return;
-
-                Transform[] descendants = root.GetComponentsInChildren<Transform>(true)
-                    .Where(t => t != root.transform)
-                    .ToArray();
-
-                var positions = new Dictionary<Transform, Vector3>(descendants.Length);
-                foreach (Transform t in descendants)
-                {
-                    positions[t] = root.transform.InverseTransformPoint(t.position);
-                }
+                Dictionary<Transform, Vector3> positions = descendants.ToDictionary(t => t, t => root.transform.InverseTransformPoint(t.position));
 
                 foreach (Transform t in descendants.OrderBy(GetDepth))
                 {
                     Vector3 p = positions[t];
-                    p.z *= WidthFactor;
+                    p.x *= lengthFactor;
+                    p.z *= widthFactor;
                     t.position = root.transform.TransformPoint(p);
                 }
 
-                for (int i = 0; i < root.transform.childCount; i++)
-                {
-                    Transform child = root.transform.GetChild(i);
-                    if (child.name == "ConnectorFloor" ||
-                        child.name == "ConnectorCeiling" ||
-                        child.name == "BellowsLeft" ||
-                        child.name == "BellowsRight" ||
-                        child.name == "SlidingDoor")
-                    {
-                        Vector3 scale = child.localScale;
-                        scale.z *= WidthFactor;
-                        child.localScale = scale;
-                    }
-                }
-
-                SlidingDoor door = root.GetComponentInChildren<SlidingDoor>(true);
-                if (door != null)
-                {
-                    door.Configure(new Vector3(0f, 0f, -2.22f), 2.8f);
-                }
-
-                PrefabUtility.SaveAsPrefabAsset(root, ConnectorPrefabPath);
+                floor.localPosition = Vector3.zero;
+                floor.localRotation = Quaternion.identity;
+                floor.localScale = new Vector3(TargetLength, floor.localScale.y, TargetWidth);
+                PrefabUtility.SaveAsPrefabAsset(root, path);
             }
             finally
             {
@@ -182,13 +97,10 @@ namespace FrozenTrain.EditorTools
 
         private static void ResizeScenePlacements()
         {
+            if (!System.IO.File.Exists(ScenePath)) return;
             Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
             GameObject trainRoot = GameObject.Find("TRAIN_INTERIOR_PROTOTYPE");
-            if (trainRoot == null)
-            {
-                Debug.LogError("FrozenTrain: TRAIN_INTERIOR_PROTOTYPE not found in FPSPrototype.unity.");
-                return;
-            }
+            if (trainRoot == null) return;
 
             for (int i = 0; i < CarNames.Length; i++)
             {
@@ -206,7 +118,6 @@ namespace FrozenTrain.EditorTools
                 Transform child = trainRoot.transform.GetChild(i);
                 if (child.name == "CarConnector") connectors.Add(child);
             }
-
             connectors.Sort((a, b) => a.localPosition.x.CompareTo(b.localPosition.x));
             for (int i = 0; i < connectors.Count && i < CarNames.Length - 1; i++)
             {
@@ -220,30 +131,10 @@ namespace FrozenTrain.EditorTools
             EditorSceneManager.SaveScene(scene, ScenePath);
         }
 
-        private static bool IsStructuralShell(string name)
-        {
-            return name == "Floor" ||
-                   name == "Ceiling" ||
-                   name.StartsWith("Wall") ||
-                   name.StartsWith("Window") ||
-                   name.StartsWith("CabFront") ||
-                   name.StartsWith("CabWindshield") ||
-                   name.StartsWith("Bulkhead") ||
-                   name.StartsWith("RearEnd") ||
-                   name.StartsWith("CeilingRib") ||
-                   name.StartsWith("BaseTrim") ||
-                   name.StartsWith("CeilingDuct") ||
-                   name.StartsWith("CeilingLightHousing") ||
-                   name.StartsWith("CeilingLightStrip");
-        }
-
         private static Transform FindDirectChild(Transform root, string name)
         {
             for (int i = 0; i < root.childCount; i++)
-            {
-                Transform child = root.GetChild(i);
-                if (child.name == name) return child;
-            }
+                if (root.GetChild(i).name == name) return root.GetChild(i);
             return null;
         }
 
@@ -251,11 +142,7 @@ namespace FrozenTrain.EditorTools
         {
             int depth = 0;
             Transform current = transform.parent;
-            while (current != null)
-            {
-                depth++;
-                current = current.parent;
-            }
+            while (current != null) { depth++; current = current.parent; }
             return depth;
         }
     }
