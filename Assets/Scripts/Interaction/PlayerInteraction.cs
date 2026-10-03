@@ -6,10 +6,15 @@ namespace FrozenTrain.Interaction
     public sealed class PlayerInteraction : MonoBehaviour
     {
         [SerializeField] private Camera playerCamera;
-        [SerializeField] private float interactionDistance = 2.8f;
+        [SerializeField] private float interactionDistance = 3.0f;
+        [SerializeField] private float aimAssistRadius = 0.16f;
+        [SerializeField] private float targetGraceSeconds = 0.28f;
         [SerializeField] private LayerMask interactionMask = ~0;
 
+        private readonly RaycastHit[] hitBuffer = new RaycastHit[20];
         private InteractableBase currentTarget;
+        private float lastTargetSeenTime = -10f;
+
         private GUIStyle promptStyle;
         private GUIStyle keyStyle;
         private Texture2D promptBackground;
@@ -32,23 +37,71 @@ namespace FrozenTrain.Interaction
 
         private void Update()
         {
-            currentTarget = null;
-
             if (playerCamera == null || Cursor.lockState != CursorLockMode.Locked)
             {
+                currentTarget = null;
                 return;
             }
 
-            Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
-            if (Physics.Raycast(ray, out RaycastHit hit, interactionDistance, interactionMask, QueryTriggerInteraction.Ignore))
+            InteractableBase detected = FindBestTarget();
+            if (detected != null)
             {
-                currentTarget = hit.collider.GetComponentInParent<InteractableBase>();
+                currentTarget = detected;
+                lastTargetSeenTime = Time.unscaledTime;
+            }
+            else if (currentTarget != null)
+            {
+                bool graceExpired = Time.unscaledTime - lastTargetSeenTime > targetGraceSeconds;
+                bool tooFar = Vector3.Distance(playerCamera.transform.position, currentTarget.transform.position) > interactionDistance + 1.25f;
+                if (graceExpired || tooFar)
+                {
+                    currentTarget = null;
+                }
             }
 
             if (currentTarget != null && Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
             {
                 currentTarget.Interact(gameObject);
+                lastTargetSeenTime = Time.unscaledTime;
             }
+        }
+
+        private InteractableBase FindBestTarget()
+        {
+            Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
+            int count = Physics.SphereCastNonAlloc(
+                ray,
+                aimAssistRadius,
+                hitBuffer,
+                interactionDistance,
+                interactionMask,
+                QueryTriggerInteraction.Ignore);
+
+            InteractableBase best = null;
+            float bestDistance = float.MaxValue;
+
+            for (int i = 0; i < count; i++)
+            {
+                RaycastHit hit = hitBuffer[i];
+                if (hit.collider == null)
+                {
+                    continue;
+                }
+
+                InteractableBase target = hit.collider.GetComponentInParent<InteractableBase>();
+                if (target == null)
+                {
+                    continue;
+                }
+
+                if (hit.distance < bestDistance)
+                {
+                    bestDistance = hit.distance;
+                    best = target;
+                }
+            }
+
+            return best;
         }
 
         private void OnGUI()
@@ -75,12 +128,12 @@ namespace FrozenTrain.Interaction
                 text = text.Substring(4);
             }
 
-            const float width = 310f;
-            const float height = 48f;
-            Rect backgroundRect = new Rect(cx - width * 0.5f, cy + 34f, width, height);
+            const float width = 340f;
+            const float height = 50f;
+            Rect backgroundRect = new Rect(cx - width * 0.5f, cy + 38f, width, height);
             GUI.DrawTexture(backgroundRect, promptBackground);
 
-            Rect keyRect = new Rect(backgroundRect.x + 9f, backgroundRect.y + 8f, 32f, 32f);
+            Rect keyRect = new Rect(backgroundRect.x + 9f, backgroundRect.y + 9f, 32f, 32f);
             GUI.DrawTexture(keyRect, keyBackground);
             GUI.Label(keyRect, "E", keyStyle);
 
@@ -95,8 +148,8 @@ namespace FrozenTrain.Interaction
                 return;
             }
 
-            promptBackground = SolidTexture(new Color(0.025f, 0.035f, 0.045f, 0.90f));
-            keyBackground = SolidTexture(new Color(0.72f, 0.24f, 0.055f, 0.96f));
+            promptBackground = SolidTexture(new Color(0.025f, 0.035f, 0.045f, 0.92f));
+            keyBackground = SolidTexture(new Color(0.72f, 0.24f, 0.055f, 0.98f));
             crosshairTexture = SolidTexture(new Color(0.88f, 0.94f, 1f, 0.82f));
 
             promptStyle = new GUIStyle(GUI.skin.label)
