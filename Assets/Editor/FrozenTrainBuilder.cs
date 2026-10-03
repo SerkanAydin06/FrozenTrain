@@ -85,6 +85,7 @@ namespace FrozenTrain.EditorTools
                 if (car.PanoramicFront)
                     Cube(shell, "PanoramicWindshield", new Vector3(-L.HalfL - .015f, 1.925f, 0f), new Vector3(.035f, 1.65f, 8.66f), M(TrainMat.Glass));
                 BuildUnderframe(shell);
+                BuildExteriorDressing(Group(root.transform, "ExteriorDressing"), car, index);
 
                 Transform lower = Group(root.transform, "LowerTechnicalDeck");
                 BuildProps(lower, L.LowerServices);
@@ -249,6 +250,72 @@ namespace FrozenTrain.EditorTools
             float bogieH = L.UnderframeBottom - L.RailTopY;
             foreach (float x in new[] { -L.HalfL + 3f, L.HalfL - 3f })
                 Cube(p, "Bogie", new Vector3(x, L.RailTopY + bogieH * .5f, 0f), new Vector3(3.2f, bogieH, 6.0f), M(TrainMat.Steel));
+        }
+
+        /// <summary>Outside-only detail: roof snow, eave icicles and, on the locomotive, the plow and headlights.</summary>
+        private static void BuildExteriorDressing(Transform p, CarSpec car, int index)
+        {
+            Random.State saved = Random.state;
+            Random.InitState(4100 + index);
+            try
+            {
+                float roofTop = L.RoofY + L.RoofT * .5f;
+                Cube(p, "RoofSnow", new Vector3(0f, roofTop + .06f, 0f), new Vector3(L.CarLength - .5f, .12f, L.CarWidth - .35f), M(TrainMat.Snow));
+                for (int i = 0; i < 3; i++)
+                {
+                    Vector3 size = new Vector3(Random.Range(2.5f, 5f), Random.Range(.10f, .22f), Random.Range(2f, 5f));
+                    Cube(p, "RoofSnowDrift", new Vector3(-6f + i * 6f + Random.Range(-1f, 1f), roofTop + .12f + size.y * .5f, Random.Range(-1.5f, 1.5f)), size, M(TrainMat.Snow));
+                }
+
+                foreach (float side in new[] { -1f, 1f })
+                    for (float x = -L.HalfL + .6f; x < L.HalfL - .4f; x += Random.Range(.8f, 1.6f))
+                    {
+                        float len = Random.Range(.12f, .55f);
+                        Detail(p, "Icicle", new Vector3(x, L.RoofY - L.RoofT * .5f - len * .5f, side * (L.HalfW + .03f)), new Vector3(.05f, len, .05f), TrainMat.Ice);
+                    }
+            }
+            finally { Random.state = saved; }
+
+            if (car.PanoramicFront) BuildPlowAndHeadlights(p);
+        }
+
+        /// <summary>Wedge snowplow under the cab windshield and two headlights; keeps clear of the glass (bottom 1.10 m).</summary>
+        private static void BuildPlowAndHeadlights(Transform p)
+        {
+            float x0 = -L.HalfL, reach = 3.2f, halfW = L.HalfW - .1f;
+            float bottom = L.RailTopY + .12f, top = L.MainY - .15f, h = top - bottom, cy = bottom + h * .5f;
+            Vector3 tip = new Vector3(x0 - reach, cy, 0f);
+            Transform plow = Group(p, "SnowPlow");
+            foreach (float side in new[] { -1f, 1f })
+            {
+                Vector3 corner = new Vector3(x0, cy, side * halfW);
+                Vector3 dir = corner - tip;
+                GameObject blade = Cube(plow, "PlowBlade", (tip + corner) * .5f, new Vector3(dir.magnitude, h, .22f), M(TrainMat.Steel));
+                blade.transform.localRotation = Quaternion.FromToRotation(Vector3.right, dir);
+                GameObject stripe = Cube(plow, "PlowHazardStripe", (tip + corner) * .5f + new Vector3(0f, h * .28f, 0f), new Vector3(dir.magnitude, .28f, .24f), M(TrainMat.Amber));
+                stripe.transform.localRotation = blade.transform.localRotation;
+                GameObject snow = Cube(plow, "PlowSnowCrust", (tip + corner) * .5f + new Vector3(0f, -h * .5f + .2f, 0f), new Vector3(dir.magnitude * .9f, .4f, .32f), M(TrainMat.Snow));
+                snow.transform.localRotation = blade.transform.localRotation;
+            }
+            Cube(plow, "PlowNoseRam", tip + new Vector3(.12f, 0f, 0f), new Vector3(.42f, h, .42f), M(TrainMat.Frame));
+            Cube(plow, "PlowTopDeck", new Vector3(x0 - reach * .32f, top - .06f, 0f), new Vector3(reach * .64f, .12f, halfW * 1.25f), M(TrainMat.Frame));
+
+            foreach (float z in new[] { -3.25f, 3.25f })
+            {
+                Vector3 pos = new Vector3(x0 - .14f, .55f, z);
+                Detail(p, "HeadlampHousing", pos + new Vector3(.04f, 0f, 0f), new Vector3(.16f, .52f, .62f), TrainMat.Frame);
+                Detail(p, "HeadlampLens", pos + new Vector3(-.05f, 0f, 0f), new Vector3(.04f, .40f, .50f), TrainMat.Headlamp);
+                Transform t = Empty(p, "Headlight", pos + new Vector3(-.2f, 0f, 0f));
+                t.localRotation = Quaternion.Euler(4f, -90f, 0f);
+                Light light = t.gameObject.AddComponent<Light>();
+                light.type = LightType.Spot;
+                light.range = 60f;
+                light.spotAngle = 38f;
+                light.innerSpotAngle = 18f;
+                light.intensity = 4.5f;
+                light.color = new Color(1f, .93f, .80f);
+                light.shadows = LightShadows.None;
+            }
         }
 
         private static void BuildUpperSleeping(Transform u, float s)
@@ -561,12 +628,22 @@ namespace FrozenTrain.EditorTools
                 const float sleeperStep = 1.45f;
                 for (int i = 0; i < 100; i++)
                     Cube(near, "Sleeper", new Vector3(-55f + i * sleeperStep, g + .07f, 0f), new Vector3(.30f, .10f, 6.0f), M(TrainMat.Frame));
+                // Low, snow-capped rocks beyond 11 m so they never hide the train or crowd the windows.
                 for (int i = 0; i < 18; i++)
                 {
                     float side = i % 2 == 0 ? -1f : 1f;
-                    Vector3 size = new Vector3(Random.Range(1.4f, 4.2f), Random.Range(1.0f, 3.6f), Random.Range(1.3f, 4.0f));
-                    GameObject rock = Cube(near, "PassingRock", new Vector3(-55f + i * 7.2f, g + size.y * .3f, side * Random.Range(9.5f, 14f)), size, M(TrainMat.NearRock));
-                    rock.transform.localRotation = Quaternion.Euler(Random.Range(-8f, 8f), Random.Range(0f, 180f), Random.Range(-8f, 8f));
+                    Vector3 size = new Vector3(Random.Range(2.2f, 5.0f), Random.Range(.6f, 1.6f), Random.Range(1.6f, 3.4f));
+                    GameObject rock = Cube(near, "PassingRock", new Vector3(-55f + i * 7.2f, g + size.y * .35f, side * Random.Range(11f, 17f)), size, M(TrainMat.NearRock));
+                    rock.transform.localRotation = Quaternion.Euler(Random.Range(-4f, 4f), Random.Range(0f, 180f), Random.Range(-4f, 4f));
+                    Cube(rock.transform, "RockSnowCap", new Vector3(0f, .5f, 0f), new Vector3(.92f, .22f, .9f), M(TrainMat.Snow));
+                }
+                // Wind-packed drifts along the trackside, inside the rocks.
+                for (int i = 0; i < 22; i++)
+                {
+                    float side = i % 2 == 0 ? -1f : 1f;
+                    Vector3 size = new Vector3(Random.Range(4f, 9f), Random.Range(.25f, .6f), Random.Range(1.2f, 2.6f));
+                    GameObject drift = Cube(near, "SnowDrift", new Vector3(-55f + i * 6.6f, g + size.y * .3f, side * Random.Range(5.6f, 8f)), size, M(TrainMat.Snow));
+                    drift.transform.localRotation = Quaternion.Euler(0f, Random.Range(-12f, 12f), side * Random.Range(2f, 6f));
                 }
                 for (int i = 0; i < 14; i++)
                 {
@@ -577,12 +654,15 @@ namespace FrozenTrain.EditorTools
 
                 Transform far = Group(env, "DISTANT_SCENERY");
                 far.gameObject.AddComponent<MovingScenery>().Configure(4f, -75f, 115f);
+                // Ridges: a box turned 45 degrees about its long axis, half buried, with snow along the crest.
                 for (int i = 0; i < 12; i++)
                 {
                     float side = i % 2 == 0 ? -1f : 1f;
-                    Vector3 size = new Vector3(Random.Range(9f, 17f), Random.Range(8f, 16f), Random.Range(6f, 11f));
-                    GameObject m = Cube(far, "DistantMountain", new Vector3(-75f + i * 15f, g + size.y * .3f, side * Random.Range(22f, 34f)), size, M(TrainMat.FarRock));
-                    m.transform.localRotation = Quaternion.Euler(0f, Random.Range(20f, 70f), Random.Range(20f, 40f));
+                    Vector3 size = new Vector3(Random.Range(16f, 28f), Random.Range(12f, 20f), Random.Range(12f, 20f));
+                    float crest = .354f * (size.y + size.z);
+                    GameObject m = Cube(far, "DistantMountain", new Vector3(-75f + i * 15f, g - crest * .1f, side * Random.Range(30f, 42f)), size, M(TrainMat.FarRock));
+                    m.transform.localRotation = Quaternion.Euler(45f, Random.Range(-25f, 25f), 0f);
+                    Cube(m.transform, "RidgeSnow", new Vector3(0f, .5f, -.5f), new Vector3(1.01f, .34f, .34f), M(TrainMat.Snow));
                 }
             }
             finally { Random.state = saved; }
@@ -683,6 +763,8 @@ namespace FrozenTrain.EditorTools
             [TrainMat.Snow] = Lit("Train_Snow", new Color(.76f, .83f, .90f), .08f, 0f),
             [TrainMat.NearRock] = Lit("Train_ExteriorRock", new Color(.090f, .105f, .12f), .06f, 0f),
             [TrainMat.FarRock] = Lit("Train_DistantRock", new Color(.16f, .19f, .22f), .04f, 0f),
+            [TrainMat.Ice] = Lit("Train_Ice", new Color(.70f, .84f, .92f), .88f, 0f),
+            [TrainMat.Headlamp] = Lit("Train_Headlamp", new Color(.90f, .86f, .76f), .70f, .05f, new Color(1f, .92f, .74f) * 3.2f),
             [TrainMat.Glass] = Transparent("Train_WindowGlass", new Color(.42f, .62f, .72f, .13f), .80f, .04f),
         };
 
