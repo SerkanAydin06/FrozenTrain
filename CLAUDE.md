@@ -19,6 +19,7 @@ Work on the existing Unity survival-management game efficiently. Prefer focused 
 ## Source of truth
 - Train layout data (sizes, decks, every car's contents, E bindings): `Assets/Editor/FrozenTrainLayout.cs`
 - Builder (turns the layout into prefabs + scene, from scratch each run): `Assets/Editor/FrozenTrainBuilder.cs`
+- Production visual skin/material pass: `Assets/Editor/FrozenTrainProductionArt.cs`
 - Rebuild entry point: `Assets/Editor/FrozenTrainUnifiedAuthoring.cs`
 - Architecture contract: `Docs/FiveCarArchitecture.md`
 - Survival state: `Assets/Scripts/Management/TrainPrototypeState.cs`
@@ -54,6 +55,7 @@ Work on the existing Unity survival-management game efficiently. Prefer focused 
 - For 3D/character/material work, follow `Docs/ArtPipeline.md` and use the `free-art-pipeline` skill.
 - Prefer: existing asset -> verified free/CC0 asset -> AI-written Blender Python -> MakeHuman/MPFB + Mixamo for humanoids -> retain greybox until a free route is available.
 - Record every third-party art/audio/animation source and license in `ArtSource/AssetLedger.csv`.
+- `FrozenTrainProductionArt.cs` is a visual-only pass after the canonical builder; it may upgrade meshes/materials/details but must not become a second architecture/layout system.
 - Production art should replace primitive visuals without breaking `FrozenTrainLayout` / `FrozenTrainBuilder` placement and gameplay bindings.
 
 ## Workflow

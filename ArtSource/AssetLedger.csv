@@ -1,1 +1,2 @@
 asset_id,kind,source_name,source_url,license,license_url,attribution_required,unity_path,notes
+FT_LIV_ProductionPack_V1,procedural-art,FrozenTrain repository generator,,Project-generated,,no,Assets/Art/,Generated deterministically by FrozenTrainProductionArt.cs; no external paid service or third-party texture source
