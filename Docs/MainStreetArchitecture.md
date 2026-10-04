@@ -4,40 +4,52 @@
 FrozenTrain is treated as a horizontal building, not a chain of rooms.
 
 - **Lower deck = Infrastructure.** Power, water, fuel, HVAC, pumps, machinery and maintenance. Normal passenger circulation is not routed here.
-- **Main deck = Right-side public corridor.** One straight, continuous two-person corridor runs on the +Z/right side from locomotive to the final car.
+- **Main deck = Right-side public corridor in cars 2–5.** One straight, continuous two-person corridor runs on the +Z/right side from Generator through Greenhouse.
+- **Locomotive main deck = Full private cab.** The locomotive is a destination, not a through-route; it has no passenger corridor inside it.
 - **Upper deck = Residential.** Private cabins and quiet local halls. Upper decks are not an inter-car transit route.
 
 ## Main-deck rules
-- Public corridor occupies roughly Z=1.90 to Z=4.40, about 2.5 m wide.
-- The corridor must remain straight and physically clear through every car.
-- Inter-car openings and connector bellows align with the same right-side corridor; they are not centred in the car.
-- The entire left side of each car is a closed functional compartment.
-- The functional compartment is separated from the public corridor by an **opaque full-height wall**.
-- There is **exactly one staff/work-area door per car**, centred on that partition.
-- People travelling through the train never walk through generator, workshop, greenhouse, living-service or locomotive work areas.
-- Work areas are destinations, not parts of the circulation route.
-- No glazing is used to expose the work area from the public corridor unless explicitly redesigned later.
+- Cars **2–5** use a public corridor roughly at Z=1.90 to Z=4.40, about 2.5 m wide.
+- That corridor must remain straight, uncluttered and physically clear.
+- Inter-car openings from Generator onward align with the same right-side corridor.
+- The Generator-to-Locomotive connector enters a private rear landing inside the locomotive; the corridor does not continue through the locomotive.
+- The left side of cars 2–5 is one opaque, closed functional compartment.
+- The functional compartment is separated from the public corridor by an opaque full-height wall.
+- Each functional compartment has exactly one centred corridor-facing **staff/work-room door**.
+- A second, clearly separate **Residential Access** door may exist near the car end, but it only enters the enclosed stairwell and never opens into the work room.
+- Passengers travelling through the train never cross generator, workshop, greenhouse or living work areas.
+- Old centre-aisle/glazed-frontage decoration must not remain in the right-side corridor.
 
-## Five-car intent
-1. **Locomotive:** right corridor terminates at the front; driver/control equipment stays inside the closed left operations room.
-2. **Generator:** right corridor passes beside one closed generator control/work room.
-3. **Living:** right corridor passes beside one closed lounge/galley/service room.
-4. **Workshop:** right corridor passes beside one closed workshop used only by staff working there.
-5. **Greenhouse:** right corridor passes beside one closed greenhouse production room.
+## Locomotive intent
+- The whole main deck is one private operations/cab space.
+- Driver console, driver seats, equipment cabinets and management terminal can use the full car width.
+- The right-side transit corridor ends when entering the locomotive.
+- The locomotive has its own enclosed crew/residential stairwell inside the private cab.
 
-## Upper residential rules
-- Upper inter-car movement is not part of normal circulation.
-- Each car's residential deck is reached locally from that car's vertical access.
-- End bulkheads close the old upper through-route.
+## Cars 2–5 intent
+1. **Generator:** right public corridor + one closed generator control/work room.
+2. **Living:** right public corridor + one closed lounge/galley/medical room.
+3. **Workshop:** right public corridor + one closed staff workshop.
+4. **Greenhouse:** right public corridor + one closed greenhouse production room.
+
+## Residential access rules
+- Exposed wall ladders are not normal residential access.
+- Old open ladder hatches are closed and made walkable.
+- Each car uses an **enclosed stairwell volume** with a main-deck access door and an upper residential landing door.
+- In cars 2–5, the stairwell is separated from the work room and is reached directly from the public corridor.
+- In the locomotive, the stairwell is reached from inside the private cab.
+- Upper landings never open into private sleeping cabins.
+- Technical-deck ladders in Generator and Workshop remain separate restricted maintenance access.
 
 ## Scalability goal
-A future 10–15 car train should let passengers walk locomotive-to-tail through one predictable corridor without entering any functional room. Adding a new car means extending the same +Z corridor and adding one closed room on its left.
+A future 10–15 car train should let passengers walk from Generator toward the tail through one predictable corridor without entering any functional room. The locomotive remains a private destination at the head of the train rather than another corridor segment.
 
 ## Authoring
 `Frozen Train > Rebuild Authored Train` applies the normal builder/art passes and then:
 
-1. `FrozenTrainMainStreetArchitecture` — now implements the right-side corridor model.
-2. `FrozenTrainMainStreetConnector` — offsets inter-car openings and the connector to the corridor.
-3. `FrozenTrainMainStreetSafety` — guarantees the corridor stays clear and partitions keep colliders.
+1. `FrozenTrainMainStreetArchitecture` — builds the right-side corridor/work-room model.
+2. `FrozenTrainMainStreetConnector` — offsets inter-car openings and connectors to the corridor.
+3. `FrozenTrainMainStreetSafety` — applies base physical cleanup.
+4. `FrozenTrainCirculationFinalizer` — enforces the full-private locomotive, removes corridor clutter, closes obsolete ladder hatches, removes exposed residential ladders and creates enclosed residential stairwells.
 
 The passes remain idempotent and preserve existing survival interaction bindings.
