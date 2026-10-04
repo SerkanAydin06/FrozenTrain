@@ -12,8 +12,9 @@ namespace FrozenTrain.DevTools
 {
     /// <summary>
     /// Editor-only review camera. On every Play of the main scene it photographs each car and deck
-    /// from fixed viewpoints and overwrites Docs/Screenshots/vagonN_katK.jpg, so the latest look of
-    /// the train can be committed and reviewed. Not compiled into player builds.
+    /// from fixed viewpoints and overwrites Docs/Screenshots, including dedicated upper-cabin and
+    /// ladder-landing views so circulation/furniture problems cannot hide behind corridor-only shots.
+    /// Not compiled into player builds.
     /// </summary>
     public sealed class TrainScreenshotCapture : MonoBehaviour
     {
@@ -23,9 +24,9 @@ namespace FrozenTrain.DevTools
         private const string TrainRootName = "TRAIN_INTERIOR_PROTOTYPE";
         private const int Width = 1280;
         private const int Height = 720;
-        private const int JpgQuality = 82;
+        private const int JpgQuality = 84;
         private const float StartDelaySeconds = 2.5f;
-        private const float ReviewFov = 80f;
+        private const float ReviewFov = 74f;
 
         // Must match FrozenTrainLayout (car order, spacing and deck floor levels).
         private static readonly string[] CarNames = { "01_Locomotive", "02_Generator", "03_Living", "04_Workshop", "05_Greenhouse" };
@@ -35,6 +36,8 @@ namespace FrozenTrain.DevTools
         private static readonly string[] DeckLabels = { "alt / teknik", "orta / yaşam-çalışma", "üst / yatakhane + koridor" };
         private const float EyeHeight = 1.55f;
         private const float EndInset = 7.6f;
+        private const float UpperCabinDoorU = -4.85f;
+        private const float UpperLandingU = 5.95f;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
@@ -59,7 +62,6 @@ namespace FrozenTrain.DevTools
             string folder = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Docs", "Screenshots"));
             Directory.CreateDirectory(folder);
 
-            // Freeze player-side systems so nothing moves the camera or draws HUD during capture.
             FpsPlayerController controller = FindFirstObjectByType<FpsPlayerController>();
             PlayerInteraction interaction = FindFirstObjectByType<PlayerInteraction>();
             TrainManagementPanel panel = FindFirstObjectByType<TrainManagementPanel>();
@@ -95,7 +97,7 @@ namespace FrozenTrain.DevTools
             manifest.AppendLine();
             manifest.AppendLine("Son çekim: " + System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
             manifest.AppendLine();
-            manifest.AppendLine("Kat 1 = alt/teknik, kat 2 = orta, kat 3 = üst. `_ters` = vagonun öbür ucundan bakış.");
+            manifest.AppendLine("Kat 1 = alt/teknik, kat 2 = orta, kat 3 = üst. `_ters` = vagonun öbür ucundan bakış. `_oda` = örnek özel kabin, `_landing` = ortak merdiven sahanlığı.");
             manifest.AppendLine();
             manifest.AppendLine("| Dosya | Açıklama | Kamera (dünya) |");
             manifest.AppendLine("|---|---|---|");
@@ -116,20 +118,29 @@ namespace FrozenTrain.DevTools
                     string baseName = "vagon" + (car + 1) + "_kat" + (deck + 1);
                     string label = CarLabels[car] + ", kat " + (deck + 1) + " (" + DeckLabels[deck] + ")";
 
-                    // Rear end looking toward the locomotive (-X), then the reverse view.
                     yield return Shoot(cam, image, rt, folder, baseName, label + ", öne bakış", carTransform, car,
                         new Vector3(EndInset, y, 0f), -90f, manifest, () => saved++);
                     yield return Shoot(cam, image, rt, folder, baseName + "_ters", label + ", arkaya bakış", carTransform, car,
                         new Vector3(-EndInset, y, 0f), 90f, manifest, () => saved++);
                 }
+
+                // Upper-deck diagnostic angles. Greenhouse has its upper ladders at -X; all other cars at +X.
+                float upperY = DeckFloorY[2] + EyeHeight;
+                float s = car == CarNames.Length - 1 ? -1f : 1f;
+                string upperBase = "vagon" + (car + 1) + "_kat3";
+                yield return Shoot(cam, image, rt, folder, upperBase + "_oda",
+                    CarLabels[car] + ", üst kat örnek özel kabin", carTransform, car,
+                    new Vector3(s * UpperCabinDoorU, upperY, 0.02f), 0f, manifest, () => saved++);
+                yield return Shoot(cam, image, rt, folder, upperBase + "_landing",
+                    CarLabels[car] + ", üst kat ortak merdiven sahanlığı", carTransform, car,
+                    new Vector3(s * UpperLandingU, upperY, 0f), 0f, manifest, () => saved++);
             }
 
-            // Exterior overviews of the whole train. The side view looks over the ridges, not through them.
             Vector3 trainCenter = trainRoot != null ? trainRoot.position : Vector3.zero;
-            yield return ShootWorld(cam, image, rt, folder, "tren_dis_yan", "Tüm tren, yandan",
-                trainCenter + new Vector3(0f, 24f, -58f), Quaternion.Euler(20f, 0f, 0f), manifest, () => saved++);
-            yield return ShootWorld(cam, image, rt, folder, "tren_dis_on", "Lokomotif önü, çapraz",
-                trainCenter + new Vector3(-2.5f * CarSpacing - 14f, 6f, -16f), Quaternion.Euler(10f, 50f, 0f), manifest, () => saved++);
+            yield return ShootWorld(cam, image, rt, folder, "tren_dis_yan", "Tüm tren, yakın yandan",
+                trainCenter + new Vector3(0f, 12f, -43f), Quaternion.Euler(10f, 0f, 0f), manifest, () => saved++);
+            yield return ShootWorld(cam, image, rt, folder, "tren_dis_on", "Lokomotif önü, yakın çapraz",
+                trainCenter + new Vector3(-2.5f * CarSpacing - 11.5f, 4.7f, -13.5f), Quaternion.Euler(7f, 54f, 0f), manifest, () => saved++);
 
             File.WriteAllText(Path.Combine(folder, "README.md"), manifest.ToString(), Encoding.UTF8);
 
@@ -160,12 +171,12 @@ namespace FrozenTrain.DevTools
             if (carTransform != null)
             {
                 position = carTransform.TransformPoint(local);
-                rotation = carTransform.rotation * Quaternion.Euler(6f, yaw, 0f);
+                rotation = carTransform.rotation * Quaternion.Euler(5f, yaw, 0f);
             }
             else
             {
                 position = new Vector3((carIndex - 2) * CarSpacing + local.x, local.y, local.z);
-                rotation = Quaternion.Euler(6f, yaw, 0f);
+                rotation = Quaternion.Euler(5f, yaw, 0f);
             }
 
             yield return ShootWorld(cam, image, rt, folder, fileName, label, position, rotation, manifest, onSaved);
@@ -175,8 +186,6 @@ namespace FrozenTrain.DevTools
             Vector3 position, Quaternion rotation, StringBuilder manifest, System.Action onSaved)
         {
             cam.transform.SetPositionAndRotation(position, rotation);
-
-            // A few frames let temporal effects (TAA, exposure, motion blur) settle on the new viewpoint.
             for (int i = 0; i < 4; i++) yield return null;
             yield return new WaitForEndOfFrame();
 
