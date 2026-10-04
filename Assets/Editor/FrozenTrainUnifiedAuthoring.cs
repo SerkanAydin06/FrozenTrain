@@ -6,8 +6,8 @@ namespace FrozenTrain.EditorTools
 {
     /// <summary>
     /// Single public authoring entry point. The canonical builder creates the train, production art upgrades
-    /// the generated assets, upper circulation guarantees public landings/corridors, and the final screenshot
-    /// QA pass applies presentation fixes that were verified from the latest automatic review images.
+    /// the generated assets, legacy upper circulation/QA passes finish existing content, then Main Street is
+    /// applied as the final scalable architecture: lower infrastructure, main public transit, upper residential.
     /// </summary>
     public static class FrozenTrainUnifiedAuthoring
     {
@@ -20,8 +20,10 @@ namespace FrozenTrain.EditorTools
             FrozenTrainUpperDeckFinalPolish.Apply();
             FrozenTrainScreenshotQARefinement.Apply();
             FrozenTrainScreenshotQASafety.Apply();
+            FrozenTrainMainStreetArchitecture.Apply();
+            FrozenTrainMainStreetSafety.Apply();
             AssetDatabase.Refresh();
-            Debug.Log("FrozenTrain rebuilt: canonical 5-car layout + production art + public upper circulation + screenshot QA refinement applied.");
+            Debug.Log("FrozenTrain rebuilt: 5-car production train + Main Street public spine + private residential upper decks applied.");
         }
     }
 }
