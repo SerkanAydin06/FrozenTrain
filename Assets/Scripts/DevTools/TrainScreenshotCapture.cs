@@ -49,6 +49,9 @@ namespace FrozenTrain.DevTools
 
             string folder = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Docs", "Screenshots"));
             Directory.CreateDirectory(folder);
+            // Never mix obsolete 18 m / in-car-stair screenshots with the current architecture.
+            foreach (string old in Directory.GetFiles(folder, "*.jpg")) File.Delete(old);
+            foreach (string old in Directory.GetFiles(folder, "*.jpeg")) File.Delete(old);
 
             FpsPlayerController controller = FindFirstObjectByType<FpsPlayerController>();
             PlayerInteraction interaction = FindFirstObjectByType<PlayerInteraction>();
@@ -114,7 +117,6 @@ namespace FrozenTrain.DevTools
                     new Vector3(UpperCabinX, upperY, 0.02f), 0f, manifest, () => saved++);
             }
 
-            // Four dedicated vestibules between the five long cars.
             for (int gap = 0; gap < CarNames.Length - 1; gap++)
             {
                 float vestibuleX = ((gap - 1.5f) * CarSpacing);
