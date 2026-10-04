@@ -6,8 +6,8 @@ namespace FrozenTrain.EditorTools
 {
     /// <summary>
     /// Single public authoring entry point. The canonical builder creates the train and production/QA passes
-    /// finish the generated content; final architecture then converts the main deck to one straight right-side
-    /// public corridor with one opaque closed functional room on the left of every car.
+    /// finish generated content. The final circulation authority then enforces the locomotive/private-cab
+    /// exception, clean right-side passenger corridors in cars 2-5, and enclosed residential stairwells.
     /// </summary>
     public static class FrozenTrainUnifiedAuthoring
     {
@@ -23,8 +23,9 @@ namespace FrozenTrain.EditorTools
             FrozenTrainMainStreetArchitecture.Apply();
             FrozenTrainMainStreetConnector.Apply();
             FrozenTrainMainStreetSafety.Apply();
+            FrozenTrainCirculationFinalizer.Apply();
             AssetDatabase.Refresh();
-            Debug.Log("FrozenTrain rebuilt: right-side two-person transit corridor + opaque single-door functional compartments + private upper residential decks applied.");
+            Debug.Log("FrozenTrain rebuilt: full private locomotive + clean right-side corridors in cars 2-5 + enclosed residential stairwells applied.");
         }
     }
 }
