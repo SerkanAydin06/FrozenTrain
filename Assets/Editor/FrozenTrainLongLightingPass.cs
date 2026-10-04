@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using L = FrozenTrain.EditorTools.FrozenTrainLayout;
@@ -14,7 +15,6 @@ namespace FrozenTrain.EditorTools
         public static void Apply()
         {
             Material frame = Mat("FT_PRO_Frame", new Color(.04f, .05f, .06f));
-            Material warm = Mat("FT_PRO_WarmLight", new Color(.90f, .55f, .18f));
 
             for (int i = 0; i < L.Cars.Length; i++)
             {
@@ -23,6 +23,17 @@ namespace FrozenTrain.EditorTools
                 GameObject root = PrefabUtility.LoadPrefabContents(path);
                 try
                 {
+                    // Keep the QA aisle markings, but remove its old 18 m three-light pattern.
+                    Transform qa = root.transform.Find("__ScreenshotQAV1");
+                    Transform lowerQa = qa != null ? qa.Find("LowerDeckQA") : null;
+                    if (lowerQa != null)
+                    {
+                        foreach (Transform t in lowerQa.GetComponentsInChildren<Transform>(true)
+                                     .Where(t => t != lowerQa && (t.name == "LowerCeilingLuminaire" || t.name == "LowerServiceLight"))
+                                     .ToArray())
+                            if (t != null) Object.DestroyImmediate(t.gameObject);
+                    }
+
                     Transform old = root.transform.Find(MarkerName);
                     if (old != null) Object.DestroyImmediate(old.gameObject);
                     Transform marker = Group(root.transform, MarkerName);
@@ -48,10 +59,20 @@ namespace FrozenTrain.EditorTools
 
         private static Material Mat(string name, Color fallback)
         {
-            Material m = AssetDatabase.LoadAssetAtPath<Material>(MaterialRoot + "/" + name + ".mat");
-            if (m != null) return m;
+            EnsureFolder(MaterialRoot);
+            string path = MaterialRoot + "/" + name + ".mat";
+            Material m = AssetDatabase.LoadAssetAtPath<Material>(path);
             Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-            return new Material(shader) { name = name + "_LongLightingFallback", color = fallback };
+            if (m == null)
+            {
+                m = new Material(shader) { name = name };
+                AssetDatabase.CreateAsset(m, path);
+            }
+            m.shader = shader;
+            m.color = fallback;
+            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", fallback);
+            EditorUtility.SetDirty(m);
+            return m;
         }
 
         private static Transform Group(Transform parent, string name)
@@ -71,6 +92,15 @@ namespace FrozenTrain.EditorTools
             go.GetComponent<Renderer>().sharedMaterial = mat;
             Collider c = go.GetComponent<Collider>();
             if (c != null) Object.DestroyImmediate(c);
+        }
+
+        private static void EnsureFolder(string folderPath)
+        {
+            if (AssetDatabase.IsValidFolder(folderPath)) return;
+            string parent = System.IO.Path.GetDirectoryName(folderPath)?.Replace('\\', '/');
+            string name = System.IO.Path.GetFileName(folderPath);
+            if (!string.IsNullOrEmpty(parent) && !AssetDatabase.IsValidFolder(parent)) EnsureFolder(parent);
+            AssetDatabase.CreateFolder(parent ?? "Assets", name);
         }
     }
 }
