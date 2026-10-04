@@ -19,6 +19,7 @@ namespace FrozenTrain.EditorTools
             FrozenTrainUpperDeckCirculation.Apply();
             FrozenTrainUpperDeckFinalPolish.Apply();
             FrozenTrainScreenshotQARefinement.Apply();
+            FrozenTrainScreenshotQASafety.Apply();
             AssetDatabase.Refresh();
             Debug.Log("FrozenTrain rebuilt: canonical 5-car layout + production art + public upper circulation + screenshot QA refinement applied.");
         }
