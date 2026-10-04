@@ -20,48 +20,60 @@ The entire lower deck is reserved for technical infrastructure and technical sta
 - Fresh/waste water, heating boiler, HVAC and water treatment are below the living car.
 - Compressor, hydraulics, workshop power distribution and parts infrastructure are below the workshop.
 - Greenhouse water tank, pumps, nutrients, irrigation and climate plant are below the greenhouse.
-- Access from the main deck remains restricted to dedicated technical ladders in the generator and workshop cars.
+- Access from the main deck remains restricted to dedicated technical ladders in the Generator and Workshop cars.
 
 ## Deck 2 — Main occupied deck
 
-This is the normal passenger/staff level, but passenger circulation and work areas are physically separated.
+Passenger circulation and work areas are physically separated.
 
-### Permanent circulation geometry
-- A **single straight public corridor** runs along the **+Z/right side** of every car.
-- Corridor target envelope is approximately **Z=1.90 to Z=4.40**, about **2.5 m wide**, enough for two people to pass.
-- The corridor stays straight through every car and continues through offset inter-car connectors aligned to the same +Z position.
-- The remaining left side of the car is one **opaque, closed functional compartment**.
-- The partition is full height and does not use viewing glass.
-- Each car has **one centred corridor-facing staff door** into its functional compartment.
-- A passenger moving from the locomotive toward the tail never enters a generator room, workshop, greenhouse, lounge/work room or cab workspace just to continue along the train.
-
-### Functional rooms
-- **01 Locomotive:** driving, supervision and train controls stay inside the closed left operations room. The public corridor terminates at the locomotive front.
-- **02 Generator:** operator/control room stays inside one closed staff compartment; generator machinery remains below.
-- **03 Living:** lounge/dining/galley/medical functions stay inside one closed living compartment; the public corridor passes beside it.
-- **04 Workshop:** repair benches, tools and work machines stay inside one closed staff workshop.
-- **05 Greenhouse:** crops and human production work stay inside one closed greenhouse compartment; pumps/tanks/climate machinery remain below.
+### Locomotive
+- The **entire locomotive main deck is private operations space**.
+- There is no public passenger corridor running through the locomotive.
+- The Generator-to-Locomotive connection enters a private rear landing, then opens into the full cab.
+- Driver console, seats, equipment cabinets and management terminal use the full available width.
 - The locomotive keeps one single-piece panoramic front windshield.
+
+### Cars 2–5 public corridor
+- Generator, Living, Workshop and Greenhouse use a **single straight public corridor** along the **+Z/right side**.
+- Target corridor envelope is approximately **Z=1.90 to Z=4.40**, about **2.5 m wide**, enough for two people to pass.
+- The corridor remains straight and clear through cars 2–5 and continues through offset inter-car connectors aligned to the same +Z position.
+- No furniture, machine, decorative QA prop, shelf, hydroponic element, console or work-light may remain inside the public corridor envelope.
+
+### Closed functional rooms
+- The remaining left side of cars 2–5 is one **opaque, closed functional compartment**.
+- The partition is full height and has no viewing glass.
+- Each functional room has exactly **one centred staff/work-room door**.
+- Generator controls, Living lounge/galley/medical functions, Workshop benches/tools and Greenhouse production stay inside their own closed rooms.
+- A passenger continuing through the train never enters these rooms.
+
+### Residential access
+- A second end-positioned door may appear on the corridor partition, but it is **not another work-room entrance**.
+- It only opens into the enclosed residential stairwell.
+- The stairwell is physically separated from the work room.
 
 ## Deck 3 — Upper residential deck
 
 The upper deck is private/local accommodation, not a long-distance route.
 
 - Upper decks do **not** form an inter-car passenger corridor.
-- Each car's upper level is reached from that car's own vertical access and local shared landing.
 - Sleeping compartments/beds and lockers occupy the residential zones.
 - Old upper inter-car routes stay physically closed with end bulkheads.
-- Ladders must never exit directly into a private cabin.
+- Exposed wall ladders are no longer the normal residential access solution.
+- Old open ladder hatches are closed and made walkable.
+- Each car has an **enclosed residential stairwell** with a lower access door and upper landing door.
+- Cars 2–5 reach this stairwell directly from the right-side public corridor without entering the work room.
+- The locomotive reaches its stairwell from inside the private cab.
+- Upper landing doors open to shared residential space, never directly into a private cabin.
 
 ## Windows
 
 - Locomotive: panoramic single-piece front glass plus limited cab side glazing.
-- Existing exterior windows may remain, but the internal work-room/corridor separator is opaque.
-- Lower technical and upper sleeping exterior walls remain primarily sealed for insulation and protection.
+- Existing exterior windows may remain, but work-room/corridor separators in cars 2–5 are opaque.
+- Lower technical and upper residential exterior walls remain primarily sealed for insulation and protection.
 
 ## Environment
 
 - Locomotive front faces -X; exterior scenery moves +X to read as forward travel.
 - Snow emitters are kept far outside the train body and have no lateral velocity toward the train.
 - The train stands on a track: underframe and bogies sit below the technical deck, and the snow ground is at rail level, below the whole car body.
-- Runtime gameplay does not construct train geometry. `Frozen Train > Rebuild Authored Train` regenerates the canonical train and then applies production-art, QA and final right-side-corridor architecture passes.
+- Runtime gameplay does not construct train geometry. `Frozen Train > Rebuild Authored Train` regenerates the canonical train and then applies production-art, QA, right-side-corridor and final circulation cleanup passes.
