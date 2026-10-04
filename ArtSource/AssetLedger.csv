@@ -1,3 +1,4 @@
 asset_id,kind,source_name,source_url,license,license_url,attribution_required,unity_path,notes
 FT_LIV_ProductionPack_V1,procedural-art,FrozenTrain repository generator,,Project-generated,,no,Assets/Art/,Generated deterministically by FrozenTrainProductionArt.cs; no external paid service or third-party texture source
 FT_Train_Production_V2,procedural-art,FrozenTrain repository generator,,Project-generated,,no,Assets/Art/,Five-car generated material/detail library from FrozenTrainProductionArtPro.cs; free-only and deterministic
+FT_Train_ScreenshotQA_V1,procedural-art,FrozenTrain screenshot QA generator,,Project-generated,,no,Assets/Art/Meshes/Generated/,Screenshot-driven exterior/body/environment refinement including low-poly mountain mesh; no external asset source
