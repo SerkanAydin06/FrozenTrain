@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System.Linq;
+using FrozenTrain.Interaction;
 using UnityEditor;
 using UnityEngine;
 using L = FrozenTrain.EditorTools.FrozenTrainLayout;
@@ -38,10 +39,19 @@ namespace FrozenTrain.EditorTools
         {
             foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
             {
-                if (t.name == "SafetyGlass" || t.name == "CabBulkhead" || t.name == "CabGlassDoor" || t.name == "ResidentialEndBulkhead")
+                if (t.name == "SafetyGlass" || t.name == "CabBulkhead" || t.name == "ResidentialEndBulkhead")
                 {
                     if (t.GetComponent<Collider>() == null)
                         t.gameObject.AddComponent<BoxCollider>();
+                }
+
+                if (t.name == "CabGlassDoor")
+                {
+                    if (t.GetComponent<Collider>() == null)
+                        t.gameObject.AddComponent<BoxCollider>();
+                    SlidingDoor door = t.GetComponent<SlidingDoor>();
+                    if (door == null) door = t.gameObject.AddComponent<SlidingDoor>();
+                    door.Configure(new Vector3(0f, 0f, -2.65f), 2.8f);
                 }
             }
         }
