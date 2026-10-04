@@ -86,7 +86,6 @@ namespace FrozenTrain.EditorTools
 
         private static void FinalizeLocomotive(Transform root, Transform marker, Mats m)
         {
-            // Locomotive is a destination, not a through-route. Remove the right-side corridor and work-room wall.
             Transform architecture = root.Find("__RightSideCorridorV2");
             if (architecture != null)
             {
@@ -133,25 +132,17 @@ namespace FrozenTrain.EditorTools
             Transform corridor = architecture != null ? FindFirst(architecture, "RightSidePublicCorridor") : null;
             if (corridor == null) return;
 
-            // Rebuild the opaque partition with exactly two distinct access points:
-            // central staff/work-room door + end residential stairwell door.
             foreach (string n in new[] { "CompartmentWallFront", "CompartmentWallRear", "CompartmentDoorHeader", "CompartmentWall" })
                 DestroyAllNamed(corridor, n);
 
             float s = L.Cars[index].UpperLaddersAtFront ? -1f : 1f;
             float stairX = s * StairDoorU;
             BuildPartitionWithOpenings(corridor, stairX, m);
-
-            // The staff/work door produced by MainStreetArchitecture stays centred and remains the only
-            // entrance into the work compartment. The second door only enters the sealed stair tower.
             BuildLowerStairDoor(marker, stairX, m);
-
-            // Reserve the stair-tower footprint inside the left zone. No work prop may occupy it.
             ClearStairFootprint(root, index, stairX);
 
             if (index == 2)
             {
-                // The medical cabinet used to sit inside the new stair footprint.
                 Transform med = FindFirst(root, "MedicalCabinet");
                 if (med != null)
                 {
@@ -263,14 +254,11 @@ namespace FrozenTrain.EditorTools
             float shaftHeight = shaftTop - shaftBottom;
             float shaftY = shaftBottom + shaftHeight * .5f;
 
-            // Opaque vertical shaft: residents see proper doors, not exposed wall ladders or floor holes.
             Cube(shaft, "ShaftBackWall", new Vector3(xCentre, shaftY, ShaftZMin),
                 new Vector3(xLength, shaftHeight, .14f), m.Wall, true);
             BuildFrontShaftWall(shaft, stairX, xMin, xMax, shaftBottom, shaftTop, m);
             BuildUpperShaftBulkhead(shaft, innerX, m);
 
-            // Subtle internal steps communicate a real stair tower while floor-to-floor travel remains
-            // interaction-driven so the compact shaft never creates FPS head-clearance or collision traps.
             for (int i = 0; i < 8; i++)
             {
                 float t = i / 7f;
@@ -347,7 +335,8 @@ namespace FrozenTrain.EditorTools
 
         private static void BuildLowerStairDoor(Transform marker, float stairX, Mats m)
         {
-            Transform door = Group(marker, "ResidentialAccessDoor");
+            Transform host = Group(marker, "ResidentialAccessInteraction");
+            Transform door = Group(host, "ResidentialAccessDoor");
             door.localPosition = new Vector3(stairX, L.MainTop + DoorHeight * .5f, PartitionZ - .025f);
             Cube(door, "DoorPanel", Vector3.zero, new Vector3(StairDoorWidth - .07f, DoorHeight - .06f, .09f), m.Frame, false);
             Cube(door, "DoorBand", new Vector3(0f, .46f, -.052f), new Vector3(.88f, .14f, .025f), m.Hazard, false);
@@ -365,7 +354,8 @@ namespace FrozenTrain.EditorTools
 
         private static void BuildLocomotiveLowerStairDoor(Transform shaft, float stairX, Transform lower, Transform upper, Mats m)
         {
-            Transform door = Group(shaft, "LocomotiveResidentialAccessDoor");
+            Transform host = Group(shaft, "LocomotiveResidentialAccessInteraction");
+            Transform door = Group(host, "LocomotiveResidentialAccessDoor");
             door.localPosition = new Vector3(stairX, L.MainTop + DoorHeight * .5f, ShaftZMax - .03f);
             Cube(door, "DoorPanel", Vector3.zero, new Vector3(StairDoorWidth - .07f, DoorHeight - .06f, .09f), m.Frame, false);
             Cube(door, "DoorBand", new Vector3(0f, .46f, -.052f), new Vector3(.88f, .14f, .025f), m.Hazard, false);
@@ -375,7 +365,8 @@ namespace FrozenTrain.EditorTools
 
         private static void BuildUpperStairDoor(Transform shaft, float s, float innerX, Transform lower, Transform upper, Mats m)
         {
-            Transform door = Group(shaft, "UpperResidentialStairDoor");
+            Transform host = Group(shaft, "UpperResidentialStairInteraction");
+            Transform door = Group(host, "UpperResidentialStairDoor");
             door.localPosition = new Vector3(innerX - s * .025f, L.UpperTop + 1.15f, 0f);
             Cube(door, "DoorPanel", Vector3.zero, new Vector3(.09f, 2.22f, 1.16f), m.Frame, false);
             Cube(door, "DoorBand", new Vector3(-s * .052f, .45f, 0f), new Vector3(.025f, .14f, .84f), m.Hazard, false);
@@ -390,7 +381,6 @@ namespace FrozenTrain.EditorTools
             Transform qa = root.Find("__ScreenshotQAV1");
             if (qa != null) DestroyNamedChild(qa, "MainDeckQA");
 
-            // Old art roots were authored for a centre-aisle train and can cross the new right corridor.
             foreach (string n in new[] { "LivingWallFurniture", "GreenhouseOverhead" })
                 DestroyAllNamed(root, n);
         }
@@ -399,8 +389,6 @@ namespace FrozenTrain.EditorTools
         {
             if (index == 0) return;
 
-            // Anything in the canonical main content group that still sits in the public envelope is moved
-            // back into the closed room. Interaction components stay on the same root.
             Transform main = FindFirst(root, L.Cars[index].MainGroupName);
             if (main == null) return;
 
