@@ -1,13 +1,11 @@
 #if UNITY_EDITOR
-using System.Linq;
-using FrozenTrain.Interaction;
 using UnityEditor;
 using UnityEngine;
 using L = FrozenTrain.EditorTools.FrozenTrainLayout;
 
 namespace FrozenTrain.EditorTools
 {
-    /// <summary>Final physical-safety cleanup for the Main Street architecture.</summary>
+    /// <summary>Final physical-safety cleanup for the right-side public corridor architecture.</summary>
     internal static class FrozenTrainMainStreetSafety
     {
         private const string PrefabRoot = "Assets/Prefabs/Train";
@@ -22,53 +20,50 @@ namespace FrozenTrain.EditorTools
                 GameObject root = PrefabUtility.LoadPrefabContents(path);
                 try
                 {
-                    FixPhysicalPartitions(root.transform);
-                    if (i == 0) FixLocomotiveEquipmentBalance(root.transform);
+                    EnsurePartitionColliders(root.transform);
+                    KeepFunctionalPropsOutOfCorridor(root.transform);
                     PrefabUtility.SaveAsPrefabAsset(root, path);
                 }
-                finally
-                {
-                    PrefabUtility.UnloadPrefabContents(root);
-                }
+                finally { PrefabUtility.UnloadPrefabContents(root); }
             }
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
 
-        private static void FixPhysicalPartitions(Transform root)
+        private static void EnsurePartitionColliders(Transform root)
         {
             foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
             {
-                if (t.name == "SafetyGlass" || t.name == "CabBulkhead" || t.name == "ResidentialEndBulkhead")
+                if (t.name == "CompartmentWallFront" || t.name == "CompartmentWallRear" ||
+                    t.name == "CompartmentDoorHeader" || t.name == "ResidentialEndBulkhead")
                 {
-                    if (t.GetComponent<Collider>() == null)
-                        t.gameObject.AddComponent<BoxCollider>();
-                }
-
-                if (t.name == "CabGlassDoor")
-                {
-                    if (t.GetComponent<Collider>() == null)
-                        t.gameObject.AddComponent<BoxCollider>();
-                    SlidingDoor door = t.GetComponent<SlidingDoor>();
-                    if (door == null) door = t.gameObject.AddComponent<SlidingDoor>();
-                    door.Configure(new Vector3(0f, 0f, -2.65f), 2.8f);
+                    if (t.GetComponent<Collider>() == null) t.gameObject.AddComponent<BoxCollider>();
                 }
             }
         }
 
-        private static void FixLocomotiveEquipmentBalance(Transform root)
+        private static void KeepFunctionalPropsOutOfCorridor(Transform root)
         {
-            Transform[] cabinets = root.GetComponentsInChildren<Transform>(true)
-                .Where(t => t.name == "EquipmentCabinet")
-                .OrderBy(t => t.localPosition.x)
-                .ToArray();
-
-            for (int i = 0; i < cabinets.Length; i++)
+            // Final guard against older production/QA passes leaving movable props on the +Z passenger route.
+            string[] movable =
             {
-                Vector3 p = cabinets[i].localPosition;
-                // Keep the two original left-wall cabinets on -Z and the opposite cabinet on +Z.
-                p.z = i < 2 ? -3.96f : 3.96f;
-                cabinets[i].localPosition = p;
+                "EquipmentCabinet", "ManagementTerminal", "MonitoringRack", "ToolCabinet",
+                "MachineStation", "MedicalCabinet", "HydroponicBed", "SeatingBay", "Workbench"
+            };
+
+            foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
+            {
+                bool tracked = false;
+                for (int i = 0; i < movable.Length; i++)
+                    if (t.name == movable[i]) { tracked = true; break; }
+                if (!tracked) continue;
+
+                Vector3 p = t.localPosition;
+                if (p.z >= FrozenTrainMainStreetArchitecture.CorridorMinZ - .10f)
+                {
+                    p.z = Mathf.Min(.85f, FrozenTrainMainStreetArchitecture.CorridorMinZ - .55f);
+                    t.localPosition = p;
+                }
             }
         }
     }

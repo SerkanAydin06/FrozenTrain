@@ -5,9 +5,9 @@ using UnityEngine;
 namespace FrozenTrain.EditorTools
 {
     /// <summary>
-    /// Single public authoring entry point. The canonical builder creates the train, production art upgrades
-    /// the generated assets, legacy upper circulation/QA passes finish existing content, then Main Street is
-    /// applied as the final scalable architecture: lower infrastructure, main public transit, upper residential.
+    /// Single public authoring entry point. The canonical builder creates the train and production/QA passes
+    /// finish the generated content; final architecture then converts the main deck to one straight right-side
+    /// public corridor with one opaque closed functional room on the left of every car.
     /// </summary>
     public static class FrozenTrainUnifiedAuthoring
     {
@@ -24,7 +24,7 @@ namespace FrozenTrain.EditorTools
             FrozenTrainMainStreetConnector.Apply();
             FrozenTrainMainStreetSafety.Apply();
             AssetDatabase.Refresh();
-            Debug.Log("FrozenTrain rebuilt: 5-car production train + Main Street public spine + widened connectors + private residential upper decks applied.");
+            Debug.Log("FrozenTrain rebuilt: right-side two-person transit corridor + opaque single-door functional compartments + private upper residential decks applied.");
         }
     }
 }
