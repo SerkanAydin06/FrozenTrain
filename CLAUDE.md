@@ -24,6 +24,8 @@ Work on the existing Unity survival-management game efficiently. Prefer focused 
 - Survival state: `Assets/Scripts/Management/TrainPrototypeState.cs`
 - Simulation: `Assets/Scripts/Management/SurvivalSimulation.cs`
 - Management UI: `Assets/Scripts/Management/TrainManagementPanel.cs`
+- Art production contract: `Docs/ArtPipeline.md`
+- Art source/license ledger: `ArtSource/AssetLedger.csv`
 
 ## Cost / context discipline
 - Do not scan the whole repository before starting.
@@ -45,6 +47,14 @@ Work on the existing Unity survival-management game efficiently. Prefer focused 
 - Avoid decorative clutter that blocks corridors, windows, ladders, doors, or interactions.
 - Keep window sight-lines clear in windowed spaces.
 - Preserve `E` interaction stability and existing component bindings when moving/replacing authored objects.
+
+## Art production rules
+- The project owner is not expected to model, UV, rig, or texture by hand.
+- Do not require paid 3D-generation services, paid asset packs, or paid plugins.
+- For 3D/character/material work, follow `Docs/ArtPipeline.md` and use the `free-art-pipeline` skill.
+- Prefer: existing asset -> verified free/CC0 asset -> AI-written Blender Python -> MakeHuman/MPFB + Mixamo for humanoids -> retain greybox until a free route is available.
+- Record every third-party art/audio/animation source and license in `ArtSource/AssetLedger.csv`.
+- Production art should replace primitive visuals without breaking `FrozenTrainLayout` / `FrozenTrainBuilder` placement and gameplay bindings.
 
 ## Workflow
 1. Read only the source-of-truth file(s) relevant to the request.
