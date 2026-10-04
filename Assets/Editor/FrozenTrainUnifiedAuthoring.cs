@@ -17,6 +17,7 @@ namespace FrozenTrain.EditorTools
             if (!FrozenTrainBuilder.Build()) return;
             FrozenTrainProductionArt.Apply();
             FrozenTrainUpperDeckCirculation.Apply();
+            FrozenTrainUpperDeckFinalPolish.Apply();
             AssetDatabase.Refresh();
             Debug.Log("FrozenTrain rebuilt: canonical 5-car layout + production art + shared upper-deck circulation applied.");
         }
