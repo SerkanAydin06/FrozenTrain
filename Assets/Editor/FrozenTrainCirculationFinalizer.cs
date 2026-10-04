@@ -41,7 +41,6 @@ namespace FrozenTrain.EditorTools
             public Material Frame;
             public Material Steel;
             public Material Hazard;
-            public Material Warm;
             public Material Fabric;
         }
 
@@ -61,7 +60,7 @@ namespace FrozenTrain.EditorTools
 
                     RemoveLegacyMainDeckClutter(root.transform);
                     RemoveExposedUpperAccess(root.transform);
-                    CloseOldUpperHatches(root.transform, marker, mats);
+                    CloseOldUpperHatches(marker, i, mats);
 
                     if (i == 0)
                         FinalizeLocomotive(root.transform, marker, mats);
@@ -136,7 +135,7 @@ namespace FrozenTrain.EditorTools
 
             // Rebuild the opaque partition with exactly two distinct access points:
             // central staff/work-room door + end residential stairwell door.
-            foreach (string n in new[] { "CompartmentWallFront", "CompartmentWallRear", "CompartmentDoorHeader" })
+            foreach (string n in new[] { "CompartmentWallFront", "CompartmentWallRear", "CompartmentDoorHeader", "CompartmentWall" })
                 DestroyAllNamed(corridor, n);
 
             float s = L.Cars[index].UpperLaddersAtFront ? -1f : 1f;
@@ -145,7 +144,7 @@ namespace FrozenTrain.EditorTools
 
             // The staff/work door produced by MainStreetArchitecture stays centred and remains the only
             // entrance into the work compartment. The second door only enters the sealed stair tower.
-            BuildLowerStairDoor(marker, index, stairX, m);
+            BuildLowerStairDoor(marker, stairX, m);
 
             // Reserve the stair-tower footprint inside the left zone. No work prop may occupy it.
             ClearStairFootprint(root, index, stairX);
@@ -230,9 +229,9 @@ namespace FrozenTrain.EditorTools
             }
         }
 
-        private static void CloseOldUpperHatches(Transform root, Transform marker, Mats m)
+        private static void CloseOldUpperHatches(Transform marker, int index, Mats m)
         {
-            float s = L.Cars[Array.FindIndex(L.Cars, c => c.Name == root.name)].UpperLaddersAtFront ? -1f : 1f;
+            float s = L.Cars[index].UpperLaddersAtFront ? -1f : 1f;
             float x0 = s * L.UpperHoleX0;
             float x1 = s * L.UpperHoleX1;
             float xMin = Mathf.Min(x0, x1), xMax = Mathf.Max(x0, x1);
@@ -267,10 +266,11 @@ namespace FrozenTrain.EditorTools
             // Opaque vertical shaft: residents see proper doors, not exposed wall ladders or floor holes.
             Cube(shaft, "ShaftBackWall", new Vector3(xCentre, shaftY, ShaftZMin),
                 new Vector3(xLength, shaftHeight, .14f), m.Wall, true);
-            BuildFrontShaftWall(shaft, stairX, xMin, xMax, shaftY, shaftHeight, m);
-            BuildUpperShaftBulkhead(shaft, s, innerX, m);
+            BuildFrontShaftWall(shaft, stairX, xMin, xMax, shaftBottom, shaftTop, m);
+            BuildUpperShaftBulkhead(shaft, innerX, m);
 
-            // Subtle internal steps are visible only if the stair door is open in future art passes.
+            // Subtle internal steps communicate a real stair tower while floor-to-floor travel remains
+            // interaction-driven so the compact shaft never creates FPS head-clearance or collision traps.
             for (int i = 0; i < 8; i++)
             {
                 float t = i / 7f;
@@ -304,10 +304,13 @@ namespace FrozenTrain.EditorTools
                 new Vector3(.035f, .24f, .88f), m.Hazard, false);
         }
 
-        private static void BuildFrontShaftWall(Transform shaft, float stairX, float xMin, float xMax, float y, float height, Mats m)
+        private static void BuildFrontShaftWall(Transform shaft, float stairX, float xMin, float xMax, float bottom, float top, Mats m)
         {
             float half = StairDoorWidth * .5f;
             float left = stairX - half, right = stairX + half;
+            float y = (bottom + top) * .5f;
+            float height = top - bottom;
+
             if (left > xMin)
                 Cube(shaft, "ShaftFrontWall", new Vector3((xMin + left) * .5f, y, ShaftZMax),
                     new Vector3(left - xMin, height, .14f), m.Wall, true);
@@ -315,18 +318,24 @@ namespace FrozenTrain.EditorTools
                 Cube(shaft, "ShaftFrontWall", new Vector3((right + xMax) * .5f, y, ShaftZMax),
                     new Vector3(xMax - right, height, .14f), m.Wall, true);
 
+            float doorTop = L.MainTop + DoorHeight;
             float headerH = .58f;
-            Cube(shaft, "ShaftLowerDoorHeader", new Vector3(stairX, L.MainTop + DoorHeight + headerH * .5f, ShaftZMax),
+            Cube(shaft, "ShaftLowerDoorHeader", new Vector3(stairX, doorTop + headerH * .5f, ShaftZMax),
                 new Vector3(StairDoorWidth, headerH, .14f), m.Frame, true);
+
+            float sealedAboveBottom = doorTop + headerH;
+            if (top > sealedAboveBottom + .05f)
+                Cube(shaft, "ShaftFrontUpperWall", new Vector3(stairX, (sealedAboveBottom + top) * .5f, ShaftZMax),
+                    new Vector3(StairDoorWidth, top - sealedAboveBottom, .14f), m.Wall, true);
         }
 
-        private static void BuildUpperShaftBulkhead(Transform shaft, float s, float x, Mats m)
+        private static void BuildUpperShaftBulkhead(Transform shaft, float x, Mats m)
         {
             float zHalf = .62f;
             float y = L.UpperTop + (L.RoofBottom - L.UpperTop) * .5f;
             float h = L.RoofBottom - L.UpperTop;
 
-            float negWidth = (0f - zHalf) - ShaftZMin;
+            float negWidth = (-zHalf) - ShaftZMin;
             float posWidth = ShaftZMax - zHalf;
             Cube(shaft, "UpperShaftWall", new Vector3(x, y, ShaftZMin + negWidth * .5f),
                 new Vector3(.14f, h, negWidth), m.Wall, true);
@@ -336,7 +345,7 @@ namespace FrozenTrain.EditorTools
                 new Vector3(.14f, .56f, 1.24f), m.Frame, true);
         }
 
-        private static void BuildLowerStairDoor(Transform marker, int carIndex, float stairX, Mats m)
+        private static void BuildLowerStairDoor(Transform marker, float stairX, Mats m)
         {
             Transform door = Group(marker, "ResidentialAccessDoor");
             door.localPosition = new Vector3(stairX, L.MainTop + DoorHeight * .5f, PartitionZ - .025f);
@@ -431,7 +440,6 @@ namespace FrozenTrain.EditorTools
             Frame = Mat("FT_PRO_Frame", new Color(.04f, .05f, .06f)),
             Steel = Mat("FT_PRO_BrushedSteel", new Color(.62f, .66f, .68f)),
             Hazard = Mat("FT_PRO_Hazard", new Color(.92f, .47f, .055f)),
-            Warm = Mat("FT_PRO_WarmLight", new Color(.90f, .58f, .20f)),
             Fabric = Mat("FT_PRO_Fabric", new Color(.10f, .18f, .22f)),
         };
 
