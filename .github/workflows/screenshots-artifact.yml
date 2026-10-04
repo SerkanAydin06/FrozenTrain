@@ -7,6 +7,10 @@ on:
     paths:
       - 'Docs/Screenshots/**'
       - '.github/workflows/screenshots-artifact.yml'
+  pull_request:
+    paths:
+      - 'Docs/Screenshots/**'
+      - '.github/workflows/screenshots-artifact.yml'
   workflow_dispatch:
 
 permissions:
@@ -38,6 +42,7 @@ jobs:
             echo "FrozenTrain screenshot artifact"
             echo "commit=${GITHUB_SHA}"
             echo "run_id=${GITHUB_RUN_ID}"
+            echo "event=${GITHUB_EVENT_NAME}"
             echo "generated_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
             echo
             echo "Files:"
