@@ -163,10 +163,11 @@ namespace FrozenTrain.Interaction
         /// <summary>
         /// Rungs and rails use their own primitive colliders. If those colliders are hit before the hidden
         /// interaction box, forward them to the same ladder action instead of losing the E prompt.
+        /// Runtime-only binding avoids serializing helper MonoBehaviours into generated prefabs.
         /// </summary>
         private void BindColliderForwarders()
         {
-            if (forwardersBound || transform.parent == null)
+            if (!Application.isPlaying || forwardersBound || transform.parent == null)
             {
                 return;
             }
@@ -190,7 +191,7 @@ namespace FrozenTrain.Interaction
         }
     }
 
-    /// <summary>Internal forwarding component added to ladder rail/rung colliders at runtime.</summary>
+    /// <summary>Runtime-only forwarding component added to ladder rail/rung colliders.</summary>
     internal sealed class DeckLadderForwarder : InteractableBase
     {
         private DeckLadder target;
