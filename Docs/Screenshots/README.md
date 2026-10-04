@@ -1,6 +1,6 @@
 ﻿# FrozenTrain otomatik görüntüler
 
-Son çekim: 2026-10-04 19:29:11
+Son çekim: 2026-10-04 20:43:55
 
 Kat 1 = alt/teknik, kat 2 = orta, kat 3 = üst. `_ters` = vagonun öbür ucundan bakış. `_oda` = örnek özel kabin, `_landing` = ortak merdiven sahanlığı.
 
