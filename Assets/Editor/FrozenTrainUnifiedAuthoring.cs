@@ -8,7 +8,7 @@ namespace FrozenTrain.EditorTools
     /// Single public authoring entry point. The canonical builder owns the five 24 m cars; final passes
     /// create the right-side public corridor in cars 2-5, replace the old connector with four full
     /// inter-car vestibules containing all normal vertical circulation, then apply screenshot-driven
-    /// visual placement polish without changing gameplay ownership.
+    /// visual placement and stair/lighting corrections without changing gameplay ownership.
     /// </summary>
     public static class FrozenTrainUnifiedAuthoring
     {
@@ -27,8 +27,9 @@ namespace FrozenTrain.EditorTools
             FrozenTrainLongLightingPass.Apply();
             FrozenTrainLongExteriorPass.Apply();
             FrozenTrainPost24ScreenshotPolish.Apply();
+            FrozenTrainFinalScreenshotFix.Apply();
             AssetDatabase.Refresh();
-            Debug.Log("FrozenTrain rebuilt: five 24 m cars + four 4 m inter-car vestibules + screenshot-driven room/stair polish applied.");
+            Debug.Log("FrozenTrain rebuilt: five 24 m cars + four 4 m inter-car vestibules + final stair/upper-light screenshot corrections applied.");
         }
     }
 }
