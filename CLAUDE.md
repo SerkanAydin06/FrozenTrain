@@ -13,6 +13,7 @@ Work on the existing Unity survival-management game efficiently. Prefer focused 
   - lower: technical infrastructure only;
   - middle: occupied/social/work/production;
   - upper: sleeping/accommodation with a central inter-car corridor.
+- Upper-deck invariant: ladder -> shared public vestibule -> central corridor -> cabin doors. A ladder must never terminate inside a private cabin.
 - Locomotive front is -X. Exterior scenery moves +X.
 - Public authoring workflow: `Frozen Train > Rebuild Authored Train`.
 
@@ -21,6 +22,8 @@ Work on the existing Unity survival-management game efficiently. Prefer focused 
 - Builder (turns the layout into prefabs + scene, from scratch each run): `Assets/Editor/FrozenTrainBuilder.cs`
 - Stable production-art entry point: `Assets/Editor/FrozenTrainProductionArt.cs`
 - Five-car production visual/material implementation: `Assets/Editor/FrozenTrainProductionArtPro.cs`
+- Final upper-deck circulation/cabin authoring: `Assets/Editor/FrozenTrainUpperDeckCirculation.cs`
+- Upper vestibule hatch-visibility cleanup: `Assets/Editor/FrozenTrainUpperDeckFinalPolish.cs`
 - Rebuild entry point: `Assets/Editor/FrozenTrainUnifiedAuthoring.cs`
 - Architecture contract: `Docs/FiveCarArchitecture.md`
 - Survival state: `Assets/Scripts/Management/TrainPrototypeState.cs`
@@ -50,16 +53,18 @@ Work on the existing Unity survival-management game efficiently. Prefer focused 
 - Keep window sight-lines clear in windowed spaces.
 - Preserve `E` interaction stability and existing component bindings when moving/replacing authored objects.
 - Ladder/hatch interaction reliability belongs in `Assets/Scripts/Interaction/DeckLadder.cs`; do not fix a ladder bug by closing the floor opening or removing access.
+- Upper ladders must arrive in a common vestibule/landing. Sleeping cabins stay outside that landing and open only onto the public central corridor.
+- The public upper corridor must remain continuous through inter-car connectors; nobody should pass through a private cabin to move between cars.
 
 ## Art production rules
 - The project owner is not expected to model, UV, rig, or texture by hand.
 - Do not require paid 3D-generation services, paid asset packs, or paid plugins.
 - For 3D/character/material work, follow `Docs/ArtPipeline.md` and use the `free-art-pipeline` skill.
-- Prefer: existing asset -> verified free/CC0 asset -> AI-written Blender Python -> MakeHuman/MPFB + Mixamo for humanoids -> retain greybox until a free route is available.
+- Prefer: existing asset -> verified free/CC0 asset -> AI-written Blender Python -> MakeHuman/MPFB + Mixamo for humanoids -> retain greybox until a free route exists.
 - Record every third-party art/audio/animation source and license in `ArtSource/AssetLedger.csv`.
-- `FrozenTrainProductionArt.cs` is only the stable entry point; extend the five-car implementation in `FrozenTrainProductionArtPro.cs` instead of creating additional visual passes.
-- Production art may upgrade meshes/materials/details but must not become a second architecture/layout system.
-- Production art should replace primitive visuals without breaking `FrozenTrainLayout` / `FrozenTrainBuilder` placement and gameplay bindings.
+- `FrozenTrainProductionArt.cs` is the stable visual entry point and `FrozenTrainProductionArtPro.cs` owns the five-car visual language.
+- Upper-deck circulation is a special architecture invariant applied after production art by `FrozenTrainUpperDeckCirculation.cs`; do not put private-room art into its shared vestibule.
+- Production art should replace primitive visuals without breaking gameplay bindings, public corridors, hatch openings, or connector access.
 
 ## Workflow
 1. Read only the source-of-truth file(s) relevant to the request.
