@@ -74,17 +74,18 @@ namespace FrozenTrain.EditorTools
 
         private static void PolishLocomotive(Transform root, Transform marker, Mats m)
         {
-            // Preserve a straight rear-to-driver circulation lane while giving the very long cab
-            // a real operations zone instead of one large empty floor.
+            // Keep the centreline walkable from the rear vestibule to the driving position. The added
+            // operations island is deliberately offset to starboard instead of becoming another barrier.
             Transform cab = Group(marker, "LocomotiveOperationsZone");
+            const float islandZ = -1.48f;
 
-            Cube(cab, "OperationsIslandBase", new Vector3(1.55f, L.MainTop + .43f, 0f),
+            Cube(cab, "OperationsIslandBase", new Vector3(1.55f, L.MainTop + .43f, islandZ),
                 new Vector3(2.65f, .82f, 1.28f), m.Frame, true);
-            Cube(cab, "OperationsIslandTop", new Vector3(1.55f, L.MainTop + .88f, 0f),
+            Cube(cab, "OperationsIslandTop", new Vector3(1.55f, L.MainTop + .88f, islandZ),
                 new Vector3(2.78f, .08f, 1.40f), m.Steel, false);
-            Cube(cab, "OperationsIslandScreenA", new Vector3(.92f, L.MainTop + 1.13f, -.34f),
+            Cube(cab, "OperationsIslandScreenA", new Vector3(.92f, L.MainTop + 1.13f, islandZ - .34f),
                 new Vector3(.86f, .42f, .055f), m.Screen, false);
-            Cube(cab, "OperationsIslandScreenB", new Vector3(2.16f, L.MainTop + 1.13f, .34f),
+            Cube(cab, "OperationsIslandScreenB", new Vector3(2.16f, L.MainTop + 1.13f, islandZ + .34f),
                 new Vector3(.86f, .42f, .055f), m.Screen, false);
 
             Cube(cab, "PortDiagnosticConsole", new Vector3(-1.55f, L.MainTop + .62f, 4.08f),
@@ -102,11 +103,9 @@ namespace FrozenTrain.EditorTools
             Cube(cab, "RearCrewBack", new Vector3(9.70f, L.MainTop + .77f, -1.95f),
                 new Vector3(.16f, .92f, .72f), m.Fabric, true);
 
-            // Low floor bands make front operations / centre diagnostics / rear support read as zones
-            // without building walls inside the private locomotive.
             Cube(cab, "FrontOperationsBand", new Vector3(-6.60f, L.MainTop + .025f, 0f),
                 new Vector3(5.10f, .025f, 3.00f), m.Fabric, false);
-            Cube(cab, "CentreOperationsBand", new Vector3(1.55f, L.MainTop + .025f, 0f),
+            Cube(cab, "CentreOperationsBand", new Vector3(1.55f, L.MainTop + .025f, islandZ),
                 new Vector3(3.60f, .025f, 2.20f), m.Floor, false);
         }
 
@@ -143,7 +142,6 @@ namespace FrozenTrain.EditorTools
             };
             for (int i = 0; i < bays.Length && i < targets.Length; i++) bays[i].localPosition = targets[i];
 
-            // Keep the galley against the inner service wall instead of dominating the end-camera view.
             SetPos(root, "GalleyCounter", 6.35f, .78f);
             SetPos(root, "GalleyTop", 6.35f, .78f);
             MoveDetail(root, "__Production_GalleyDetails", 6.35f, .78f);
@@ -170,7 +168,6 @@ namespace FrozenTrain.EditorTools
             };
             for (int i = 0; i < benches.Length && i < targets.Length; i++) benches[i].localPosition = targets[i];
 
-            // The old placement sat directly in the end-camera/service lane. Keep heavy machinery on the wall.
             SetPos(root, "MachineStation", 8.20f, -2.92f);
             SetPos(root, "MachineScreen", 8.20f, -2.16f);
             MoveDetail(root, "__Production_MachineStationDetails", 8.20f, -2.92f);
@@ -219,8 +216,6 @@ namespace FrozenTrain.EditorTools
 
             Transform detail = Group(marker, "PublicCorridorPolish");
             Material accent = Accent(index, m);
-
-            // Flat identity/service panels break the 24 m tunnel repetition without consuming passage width.
             foreach (float x in new[] { -8.2f, -4.1f, 4.1f, 8.2f })
             {
                 Cube(detail, "CorridorIdentityPanel", new Vector3(x, 1.70f, PartitionZ - .055f),
@@ -241,6 +236,16 @@ namespace FrozenTrain.EditorTools
             Transform upper = FindFirst(root, "UpperSleepingDeck");
             if (upper == null) return;
 
+            // Reuse the five existing no-shadow hall fill lights instead of spawning ten extra lights per car.
+            foreach (Transform fill in FindAll(root, "UpperHallFill"))
+            {
+                Light light = fill.GetComponent<Light>();
+                if (light == null) continue;
+                light.intensity = .72f;
+                light.range = 5.0f;
+                light.color = new Color(.93f, .78f, .58f);
+            }
+
             Transform detail = Group(marker, "ResidentialCabinPolish");
             Material accent = Accent(index, m);
             foreach (float x in L.SleepingPodX)
@@ -250,8 +255,6 @@ namespace FrozenTrain.EditorTools
                     float z = side * 3.05f;
                     Cube(detail, "CabinCeilingLight", new Vector3(x, L.RoofBottom - .13f, z),
                         new Vector3(.82f, .055f, .24f), m.Warm, false);
-                    Point(detail, "CabinWarmFill", new Vector3(x, 5.32f, z), .58f, 3.15f,
-                        new Color(1f, .69f, .43f));
                     Cube(detail, "CabinDoorMarker", new Vector3(x - .34f, 4.74f, side * 1.10f),
                         new Vector3(.26f, .18f, .025f), accent, false);
                 }
@@ -269,7 +272,6 @@ namespace FrozenTrain.EditorTools
                 RemoveDirectChild(root.transform, MarkerName);
                 Transform marker = Group(root.transform, MarkerName);
 
-                // Make the separate connector module read clearly from outside as a flexible railway vestibule.
                 foreach (float x in new[] { -L.VestibuleLength * .5f + .10f, L.VestibuleLength * .5f - .10f })
                 {
                     foreach (float side in new[] { -1f, 1f })
@@ -281,7 +283,6 @@ namespace FrozenTrain.EditorTools
                         new Vector3(.22f, .18f, L.CarWidth - .90f), m.Rubber, false);
                 }
 
-                // Existing handrails were almost black in the screenshots; steel makes the stair silhouette legible.
                 foreach (Transform rail in FindAll(root.transform, "StairHandrail"))
                 {
                     Renderer r = rail.GetComponent<Renderer>();
