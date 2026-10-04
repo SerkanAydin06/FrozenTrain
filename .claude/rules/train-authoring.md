@@ -20,6 +20,7 @@ paths:
 - The public corridor envelope must stay free of furniture, machines, shelves, QA decoration, hydroponic props and production-art leftovers.
 - Upper deck is private/local residential accommodation. It is **not** an inter-car transit route; old upper through-connections stay closed by end bulkheads.
 - **Normal residential access uses an enclosed stairwell, not exposed wall ladders or open floor hatches.** Cars 2–5 reach it directly from the public corridor; the locomotive reaches it from inside the private cab.
+- The upper stair arrival must be a **side landing/nook off the residential hall**. Stair geometry, doors, signs or shaft walls must never occupy or block the central upper hallway.
 - Upper stair landings must open to shared residential space, never directly into a private cabin.
 - Lower technical access stays restricted to technical ladders unless explicitly changed.
 - Keep the locomotive panoramic front glass and correct -X front orientation.
