@@ -100,12 +100,16 @@ namespace FrozenTrain.Interaction
         }
 
         /// <summary>
-        /// Builder exit markers intentionally sit close to the ladder/hatch. Older authored exits could
-        /// land inside the floor opening itself. Search first toward the centre corridor, then around the
-        /// marker, and only accept a walkable surface at the expected deck height.
+        /// Prefer the authored exit anchor when it already sits on a valid shared landing. Older authored
+        /// exits may still be close to a hatch, so only then search nearby surfaces toward the public aisle.
         /// </summary>
         private Vector3 ResolveSafeLanding(Vector3 anchor)
         {
+            if (TryWalkableLanding(anchor, anchor.y, out Vector3 direct))
+            {
+                return direct;
+            }
+
             float centreDirection = Mathf.Abs(anchor.z) > 0.05f ? -Mathf.Sign(anchor.z) : 1f;
             Vector3 towardCorridor = new Vector3(0f, 0f, centreDirection);
             Vector3 awayFromLadder = Vector3.zero;
@@ -136,28 +140,28 @@ namespace FrozenTrain.Interaction
             foreach (Vector3 offset in offsets)
             {
                 Vector3 candidate = anchor + offset;
-                Vector3 rayOrigin = candidate + Vector3.up * .70f;
-                if (!Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, 1.45f, ~0, QueryTriggerInteraction.Ignore))
+                if (TryWalkableLanding(candidate, anchor.y, out Vector3 resolved))
                 {
-                    continue;
+                    return resolved;
                 }
-
-                if (hit.normal.y < .72f)
-                {
-                    continue;
-                }
-
-                // The actor transform is at foot level. Reject lower-deck geometry seen through the hatch.
-                if (Mathf.Abs(hit.point.y - anchor.y) > .42f)
-                {
-                    continue;
-                }
-
-                return hit.point + Vector3.up * .035f;
             }
 
-            // Last-resort nudge toward the corridor is still safer than respawning over the opening centre.
             return anchor + towardCorridor * 1.20f + Vector3.up * .035f;
+        }
+
+        private static bool TryWalkableLanding(Vector3 candidate, float expectedY, out Vector3 landing)
+        {
+            Vector3 rayOrigin = candidate + Vector3.up * .70f;
+            if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, 1.45f, ~0, QueryTriggerInteraction.Ignore)
+                && hit.normal.y >= .72f
+                && Mathf.Abs(hit.point.y - expectedY) <= .42f)
+            {
+                landing = hit.point + Vector3.up * .035f;
+                return true;
+            }
+
+            landing = default;
+            return false;
         }
 
         /// <summary>
