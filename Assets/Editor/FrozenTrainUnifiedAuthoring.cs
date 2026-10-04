@@ -5,9 +5,9 @@ using UnityEngine;
 namespace FrozenTrain.EditorTools
 {
     /// <summary>
-    /// Single public authoring entry point. The train is described by FrozenTrainLayout and
-    /// rebuilt from scratch by FrozenTrainBuilder; production art is then applied as a visual-only skin pass.
-    /// Runtime code only controls gameplay systems.
+    /// Single public authoring entry point. The canonical builder creates the train, the production-art
+    /// pass upgrades materials/details, and the final upper-deck circulation pass guarantees that ladders
+    /// arrive in a shared public vestibule rather than a private sleeping cabin.
     /// </summary>
     public static class FrozenTrainUnifiedAuthoring
     {
@@ -16,8 +16,9 @@ namespace FrozenTrain.EditorTools
         {
             if (!FrozenTrainBuilder.Build()) return;
             FrozenTrainProductionArt.Apply();
+            FrozenTrainUpperDeckCirculation.Apply();
             AssetDatabase.Refresh();
-            Debug.Log("FrozenTrain rebuilt: canonical 5-car layout + free production-art pass applied.");
+            Debug.Log("FrozenTrain rebuilt: canonical 5-car layout + production art + shared upper-deck circulation applied.");
         }
     }
 }
