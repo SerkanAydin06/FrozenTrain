@@ -1,6 +1,6 @@
 ﻿# FrozenTrain otomatik görüntüler
 
-Son çekim: 2026-10-04 00:07:33
+Son çekim: 2026-10-04 15:39:47
 
 Kat 1 = alt/teknik, kat 2 = orta, kat 3 = üst. `_ters` = vagonun öbür ucundan bakış.
 
@@ -36,5 +36,5 @@ Kat 1 = alt/teknik, kat 2 = orta, kat 3 = üst. `_ters` = vagonun öbür ucundan
 | vagon5_kat2_ters.jpg | Sera, kat 2 (orta / yaşam-çalışma), arkaya bakış | (30.0, 1.7, 0.0) |
 | vagon5_kat3.jpg | Sera, kat 3 (üst / yatakhane + koridor), öne bakış | (45.2, 4.8, 0.0) |
 | vagon5_kat3_ters.jpg | Sera, kat 3 (üst / yatakhane + koridor), arkaya bakış | (30.0, 4.8, 0.0) |
-| tren_dis_yan.jpg | Tüm tren, yandan | (0.0, 5.0, -58.0) |
+| tren_dis_yan.jpg | Tüm tren, yandan | (0.0, 24.0, -58.0) |
 | tren_dis_on.jpg | Lokomotif önü, çapraz | (-61.0, 6.0, -16.0) |
