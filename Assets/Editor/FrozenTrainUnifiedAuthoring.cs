@@ -5,9 +5,9 @@ using UnityEngine;
 namespace FrozenTrain.EditorTools
 {
     /// <summary>
-    /// Single public authoring entry point. The canonical builder creates the train and production/QA passes
-    /// finish generated content. Final passes repair persistent exterior materials and enforce the locomotive
-    /// private-cab exception, clean right-side corridors in cars 2-5, and side-mounted residential access.
+    /// Single public authoring entry point. The canonical builder owns the five 24 m cars; final passes
+    /// create the right-side public corridor in cars 2-5 and replace the old connector with four full
+    /// inter-car vestibules containing all normal vertical circulation.
     /// </summary>
     public static class FrozenTrainUnifiedAuthoring
     {
@@ -16,17 +16,15 @@ namespace FrozenTrain.EditorTools
         {
             if (!FrozenTrainBuilder.Build()) return;
             FrozenTrainProductionArt.Apply();
-            FrozenTrainUpperDeckCirculation.Apply();
-            FrozenTrainUpperDeckFinalPolish.Apply();
             FrozenTrainScreenshotQARefinement.Apply();
             FrozenTrainExteriorMaterialFix.Apply();
             FrozenTrainScreenshotQASafety.Apply();
             FrozenTrainMainStreetArchitecture.Apply();
             FrozenTrainMainStreetConnector.Apply();
             FrozenTrainMainStreetSafety.Apply();
-            FrozenTrainCirculationFinalizer.Apply();
+            FrozenTrainLongVestibuleArchitecture.Apply();
             AssetDatabase.Refresh();
-            Debug.Log("FrozenTrain rebuilt: private locomotive + clean right corridors + side residential landings + persistent URP exterior materials applied.");
+            Debug.Log("FrozenTrain rebuilt: five 24 m cars + four 4 m inter-car vestibules + all stairs outside usable car rooms applied.");
         }
     }
 }
