@@ -106,10 +106,19 @@ namespace FrozenTrain.EditorTools
 
         private static Material Mat(string name, Color fallback)
         {
-            Material m = AssetDatabase.LoadAssetAtPath<Material>(MaterialRoot + "/" + name + ".mat");
-            if (m != null) return m;
+            EnsureFolder(MaterialRoot);
+            string path = MaterialRoot + "/" + name + ".mat";
+            Material m = AssetDatabase.LoadAssetAtPath<Material>(path);
             Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-            m = new Material(shader) { name = name + "_LongFallback", color = fallback };
+            if (m == null)
+            {
+                m = new Material(shader) { name = name };
+                AssetDatabase.CreateAsset(m, path);
+            }
+            m.shader = shader;
+            m.color = fallback;
+            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", fallback);
+            EditorUtility.SetDirty(m);
             return m;
         }
 
@@ -144,6 +153,15 @@ namespace FrozenTrain.EditorTools
             Collider c = go.GetComponent<Collider>();
             if (c != null) Object.DestroyImmediate(c);
             return go;
+        }
+
+        private static void EnsureFolder(string folderPath)
+        {
+            if (AssetDatabase.IsValidFolder(folderPath)) return;
+            string parent = System.IO.Path.GetDirectoryName(folderPath)?.Replace('\\', '/');
+            string name = System.IO.Path.GetFileName(folderPath);
+            if (!string.IsNullOrEmpty(parent) && !AssetDatabase.IsValidFolder(parent)) EnsureFolder(parent);
+            AssetDatabase.CreateFolder(parent ?? "Assets", name);
         }
     }
 }
