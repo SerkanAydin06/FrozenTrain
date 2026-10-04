@@ -69,4 +69,6 @@ Use the project skills when their descriptions match the task.
 ## Visual review loop
 - Every Play of `FPSPrototype` in the Editor auto-captures `Docs/Screenshots/vagonN_katK.jpg` (+ `_ters`, `tren_dis_*`) via `Assets/Scripts/DevTools/TrainScreenshotCapture.cs` (editor-only).
 - Kat 1 = lower/technical, 2 = middle, 3 = upper. `Docs/Screenshots/README.md` lists files, capture time and camera positions.
-- For visual tasks, pull and read the relevant screenshots first; compare against the previous commit's versions with git when judging a change.
+- When `Docs/Screenshots/**` is pushed to `main`, `.github/workflows/screenshots-artifact.yml` uploads the whole screenshot set as a `frozen-train-screenshots-<commit>` GitHub Actions artifact for binary visual review.
+- For visual tasks, inspect the newest screenshot artifact when available; otherwise inspect the committed screenshot paths/manifest and do not claim pixel-level visual review.
+- Compare the affected views against the previous screenshot set when judging visual changes.

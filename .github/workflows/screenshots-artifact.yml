@@ -1,0 +1,62 @@
+name: Screenshot Artifact
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Docs/Screenshots/**'
+      - '.github/workflows/screenshots-artifact.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-screenshots:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify screenshot set
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=$(find Docs/Screenshots -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) | wc -l)
+          if [ "$count" -eq 0 ]; then
+            echo "No screenshots found under Docs/Screenshots" >&2
+            exit 1
+          fi
+          echo "Found $count screenshots"
+
+      - name: Write artifact manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "FrozenTrain screenshot artifact"
+            echo "commit=${GITHUB_SHA}"
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "generated_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo
+            echo "Files:"
+            find Docs/Screenshots -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) -printf '%f\n' | sort
+            echo
+            echo "SHA256:"
+            find Docs/Screenshots -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) -print0 | sort -z | xargs -0 sha256sum
+          } > Docs/Screenshots/ARTIFACT_MANIFEST.txt
+
+      - name: Upload screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frozen-train-screenshots-${{ github.sha }}
+          path: |
+            Docs/Screenshots/*.jpg
+            Docs/Screenshots/*.jpeg
+            Docs/Screenshots/*.png
+            Docs/Screenshots/README.md
+            Docs/Screenshots/ARTIFACT_MANIFEST.txt
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
