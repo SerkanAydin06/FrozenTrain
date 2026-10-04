@@ -23,6 +23,7 @@ namespace FrozenTrain.EditorTools
             FrozenTrainMainStreetConnector.Apply();
             FrozenTrainMainStreetSafety.Apply();
             FrozenTrainLongVestibuleArchitecture.Apply();
+            FrozenTrainLongLightingPass.Apply();
             FrozenTrainLongExteriorPass.Apply();
             AssetDatabase.Refresh();
             Debug.Log("FrozenTrain rebuilt: five 24 m cars + four 4 m inter-car vestibules + all stairs outside usable car rooms applied.");
