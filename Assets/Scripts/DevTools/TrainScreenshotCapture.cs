@@ -31,7 +31,7 @@ namespace FrozenTrain.DevTools
         private const float EndInset = 10.45f;
         private const float MainCorridorZ = 3.15f;
         private const float MainCompartmentZ = -1.35f;
-        private const float UpperCabinX = -7.15f;
+        private const float UpperCabinX = -9.35f;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
@@ -49,7 +49,6 @@ namespace FrozenTrain.DevTools
 
             string folder = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Docs", "Screenshots"));
             Directory.CreateDirectory(folder);
-            // Never mix obsolete 18 m / in-car-stair screenshots with the current architecture.
             foreach (string old in Directory.GetFiles(folder, "*.jpg")) File.Delete(old);
             foreach (string old in Directory.GetFiles(folder, "*.jpeg")) File.Delete(old);
 
@@ -81,7 +80,7 @@ namespace FrozenTrain.DevTools
             StringBuilder manifest = new StringBuilder();
             manifest.AppendLine("# FrozenTrain otomatik görüntüler\n");
             manifest.AppendLine("Son çekim: " + System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "\n");
-            manifest.AppendLine("Yeni mimari: 5 x 24 m vagon + 4 x 4 m ara vestibül. Vagon içlerinde normal merdiven yoktur. `gecisN_*` görüntüleri vestibül geçişini ve üst/alt merdiven çekirdeğini kontrol eder.\n");
+            manifest.AppendLine("Mimari: 5 x 24 m vagon + 4 x 4 m ara vestibül. `gecisN_merdiven` artık kapının dışına değil merdiven çekirdeğinin içinden basamaklara bakar; `_oda` gerçek kabin kapısından içeri bakar.\n");
             manifest.AppendLine("| Dosya | Açıklama | Kamera (dünya) |\n|---|---|---|");
 
             camTransform.SetParent(null, true);
@@ -109,12 +108,12 @@ namespace FrozenTrain.DevTools
                 float mainY = DeckFloorY[1] + EyeHeight;
                 yield return Shoot(cam, image, rt, folder, "vagon" + (car + 1) + "_kat2_bolme",
                     car == 0 ? "Lokomotif tam özel sürüş kabini" : CarLabels[car] + ", 24 m kapalı işlev bölümü", carTransform, car,
-                    new Vector3(9.25f, mainY, car == 0 ? 0f : MainCompartmentZ), -90f, manifest, () => saved++);
+                    new Vector3(10.15f, mainY, car == 0 ? 0f : MainCompartmentZ), -90f, manifest, () => saved++);
 
                 float upperY = DeckFloorY[2] + EyeHeight;
                 yield return Shoot(cam, image, rt, folder, "vagon" + (car + 1) + "_kat3_oda",
-                    CarLabels[car] + ", 24 m üst konut örnek oda/koridor", carTransform, car,
-                    new Vector3(UpperCabinX, upperY, 0.02f), 0f, manifest, () => saved++);
+                    CarLabels[car] + ", üst konut örnek kabinine kapıdan bakış", carTransform, car,
+                    new Vector3(UpperCabinX, upperY, .08f), 0f, manifest, () => saved++);
             }
 
             for (int gap = 0; gap < CarNames.Length - 1; gap++)
@@ -127,22 +126,35 @@ namespace FrozenTrain.DevTools
                     "Ara vestibül " + (gap + 1) + ", sağ ana geçiş", origin + new Vector3(-VestibuleLength * .32f, DeckFloorY[1] + EyeHeight, MainCorridorZ),
                     Quaternion.Euler(5f, 90f, 0f), manifest, () => saved++);
 
+                // Camera is physically inside the stair core; the previous shot only showed its closed door.
                 yield return ShootWorld(cam, image, rt, folder, prefix + "_merdiven",
-                    "Ara vestibül " + (gap + 1) + ", sol merdiven çekirdeği", origin + new Vector3(0f, DeckFloorY[1] + EyeHeight, 3.30f),
-                    Quaternion.Euler(5f, 180f, 0f), manifest, () => saved++);
+                    "Ara vestibül " + (gap + 1) + ", merdiven çekirdeğinin içinden basamaklar", origin + new Vector3(0f, DeckFloorY[1] + EyeHeight, .64f),
+                    Quaternion.Euler(4f, 180f, 0f), manifest, () => saved++);
 
                 yield return ShootWorld(cam, image, rt, folder, prefix + "_kat3",
-                    "Ara vestibül " + (gap + 1) + ", üst konut sahanlığı", origin + new Vector3(0f, DeckFloorY[2] + EyeHeight, .95f),
-                    Quaternion.Euler(5f, 180f, 0f), manifest, () => saved++);
+                    "Ara vestibül " + (gap + 1) + ", üst konut sahanlığı ve merdiven", origin + new Vector3(1.12f, DeckFloorY[2] + EyeHeight, .82f),
+                    Quaternion.Euler(7f, 190f, 0f), manifest, () => saved++);
 
                 yield return ShootWorld(cam, image, rt, folder, prefix + "_kat1",
-                    "Ara vestibül " + (gap + 1) + ", alt teknik sahanlık", origin + new Vector3(0f, DeckFloorY[0] + EyeHeight, .95f),
-                    Quaternion.Euler(5f, 180f, 0f), manifest, () => saved++);
+                    "Ara vestibül " + (gap + 1) + ", alt teknik sahanlık ve merdiven", origin + new Vector3(-1.12f, DeckFloorY[0] + EyeHeight, .82f),
+                    Quaternion.Euler(7f, 170f, 0f), manifest, () => saved++);
             }
 
             Vector3 trainCenter = trainRoot != null ? trainRoot.position : Vector3.zero;
-            yield return ShootWorld(cam, image, rt, folder, "tren_dis_yan", "Tüm 136 m tren, yandan",
-                trainCenter + new Vector3(0f, 18f, -72f), Quaternion.Euler(10f, 0f, 0f), manifest, () => saved++);
+
+            // Train-profile QA must not be hidden by the procedural foreground mountains/rocks.
+            GameObject environment = GameObject.Find("OUTSIDE_ENVIRONMENT");
+            Transform near = environment != null ? environment.transform.Find("NEAR_SCENERY") : null;
+            Transform far = environment != null ? environment.transform.Find("DISTANT_SCENERY") : null;
+            bool nearWasActive = near != null && near.gameObject.activeSelf;
+            bool farWasActive = far != null && far.gameObject.activeSelf;
+            if (near != null) near.gameObject.SetActive(false);
+            if (far != null) far.gameObject.SetActive(false);
+            yield return ShootWorld(cam, image, rt, folder, "tren_dis_yan", "Tüm 136 m tren, temiz yandan profil (QA için sahne engelleri gizli)",
+                trainCenter + new Vector3(0f, 12f, -76f), Quaternion.Euler(8f, 0f, 0f), manifest, () => saved++);
+            if (near != null) near.gameObject.SetActive(nearWasActive);
+            if (far != null) far.gameObject.SetActive(farWasActive);
+
             yield return ShootWorld(cam, image, rt, folder, "tren_dis_on", "Uzun lokomotif önü, yakın çapraz",
                 trainCenter + new Vector3(-2f * CarSpacing - 18f, 5.5f, -16f), Quaternion.Euler(7f, 54f, 0f), manifest, () => saved++);
 
