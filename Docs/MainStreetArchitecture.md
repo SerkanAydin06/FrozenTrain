@@ -16,7 +16,7 @@ FrozenTrain is treated as a horizontal building, not a chain of rooms.
 - The left side of cars 2–5 is one opaque, closed functional compartment.
 - The functional compartment is separated from the public corridor by an opaque full-height wall.
 - Each functional compartment has exactly one centred corridor-facing **staff/work-room door**.
-- A second, clearly separate **Residential Access** door may exist near the car end, but it only enters the enclosed stairwell and never opens into the work room.
+- A second, clearly separate **Residential Access** door may exist near the car end, but it only enters the enclosed stair lobby and never opens into the work room.
 - Passengers travelling through the train never cross generator, workshop, greenhouse or living work areas.
 - Old centre-aisle/glazed-frontage decoration must not remain in the right-side corridor.
 
@@ -24,7 +24,7 @@ FrozenTrain is treated as a horizontal building, not a chain of rooms.
 - The whole main deck is one private operations/cab space.
 - Driver console, driver seats, equipment cabinets and management terminal can use the full car width.
 - The right-side transit corridor ends when entering the locomotive.
-- The locomotive has its own enclosed crew/residential stairwell inside the private cab.
+- The locomotive has its own enclosed crew/residential stair lobby inside the private cab.
 
 ## Cars 2–5 intent
 1. **Generator:** right public corridor + one closed generator control/work room.
@@ -35,10 +35,12 @@ FrozenTrain is treated as a horizontal building, not a chain of rooms.
 ## Residential access rules
 - Exposed wall ladders are not normal residential access.
 - Old open ladder hatches are closed and made walkable.
-- Each car uses an **enclosed stairwell volume** with a main-deck access door and an upper residential landing door.
-- In cars 2–5, the stairwell is separated from the work room and is reached directly from the public corridor.
-- In the locomotive, the stairwell is reached from inside the private cab.
-- Upper landings never open into private sleeping cabins.
+- Main-deck access uses a small enclosed stair lobby at the car end.
+- The upper arrival is a **side landing nook off the residential hall**, not a full-height shaft in the centre of the upper corridor.
+- The central upper hallway must stay physically and visually clear; no stair wall, door panel or sign may block it.
+- In cars 2–5, residential access is separated from the work room and reached directly from the public corridor.
+- In the locomotive, residential access is reached from inside the private cab.
+- Upper landing doors never open into private sleeping cabins.
 - Technical-deck ladders in Generator and Workshop remain separate restricted maintenance access.
 
 ## Scalability goal
@@ -50,6 +52,7 @@ A future 10–15 car train should let passengers walk from Generator toward the 
 1. `FrozenTrainMainStreetArchitecture` — builds the right-side corridor/work-room model.
 2. `FrozenTrainMainStreetConnector` — offsets inter-car openings and connectors to the corridor.
 3. `FrozenTrainMainStreetSafety` — applies base physical cleanup.
-4. `FrozenTrainCirculationFinalizer` — enforces the full-private locomotive, removes corridor clutter, closes obsolete ladder hatches, removes exposed residential ladders and creates enclosed residential stairwells.
+4. `FrozenTrainCirculationFinalizer` — enforces the full-private locomotive, cleans corridor leftovers and builds the lower stair lobby + upper side landing.
+5. `FrozenTrainExteriorMaterialFix` — guarantees persistent URP snow/rock materials for screenshot-safe exterior scenery.
 
 The passes remain idempotent and preserve existing survival interaction bindings.
