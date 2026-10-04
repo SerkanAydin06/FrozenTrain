@@ -38,6 +38,7 @@ Passenger circulation and work areas are physically separated.
 - Target corridor envelope is approximately **Z=1.90 to Z=4.40**, about **2.5 m wide**, enough for two people to pass.
 - The corridor remains straight and clear through cars 2–5 and continues through offset inter-car connectors aligned to the same +Z position.
 - No furniture, machine, decorative QA prop, shelf, hydroponic element, console or work-light may remain inside the public corridor envelope.
+- Main-deck legacy light housings are kept on the work-room side; the public corridor uses its own dedicated lighting line.
 
 ### Closed functional rooms
 - The remaining left side of cars 2–5 is one **opaque, closed functional compartment**.
@@ -48,8 +49,8 @@ Passenger circulation and work areas are physically separated.
 
 ### Residential access
 - A second end-positioned door may appear on the corridor partition, but it is **not another work-room entrance**.
-- It only opens into the enclosed residential stairwell.
-- The stairwell is physically separated from the work room.
+- It only opens into a compact enclosed residential stair lobby.
+- The stair lobby is physically separated from the work room.
 
 ## Deck 3 — Upper residential deck
 
@@ -60,9 +61,10 @@ The upper deck is private/local accommodation, not a long-distance route.
 - Old upper inter-car routes stay physically closed with end bulkheads.
 - Exposed wall ladders are no longer the normal residential access solution.
 - Old open ladder hatches are closed and made walkable.
-- Each car has an **enclosed residential stairwell** with a lower access door and upper landing door.
-- Cars 2–5 reach this stairwell directly from the right-side public corridor without entering the work room.
-- The locomotive reaches its stairwell from inside the private cab.
+- The main-deck stair lobby arrives at an **upper side landing nook** beside the local residential hall.
+- The stair structure must never form a full-height block across the centre upper hallway.
+- Cars 2–5 reach residential access directly from the right-side public corridor without entering the work room.
+- The locomotive reaches its residential access from inside the private cab.
 - Upper landing doors open to shared residential space, never directly into a private cabin.
 
 ## Windows
@@ -76,4 +78,5 @@ The upper deck is private/local accommodation, not a long-distance route.
 - Locomotive front faces -X; exterior scenery moves +X to read as forward travel.
 - Snow emitters are kept far outside the train body and have no lateral velocity toward the train.
 - The train stands on a track: underframe and bogies sit below the technical deck, and the snow ground is at rail level, below the whole car body.
-- Runtime gameplay does not construct train geometry. `Frozen Train > Rebuild Authored Train` regenerates the canonical train and then applies production-art, QA, right-side-corridor and final circulation cleanup passes.
+- Generated mountain, rock and snow scenery must use persistent URP/Lit material assets; temporary or legacy materials that render magenta are not allowed.
+- Runtime gameplay does not construct train geometry. `Frozen Train > Rebuild Authored Train` regenerates the canonical train and then applies production-art, QA, right-side-corridor, persistent exterior-material and final circulation cleanup passes.

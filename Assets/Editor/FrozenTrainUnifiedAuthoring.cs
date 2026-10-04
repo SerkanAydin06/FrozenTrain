@@ -6,8 +6,8 @@ namespace FrozenTrain.EditorTools
 {
     /// <summary>
     /// Single public authoring entry point. The canonical builder creates the train and production/QA passes
-    /// finish generated content. The final circulation authority then enforces the locomotive/private-cab
-    /// exception, clean right-side passenger corridors in cars 2-5, and enclosed residential stairwells.
+    /// finish generated content. Final passes repair persistent exterior materials and enforce the locomotive
+    /// private-cab exception, clean right-side corridors in cars 2-5, and side-mounted residential access.
     /// </summary>
     public static class FrozenTrainUnifiedAuthoring
     {
@@ -19,13 +19,14 @@ namespace FrozenTrain.EditorTools
             FrozenTrainUpperDeckCirculation.Apply();
             FrozenTrainUpperDeckFinalPolish.Apply();
             FrozenTrainScreenshotQARefinement.Apply();
+            FrozenTrainExteriorMaterialFix.Apply();
             FrozenTrainScreenshotQASafety.Apply();
             FrozenTrainMainStreetArchitecture.Apply();
             FrozenTrainMainStreetConnector.Apply();
             FrozenTrainMainStreetSafety.Apply();
             FrozenTrainCirculationFinalizer.Apply();
             AssetDatabase.Refresh();
-            Debug.Log("FrozenTrain rebuilt: full private locomotive + clean right-side corridors in cars 2-5 + enclosed residential stairwells applied.");
+            Debug.Log("FrozenTrain rebuilt: private locomotive + clean right corridors + side residential landings + persistent URP exterior materials applied.");
         }
     }
 }
