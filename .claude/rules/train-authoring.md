@@ -8,22 +8,24 @@ paths:
 
 - `FrozenTrainLayout.cs` remains the canonical dimensions/content source and `FrozenTrainBuilder.cs` remains the canonical generator. Final architecture/art passes may reorganize generated placement but must not duplicate gameplay state or interaction ownership.
 - E interactions are declared in the layout with `.Bind(...)` / `.AsTerminal()`. Architecture passes may move the bound root but must not recreate gameplay bindings by object name.
-- Keep exactly 5 cars unless the user explicitly changes that constraint.
-- Current car footprint is 18.0 m x 9.2 m; all three decks use the same footprint.
+- Keep exactly 5 usable cars unless the user explicitly changes that constraint.
+- **Permanent footprint:** every usable car is 24.0 m x 9.2 m and every inter-car vestibule is 4.0 m x 9.2 m. Car centres are 28.0 m apart.
+- There are exactly four inter-car vestibules between the five cars. Vestibules are circulation/service modules, not additional functional cars.
 - Lower deck: propulsion, generator, batteries, fuel, electric, water/waste, heating/HVAC, hydraulics, pumps and other technical infrastructure.
 - **Locomotive main deck is a full private cab. It has no public through-corridor.**
 - **Cars 2–5 use asymmetric circulation:** a straight public corridor runs only on the +Z/right side, approximately Z=1.90..4.40 (about 2.5 m wide, two-person passage).
 - The remaining left side of cars 2–5 is one opaque, closed functional compartment for that car's purpose.
 - Each functional compartment has exactly one centred corridor-facing staff/work-room door. Travelling passengers never cross the work room.
-- A separate end-positioned Residential Access door may exist, but it must enter an enclosed stairwell only and must not provide a second entrance to the work room.
-- Inter-car main-deck openings from Generator onward align with the same +Z/right corridor. The Generator-to-Locomotive connector enters a private locomotive landing rather than continuing a corridor through the cab.
 - The public corridor envelope must stay free of furniture, machines, shelves, QA decoration, hydroponic props and production-art leftovers.
-- Upper deck is private/local residential accommodation. It is **not** an inter-car transit route; old upper through-connections stay closed by end bulkheads.
-- **Normal residential access uses an enclosed stairwell, not exposed wall ladders or open floor hatches.** Cars 2–5 reach it directly from the public corridor; the locomotive reaches it from inside the private cab.
-- The upper stair arrival must be a **side landing/nook off the residential hall**. Stair geometry, doors, signs or shaft walls must never occupy or block the central upper hallway.
-- Upper stair landings must open to shared residential space, never directly into a private cabin.
-- Lower technical access stays restricted to technical ladders unless explicitly changed.
+- **No normal vertical circulation may consume usable car floor area.** Do not add residential ladders, stair towers, stair lobbies, technical access ladders or open stair hatches inside any of the five cars.
+- **All normal vertical circulation belongs in the four inter-car vestibules.** Each vestibule contains a right-side through passage and a separate left-side stair core with main-to-upper and lower-to-main flights.
+- Vestibule main-deck through passage must align with the +Z/right public corridor. The Generator-to-Locomotive vestibule enters the locomotive's private rear landing rather than continuing a corridor through the cab.
+- Vestibule upper landing doors open to shared residential hall space in the adjacent cars, never directly into a private cabin.
+- Vestibule lower landing doors open to the adjacent technical decks. Keep stair openings and guard rails inside the vestibule module only.
+- Upper car decks are private/local residential accommodation using the full 24 m footprint. They are not the primary long-distance transit route.
 - Keep the locomotive panoramic front glass and correct -X front orientation.
+- `FrozenTrainLongVestibuleArchitecture.cs` is the final circulation/layout authority after base corridor passes. Do not reintroduce old `FrozenTrainCirculationFinalizer` or in-car upper-ladder architecture into the rebuild chain.
+- `FrozenTrainLongLightingPass.cs` and `FrozenTrainLongExteriorPass.cs` own long-car lighting/exterior corrections that depend on the 24 m footprint.
 - Keep only one public `Frozen Train` menu command: `Rebuild Authored Train`.
 - When circulation geometry changes, update both `Docs/FiveCarArchitecture.md` and `Docs/MainStreetArchitecture.md` in the same change.
 - Before adding a new helper, search for an existing builder/helper and extend it when practical.

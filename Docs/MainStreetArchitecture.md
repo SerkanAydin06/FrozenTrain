@@ -1,58 +1,101 @@
-# FrozenTrain — Right-Side Corridor Architecture
+# FrozenTrain — Right-Side Corridor + Inter-Car Vestibule Architecture
 
 ## Permanent circulation model
-FrozenTrain is treated as a horizontal building, not a chain of rooms.
+FrozenTrain is treated as a horizontal building carried by a train, not a chain of rooms.
 
-- **Lower deck = Infrastructure.** Power, water, fuel, HVAC, pumps, machinery and maintenance. Normal passenger circulation is not routed here.
-- **Main deck = Right-side public corridor in cars 2–5.** One straight, continuous two-person corridor runs on the +Z/right side from Generator through Greenhouse.
-- **Locomotive main deck = Full private cab.** The locomotive is a destination, not a through-route; it has no passenger corridor inside it.
-- **Upper deck = Residential.** Private cabins and quiet local halls. Upper decks are not an inter-car transit route.
+- **5 usable cars, each 24.0 m × 9.2 m.**
+- **4 separate inter-car vestibules, each 4.0 m × 9.2 m.**
+- **Lower deck = technical infrastructure.**
+- **Main deck = public transit + work/life rooms.**
+- **Upper deck = residential accommodation.**
+- **All normal vertical circulation is outside the cars, inside the inter-car vestibules.**
 
-## Main-deck rules
-- Cars **2–5** use a public corridor roughly at Z=1.90 to Z=4.40, about 2.5 m wide.
-- That corridor must remain straight, uncluttered and physically clear.
-- Inter-car openings from Generator onward align with the same right-side corridor.
-- The Generator-to-Locomotive connector enters a private rear landing inside the locomotive; the corridor does not continue through the locomotive.
-- The left side of cars 2–5 is one opaque, closed functional compartment.
-- The functional compartment is separated from the public corridor by an opaque full-height wall.
-- Each functional compartment has exactly one centred corridor-facing **staff/work-room door**.
-- A second, clearly separate **Residential Access** door may exist near the car end, but it only enters the enclosed stair lobby and never opens into the work room.
-- Passengers travelling through the train never cross generator, workshop, greenhouse or living work areas.
-- Old centre-aisle/glazed-frontage decoration must not remain in the right-side corridor.
+## Main deck
 
-## Locomotive intent
-- The whole main deck is one private operations/cab space.
-- Driver console, driver seats, equipment cabinets and management terminal can use the full car width.
-- The right-side transit corridor ends when entering the locomotive.
-- The locomotive has its own enclosed crew/residential stair lobby inside the private cab.
+### Locomotive
+- The whole 24 m main deck is a private operations cab.
+- No public corridor runs through it.
+- The first vestibule enters a private rear landing.
+- Console, seats, cabinets and management terminal may use the full width.
 
-## Cars 2–5 intent
-1. **Generator:** right public corridor + one closed generator control/work room.
-2. **Living:** right public corridor + one closed lounge/galley/medical room.
-3. **Workshop:** right public corridor + one closed staff workshop.
-4. **Greenhouse:** right public corridor + one closed greenhouse production room.
+### Cars 2–5
+- One straight public corridor runs only on the **+Z/right side**.
+- Target envelope: **Z=1.90..4.40**, about **2.5 m wide**.
+- It must stay clear for the full 24 m length.
+- The remaining left side is one opaque functional room.
+- Each functional room has exactly one centred staff/work-room door.
+- Passengers never walk through generator, living, workshop or greenhouse work areas just to continue along the train.
 
-## Residential access rules
-- Exposed wall ladders are not normal residential access.
-- Old open ladder hatches are closed and made walkable.
-- Main-deck access uses a small enclosed stair lobby at the car end.
-- The upper arrival is a **side landing nook off the residential hall**, not a full-height shaft in the centre of the upper corridor.
-- The central upper hallway must stay physically and visually clear; no stair wall, door panel or sign may block it.
-- In cars 2–5, residential access is separated from the work room and reached directly from the public corridor.
-- In the locomotive, residential access is reached from inside the private cab.
-- Upper landing doors never open into private sleeping cabins.
-- Technical-deck ladders in Generator and Workshop remain separate restricted maintenance access.
+## Inter-car vestibules
 
-## Scalability goal
-A future 10–15 car train should let passengers walk from Generator toward the tail through one predictable corridor without entering any functional room. The locomotive remains a private destination at the head of the train rather than another corridor segment.
+The old narrow connector is replaced by a full 4 m transition module between every pair of cars.
+
+Each vestibule contains:
+- **right side:** straight main transit passage aligned with the car corridors;
+- **left side:** closed vertical circulation core;
+- main-to-upper real stepped stair flight;
+- lower-to-main real stepped stair flight;
+- a stair-core door from the main transit passage;
+- two main-deck end doors, one to each adjacent car;
+- two upper residential landing doors, one to each adjacent car;
+- two lower technical landing doors, one to each adjacent car;
+- guard rails, hazard bands, dedicated lighting, full roof and underframe continuity.
+
+The vestibule is a circulation/service zone. It must not be treated as room space belonging to either adjacent car.
+
+## No in-car stairs
+
+The following are prohibited inside all five 24 m cars:
+- normal residential wall ladders;
+- residential stair towers;
+- technical floor ladders used as the normal deck connection;
+- open ladder holes consuming room floor area;
+- stair lobbies cut out of generator/living/workshop/greenhouse space.
+
+Legacy `VerticalAccess`, residential stair markers and hatch geometry are removed by the final architecture pass.
+
+## Upper residential deck
+
+- The upper deck uses the full 24 m car length for cabins and a local central hall.
+- Five cabin bays per side use the longer body.
+- Vestibule upper landings connect to the adjacent residential halls through dedicated doors.
+- Nobody exits a stair directly into a private bed/cabin.
+- Main-deck right corridor remains the primary long-distance route; upper movement is residential/local.
+
+## Lower technical deck
+
+- Technical systems use the full car footprint.
+- There are no main-floor technical ladder holes inside Generator or Workshop anymore.
+- Lower-deck access comes from the vestibule stair core and central lower landing doors.
+
+## Functional-room layout principles
+
+- Keep the centred work-room entry clear for at least ~3 m inside the room.
+- Put large machinery and storage against outer walls or toward the long-car ends.
+- Keep interaction-bound objects reachable without crossing furniture.
+- Living seating stays grouped away from the centred staff door; galley/medical occupy the rear service zone.
+- Workshop benches run along the outer wall; machine station and tool storage stay out of the entry lane.
+- Greenhouse beds form long production rows while preserving a central entry/service gap.
+- Locomotive remains full-width private space.
+
+## Scalability
+
+A future 10–15 car train can repeat the same pattern:
+
+`24 m car → 4 m vestibule → 24 m car → 4 m vestibule ...`
+
+Passengers keep one predictable right-side route while staff rooms and vertical circulation remain isolated.
 
 ## Authoring
-`Frozen Train > Rebuild Authored Train` applies the normal builder/art passes and then:
 
-1. `FrozenTrainMainStreetArchitecture` — builds the right-side corridor/work-room model.
-2. `FrozenTrainMainStreetConnector` — offsets inter-car openings and connectors to the corridor.
-3. `FrozenTrainMainStreetSafety` — applies base physical cleanup.
-4. `FrozenTrainCirculationFinalizer` — enforces the full-private locomotive, cleans corridor leftovers and builds the lower stair lobby + upper side landing.
-5. `FrozenTrainExteriorMaterialFix` — guarantees persistent URP snow/rock materials for screenshot-safe exterior scenery.
+`Frozen Train > Rebuild Authored Train` is the only public authoring command.
 
-The passes remain idempotent and preserve existing survival interaction bindings.
+Relevant passes:
+1. `FrozenTrainMainStreetArchitecture` — base right-side corridor/work-room split.
+2. `FrozenTrainMainStreetConnector` — aligns car main openings to the +Z corridor.
+3. `FrozenTrainMainStreetSafety` — base corridor cleanup.
+4. `FrozenTrainLongVestibuleArchitecture` — authoritative 24 m room placement, removes in-car vertical access, rebuilds the shared connector as a 4 m vestibule/stair core.
+5. `FrozenTrainLongLightingPass` — distributes technical lighting across the 24 m length.
+6. `FrozenTrainLongExteriorPass` — removes legacy 18 m exterior QA details and rebuilds them for the 24 m body.
+
+These passes preserve existing gameplay interaction components when moving their authored roots.
