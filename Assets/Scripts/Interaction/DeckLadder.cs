@@ -4,8 +4,8 @@ namespace FrozenTrain.Interaction
 {
     /// <summary>
     /// Compact wall-ladder interaction for vertical train access.
-    /// Keeps ladders space-efficient while making upper/basement decks reliably usable
-    /// with the existing FPS CharacterController.
+    /// Decorative rail/rung colliders forward interaction to this component, and destination
+    /// positions are resolved onto a nearby solid landing so the player never respawns over a hatch.
     /// </summary>
     public sealed class DeckLadder : InteractableBase
     {
@@ -15,22 +15,13 @@ namespace FrozenTrain.Interaction
         [SerializeField] private string upperToLowerText = "E - Ana kata in";
 
         private Transform player;
+        private bool forwardersBound;
 
         public override string InteractionText
         {
             get
             {
-                Transform actor = player;
-                if (actor == null)
-                {
-                    GameObject found = GameObject.Find("FPS_Player");
-                    if (found != null)
-                    {
-                        actor = found.transform;
-                        player = actor;
-                    }
-                }
-
+                Transform actor = ResolvePlayer();
                 if (actor == null || lowerExit == null || upperExit == null)
                 {
                     return lowerToUpperText;
@@ -41,12 +32,23 @@ namespace FrozenTrain.Interaction
             }
         }
 
+        private void Awake()
+        {
+            BindColliderForwarders();
+        }
+
+        private void OnEnable()
+        {
+            BindColliderForwarders();
+        }
+
         public void Configure(Transform lower, Transform upper, string upText, string downText)
         {
             lowerExit = lower;
             upperExit = upper;
             lowerToUpperText = upText;
             upperToLowerText = downText;
+            BindColliderForwarders();
         }
 
         public override void Interact(GameObject interactor)
@@ -56,23 +58,155 @@ namespace FrozenTrain.Interaction
                 return;
             }
 
-            player = interactor.transform;
-            float midpoint = (lowerExit.position.y + upperExit.position.y) * 0.5f;
-            Transform destination = interactor.transform.position.y < midpoint ? upperExit : lowerExit;
-
             CharacterController controller = interactor.GetComponent<CharacterController>();
+            GameObject actor = controller != null ? controller.gameObject : interactor;
+            player = actor.transform;
+
+            float midpoint = (lowerExit.position.y + upperExit.position.y) * 0.5f;
+            bool goingUp = actor.transform.position.y < midpoint;
+            Transform anchor = goingUp ? upperExit : lowerExit;
+            Vector3 destination = ResolveSafeLanding(anchor.position);
+
             bool controllerWasEnabled = controller != null && controller.enabled;
             if (controllerWasEnabled)
             {
                 controller.enabled = false;
             }
 
-            interactor.transform.position = destination.position;
-            interactor.transform.rotation = Quaternion.Euler(0f, destination.eulerAngles.y, 0f);
+            actor.transform.SetPositionAndRotation(
+                destination,
+                Quaternion.Euler(0f, anchor.eulerAngles.y, 0f));
+            Physics.SyncTransforms();
 
             if (controllerWasEnabled)
             {
                 controller.enabled = true;
+            }
+        }
+
+        private Transform ResolvePlayer()
+        {
+            if (player != null)
+            {
+                return player;
+            }
+
+            GameObject found = GameObject.Find("FPS_Player");
+            if (found != null)
+            {
+                player = found.transform;
+            }
+            return player;
+        }
+
+        /// <summary>
+        /// Builder exit markers intentionally sit close to the ladder/hatch. Older authored exits could
+        /// land inside the floor opening itself. Search first toward the centre corridor, then around the
+        /// marker, and only accept a walkable surface at the expected deck height.
+        /// </summary>
+        private Vector3 ResolveSafeLanding(Vector3 anchor)
+        {
+            float centreDirection = Mathf.Abs(anchor.z) > 0.05f ? -Mathf.Sign(anchor.z) : 1f;
+            Vector3 towardCorridor = new Vector3(0f, 0f, centreDirection);
+            Vector3 awayFromLadder = Vector3.zero;
+            if (transform.parent != null)
+            {
+                awayFromLadder = anchor - transform.parent.position;
+                awayFromLadder.y = 0f;
+                if (awayFromLadder.sqrMagnitude > 0.001f)
+                {
+                    awayFromLadder.Normalize();
+                }
+            }
+
+            Vector3 side = Vector3.Cross(Vector3.up, towardCorridor).normalized;
+            Vector3[] offsets =
+            {
+                towardCorridor * 1.35f,
+                towardCorridor * .95f,
+                awayFromLadder * .80f,
+                awayFromLadder * 1.25f,
+                towardCorridor * 1.35f + side * .45f,
+                towardCorridor * 1.35f - side * .45f,
+                side * .85f,
+                -side * .85f,
+                Vector3.zero,
+            };
+
+            foreach (Vector3 offset in offsets)
+            {
+                Vector3 candidate = anchor + offset;
+                Vector3 rayOrigin = candidate + Vector3.up * .70f;
+                if (!Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, 1.45f, ~0, QueryTriggerInteraction.Ignore))
+                {
+                    continue;
+                }
+
+                if (hit.normal.y < .72f)
+                {
+                    continue;
+                }
+
+                // The actor transform is at foot level. Reject lower-deck geometry seen through the hatch.
+                if (Mathf.Abs(hit.point.y - anchor.y) > .42f)
+                {
+                    continue;
+                }
+
+                return hit.point + Vector3.up * .035f;
+            }
+
+            // Last-resort nudge toward the corridor is still safer than respawning over the opening centre.
+            return anchor + towardCorridor * 1.20f + Vector3.up * .035f;
+        }
+
+        /// <summary>
+        /// Rungs and rails use their own primitive colliders. If those colliders are hit before the hidden
+        /// interaction box, forward them to the same ladder action instead of losing the E prompt.
+        /// </summary>
+        private void BindColliderForwarders()
+        {
+            if (forwardersBound || transform.parent == null)
+            {
+                return;
+            }
+
+            Collider[] colliders = transform.parent.GetComponentsInChildren<Collider>(true);
+            foreach (Collider col in colliders)
+            {
+                if (col == null || col.gameObject == gameObject)
+                {
+                    continue;
+                }
+
+                DeckLadderForwarder proxy = col.GetComponent<DeckLadderForwarder>();
+                if (proxy == null)
+                {
+                    proxy = col.gameObject.AddComponent<DeckLadderForwarder>();
+                }
+                proxy.Configure(this);
+            }
+            forwardersBound = true;
+        }
+    }
+
+    /// <summary>Internal forwarding component added to ladder rail/rung colliders at runtime.</summary>
+    internal sealed class DeckLadderForwarder : InteractableBase
+    {
+        private DeckLadder target;
+
+        public override string InteractionText => target != null ? target.InteractionText : "E - Merdiveni kullan";
+
+        public void Configure(DeckLadder ladder)
+        {
+            target = ladder;
+        }
+
+        public override void Interact(GameObject interactor)
+        {
+            if (target != null)
+            {
+                target.Interact(interactor);
             }
         }
     }
