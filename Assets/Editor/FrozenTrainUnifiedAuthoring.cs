@@ -21,9 +21,10 @@ namespace FrozenTrain.EditorTools
             FrozenTrainScreenshotQARefinement.Apply();
             FrozenTrainScreenshotQASafety.Apply();
             FrozenTrainMainStreetArchitecture.Apply();
+            FrozenTrainMainStreetConnector.Apply();
             FrozenTrainMainStreetSafety.Apply();
             AssetDatabase.Refresh();
-            Debug.Log("FrozenTrain rebuilt: 5-car production train + Main Street public spine + private residential upper decks applied.");
+            Debug.Log("FrozenTrain rebuilt: 5-car production train + Main Street public spine + widened connectors + private residential upper decks applied.");
         }
     }
 }
