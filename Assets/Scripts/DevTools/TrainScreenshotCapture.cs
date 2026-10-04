@@ -31,8 +31,7 @@ namespace FrozenTrain.DevTools
         private const float MainCorridorZ = 3.15f;
         private const float MainCompartmentZ = -1.35f;
         private const float UpperCabinDoorU = -4.85f;
-        private const float UpperLandingU = 5.82f;
-        private const float StairDoorU = 7.45f;
+        private const float StairDoorU = 7.25f;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
@@ -79,7 +78,7 @@ namespace FrozenTrain.DevTools
             StringBuilder manifest = new StringBuilder();
             manifest.AppendLine("# FrozenTrain otomatik görüntüler\n");
             manifest.AppendLine("Son çekim: " + System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "\n");
-            manifest.AppendLine("Lokomotif kat 2 tam özel kabindir. Vagon 2-5 kat 2 ana görüntüleri +Z/sağ transit koridorundan çekilir. `_bolme` kapalı işlev bölümünün içidir, `_merdiven` konut erişim kapısıdır, `_oda` üst özel kabindir, `_landing` üst konut sahanlığıdır.\n");
+            manifest.AppendLine("Lokomotif kat 2 tam özel kabindir. Vagon 2-5 kat 2 ana görüntüleri +Z/sağ transit koridorundan çekilir. `_bolme` kapalı işlev bölümünün içidir, `_merdiven` konut erişim kapısıdır, `_oda` üst özel kabindir, `_landing` üst yan sahanlık kapısıdır.\n");
             manifest.AppendLine("| Dosya | Açıklama | Kamera (dünya) |\n|---|---|---|");
 
             camTransform.SetParent(null, true);
@@ -96,33 +95,34 @@ namespace FrozenTrain.DevTools
                 {
                     float y = DeckFloorY[deck] + EyeHeight;
                     float z = deck == 1 ? (car == 0 ? 0f : MainCorridorZ) : 0f;
+                    float forwardX = car == 0 && deck == 1 ? 5.55f : EndInset;
+                    float reverseX = car == 0 && deck == 1 ? -5.15f : -EndInset;
                     string baseName = "vagon" + (car + 1) + "_kat" + (deck + 1);
                     string label = CarLabels[car] + ", kat " + (deck + 1) + " (" + DeckLabels[deck] + ")";
                     yield return Shoot(cam, image, rt, folder, baseName, label + ", öne bakış", carTransform, car,
-                        new Vector3(EndInset, y, z), -90f, manifest, () => saved++);
+                        new Vector3(forwardX, y, z), -90f, manifest, () => saved++);
                     yield return Shoot(cam, image, rt, folder, baseName + "_ters", label + ", arkaya bakış", carTransform, car,
-                        new Vector3(-EndInset, y, z), 90f, manifest, () => saved++);
+                        new Vector3(reverseX, y, z), 90f, manifest, () => saved++);
                 }
 
                 float mainY = DeckFloorY[1] + EyeHeight;
                 yield return Shoot(cam, image, rt, folder, "vagon" + (car + 1) + "_kat2_bolme",
                     car == 0 ? "Lokomotif tam özel sürüş kabini" : CarLabels[car] + ", orta kat kapalı işlev bölümü", carTransform, car,
-                    new Vector3(EndInset - .55f, mainY, car == 0 ? 0f : MainCompartmentZ), -90f, manifest, () => saved++);
+                    new Vector3(car == 0 ? 5.45f : EndInset - .55f, mainY, car == 0 ? 0f : MainCompartmentZ), -90f, manifest, () => saved++);
 
                 float s = car == CarNames.Length - 1 ? -1f : 1f;
-                float stairCameraX = s * 5.55f;
-                float stairCameraZ = car == 0 ? .65f : MainCorridorZ;
-                float stairYaw = s > 0f ? 90f : -90f;
+                float stairX = s * StairDoorU;
+                float lowerCameraZ = car == 0 ? -.15f : MainCorridorZ;
                 yield return Shoot(cam, image, rt, folder, "vagon" + (car + 1) + "_kat2_merdiven",
                     CarLabels[car] + ", kapalı konut merdiveni giriş kapısı", carTransform, car,
-                    new Vector3(stairCameraX, mainY, stairCameraZ), stairYaw, manifest, () => saved++);
+                    new Vector3(stairX, mainY, lowerCameraZ), 180f, manifest, () => saved++);
 
                 float upperY = DeckFloorY[2] + EyeHeight;
                 string upperBase = "vagon" + (car + 1) + "_kat3";
                 yield return Shoot(cam, image, rt, folder, upperBase + "_oda", CarLabels[car] + ", üst kat örnek özel kabin", carTransform, car,
                     new Vector3(s * UpperCabinDoorU, upperY, 0.02f), 0f, manifest, () => saved++);
-                yield return Shoot(cam, image, rt, folder, upperBase + "_landing", CarLabels[car] + ", üst kat kapalı merdiven sahanlığı", carTransform, car,
-                    new Vector3(s * UpperLandingU, upperY, 0f), stairYaw, manifest, () => saved++);
+                yield return Shoot(cam, image, rt, folder, upperBase + "_landing", CarLabels[car] + ", üst kat yan sahanlık kapısı", carTransform, car,
+                    new Vector3(stairX, upperY, -.18f), 180f, manifest, () => saved++);
             }
 
             Vector3 trainCenter = trainRoot != null ? trainRoot.position : Vector3.zero;
