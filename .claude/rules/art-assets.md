@@ -6,6 +6,7 @@ paths:
   - "Assets/Editor/FrozenTrainLayout.cs"
   - "Assets/Editor/FrozenTrainBuilder.cs"
   - "Assets/Editor/FrozenTrainProductionArt.cs"
+  - "Assets/Editor/FrozenTrainProductionArtPro.cs"
 ---
 # Free-only art production rules
 
@@ -18,9 +19,10 @@ paths:
 - Source/editable working files belong under `ArtSource/`; Unity-ready runtime files belong under `Assets/Art/`.
 - Do not hand-edit generated train prefabs in a way that `Rebuild Authored Train` will erase.
 - `FrozenTrainLayout.cs` + `FrozenTrainBuilder.cs` remain the only architecture/placement source of truth.
-- `FrozenTrainProductionArt.cs` may run after the canonical builder only as a visual skin/detail/material pass; it must not move architecture, change car/deck dimensions, or create a parallel layout system.
+- `FrozenTrainProductionArt.cs` is the stable entry point. Extend the five-car visual implementation in `FrozenTrainProductionArtPro.cs`; do not create more stacked production-art passes.
+- Production art may run after the canonical builder only as a visual skin/detail/material pass; it must not move architecture, change car/deck dimensions, or create a parallel layout system.
 - Keep gameplay/interactable components on stable wrapper objects; art meshes should be replaceable children.
 - Use URP-compatible materials, modest texture sizes, shared trim/tile materials, and simple colliders.
 - Procedurally generated textures/materials are allowed when deterministic and source-controlled by code; put generated Unity assets under `Assets/Art/`.
 - Visual changes must preserve corridors, ladders, connector doors, window sight-lines and interaction access.
-- For visual changes, compare the affected automatic screenshots after rebuilding/playing.
+- For visual changes, compare the affected automatic screenshots after rebuilding/playing, preferably through the GitHub screenshot artifact.
