@@ -33,6 +33,7 @@ Work on the existing Unity survival-management game efficiently. Prefer focused 
 - Rebuild entry point: `Assets/Editor/FrozenTrainUnifiedAuthoring.cs`
 - Architecture contracts: `Docs/FiveCarArchitecture.md`, `Docs/MainStreetArchitecture.md`
 - Survival state: `Assets/Scripts/Management/TrainPrototypeState.cs`
+- One-slot manual run save/load: `F5` / `F9` or the management panel. Saved in Unity PlayerPrefs key `FrozenTrain.RunSave.V1` (dynamic state and player position, no scene geometry).
 - Simulation: `Assets/Scripts/Management/SurvivalSimulation.cs`
 - Management UI: `Assets/Scripts/Management/TrainManagementPanel.cs`
 - Art production contract: `Docs/ArtPipeline.md`
@@ -86,7 +87,7 @@ Legacy note: `FrozenTrainUpperDeckCirculation.cs`, `FrozenTrainUpperDeckFinalPol
 Use the project skills when their descriptions match the task.
 
 ## Visual review loop
-- Every Play of `FPSPrototype` in the Editor auto-captures screenshots under `Docs/Screenshots/` via `Assets/Scripts/DevTools/TrainScreenshotCapture.cs` (editor-only).
+- Screenshot capture is OFF during normal Play. Opt in via `Tools > FrozenTrain > Capture Screenshots on Play` in the Unity Editor before collecting QA captures; disable it again afterward. The editor-only capture script is `Assets/Scripts/DevTools/TrainScreenshotCapture.cs`.
 - Car views remain `vagonN_katK.jpg`, `_ters`, `_bolme`, `_oda` where relevant.
 - New vestibule QA views are `gecisN_kat2.jpg`, `gecisN_merdiven.jpg`, `gecisN_kat3.jpg`, `gecisN_kat1.jpg` for N=1..4.
 - `Docs/Screenshots/README.md` lists capture time, labels and camera positions.

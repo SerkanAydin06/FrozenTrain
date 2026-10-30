@@ -1,24 +1,31 @@
 # FrozenTrain — Proje Hafızası
 
 ## Proje özeti
-Proje türü henüz doğrulanmadı.
+- Unity 6.3 LTS (6000.3.25f1), URP, Windows hedefli birinci şahıs hayatta kalma/yönetim prototipi.
+- Ana sahne: `Assets/Scenes/FPSPrototype.unity`.
+- Beş kullanılabilir vagon (Lokomotif, Jeneratör, Yaşam, Atölye, Sera), üç kat; vagon başına 24 × 9.2 m.
+- Dört ayrı 4 × 9.2 m vestibülde merdivenler; normal merdivenler vagonların içinde değil.
+- Trenin sahne/prefab üretim giriş noktası: `Frozen Train > Rebuild Authored Train`.
 
 ## Önceki bağlam / dikkat noktaları
-İlk gerçek görevde proje dosyaları/ana giriş ve mimariyi incele, ardından bu özeti doğrulanmış bulgularla doldur.
+- 2026-10-30 depo kodu incelendi; Unity Editor çalıştırılmadı, ekran görüntüleri piksel düzeyinde değerlendirilmedi.
+- Zafer koşulu/mesafe hedefi tanımlı değil; kullanıcı istemeden yeni hikâye veya hedef tasarlama.
+- GitHub Actions screenshot paketleme işinin son 2026-10-05 çalıştırması başarısız/iptal durumunda. Unity derlemesi yerine geçmez.
 
 ## Kalıcı çalışma protokolü
 - Kaynak: Bu deponun güncel kodu ve belgeleri. Sohbet hafızası eksik veya eski olabilir.
-- Başlangıç: GitHub bağlantısını ve depo erişimini kontrol et. Kullanıcıyı yeniden bağlantı kurmaya yönlendirmeden önce mevcut GitHub araçlarını dene.
-- İşe başlamadan önce bu dosyayı, README.md ve varsa AGENTS.md / CLAUDE.md / başka proje kurallarını incele.
-- Kodda bir değişiklik yapmadan önce en son durumu incele; kullanıcıdan gelmeyen ayrıntıları karar gibi sunma.
-- İstenen değişiklikleri, mümkün ve yetkili olduğunda doğrudan GitHub'da uygula; commit/PR bağlantısı ile sonuç bildir.
-- Her önemli görevden sonra bu dosyanın "Çalışma günlüğü" bölümünü yeni karar, değişen dosyalar, test sonucu, commit bağlantısı ve bekleyen işlerle güncelle.
-- Eski tercihlerin uygulanmış olduğunu sadece bu dosyadan çıkarsama: kod ile doğrula.
+- GitHub bağlantısını kontrol et, mevcut GitHub araçlarıyla doğrudan çalış.
+- Kod değiştirmeden önce `PROJECT_MEMORY.md`, `CLAUDE.md` ve ilgili kaynak dosyaları incele.
+- Repo kuralları ve beş vagonlu mimari korunmalı; kapsam dışı hikâye/NPC veya yeni vagon ekleme.
+- İstenen değişiklikleri mümkün olduğunda doğrudan GitHub'a uygula; commit bağlantısını bildir.
+- Her görevden sonra yeni karar, değişen dosyalar, doğrulama ve bekleyen işleri bu dosyaya yaz.
 - Yanıt dili Türkçe; kısa, net, gereksiz anlatımdan uzak.
-- Var olan AGENTS.md ve depo yönergeleri öncelikle korunur; bu dosya onları geçersiz kılmaz.
+- Eski kararları uygulanmış varsayma; güncel kod ile doğrula.
 
 ## Çalışma günlüğü
-- 2026-10-30: Süreklilik için PROJECT_MEMORY.md başlatıldı. Bu dosya kod değişikliği veya geçmişte tamamlanmış işlerin doğrulaması değildir.
-- Son tamamlanan teknik görev: Henüz bu dosyaya işlenmedi.
-- Son doğrulanan commit: Henüz kaydedilmedi.
-- Bekleyen işler: Yeni kullanıcı görevinde belirlenecek.
+- 2026-10-30: Proje devamlılığı için başlangıç dosyası oluşturuldu (`eb64ed3`).
+- 2026-10-30: `PlayerInteraction.cs` hedef seçiminde gerçek collider için görüş hattı denetimi eklendi; duvar arkasından etkileşim riski azaltıldı. `TrainScreenshotCapture.cs` normal Play'de kapalı, `Tools > FrozenTrain > Capture Screenshots on Play` üzerinden isteğe bağlı açılıyor. `TrainPrototypeState.cs` sera ve atölye kaynak akışları güç verimliliğiyle eşlendi. Commit: `8ca785d4206f66053a971005740a6eda53490986`.
+- 2026-10-30: `TrainManagementPanel.cs` tam panel scroll ve dar ekran için satırlara bölünen göstergeler aldı. Commit: `6fdc790d7b2dd8aa5ed4730d6b9b841bc23980e1`.
+- 2026-10-30: Tek slot manuel kayıt/yükleme (F5/F9, panel ve ölüm ekranından F9) dinamik oyun durumu ve oyuncu konumunu `PlayerPrefs` ile saklıyor. `TrainPrototypeState.cs` ve `TrainManagementPanel.cs`. Commit: `a9dcfc34c7b7915afab0c8721c0f0bccf7e851e8`.
+- Kaynak dosyaların temel statik parantez/alan kontrolleri yapıldı. Unity Editor derlemesi, Play Mode, fiziksel geçiş ve farklı çözünürlük testleri henüz çalıştırılmadı.
+- Bekleyen: Unity 6000.3.25f1'de Play Mode QA; görüş hattı (cam/kapı/duvar), dar pencere UI, kayıt/yükleme ve güç verimi testleri. Ekran görüntüsü CI iptal sebebi GitHub run loglarından teyit edilmeli. Kazanma hedefi kullanıcı kararıyla belirlenmeli.
