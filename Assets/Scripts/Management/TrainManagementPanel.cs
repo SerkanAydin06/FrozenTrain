@@ -15,6 +15,8 @@ namespace FrozenTrain.Management
         private bool gameOverShown;
         private float previousTimeScale = 1f;
         private Vector2 scroll;
+        private string saveFeedback;
+        private float saveFeedbackExpiry;
         private bool compactLayout;
         private float contentWidth;
 
@@ -65,12 +67,18 @@ namespace FrozenTrain.Management
 
             if (trainState != null && trainState.IsLost)
             {
-                if (!gameOverShown) ShowGameOver();
-                if (keyboard != null && keyboard.rKey.wasPressedThisFrame) RestartRun();
+                if (keyboard != null && keyboard.f9Key.wasPressedThisFrame) LoadCurrentRun();
+                if (trainState.IsLost)
+                {
+                    if (!gameOverShown) ShowGameOver();
+                    if (keyboard != null && keyboard.rKey.wasPressedThisFrame) RestartRun();
+                }
                 return;
             }
 
             if (keyboard == null) return;
+            if (keyboard.f5Key.wasPressedThisFrame) SaveCurrentRun();
+            if (keyboard.f9Key.wasPressedThisFrame) LoadCurrentRun();
             if (keyboard.tabKey.wasPressedThisFrame)
             {
                 if (isOpen) ClosePanel();
@@ -79,6 +87,30 @@ namespace FrozenTrain.Management
             else if (isOpen && keyboard.escapeKey.wasPressedThisFrame)
             {
                 ClosePanel();
+            }
+        }
+
+        private void SaveCurrentRun()
+        {
+            bool saved = trainState != null && trainState.SaveRun(transform);
+            saveFeedback = saved ? "Oyun kaydedildi." : "Oyun kaydedilemedi.";
+            saveFeedbackExpiry = Time.unscaledTime + 4f;
+        }
+
+        private void LoadCurrentRun()
+        {
+            bool loaded = trainState != null && trainState.LoadRun(transform);
+            saveFeedback = loaded ? "Kayıt yüklendi." : "Geçerli kayıt bulunamadı.";
+            saveFeedbackExpiry = Time.unscaledTime + 4f;
+            if (loaded && gameOverShown)
+            {
+                gameOverShown = false;
+                Time.timeScale = 1f;
+                if (playerController != null)
+                {
+                    playerController.enabled = true;
+                    playerController.SetCursorCaptured(true);
+                }
             }
         }
 
@@ -185,6 +217,8 @@ namespace FrozenTrain.Management
             // Every section scrolls together, not only the list of cars.
             scroll = GUILayout.BeginScrollView(scroll, false, true);
             GUILayout.Space(8f);
+            DrawSaveControls();
+            GUILayout.Space(10f);
             DrawEnergySection();
             GUILayout.Space(10f);
             DrawResourceStrip();
@@ -219,7 +253,7 @@ namespace FrozenTrain.Management
         {
             GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), backdropTexture);
             float width = Mathf.Min(620f, Screen.width - 42f);
-            Rect rect = new Rect((Screen.width - width) * 0.5f, Screen.height * 0.5f - 110f, width, 220f);
+            Rect rect = new Rect((Screen.width - width) * 0.5f, Screen.height * 0.5f - 130f, width, 260f);
             GUI.Box(rect, GUIContent.none, panelStyle);
             GUI.DrawTexture(new Rect(rect.x, rect.y, 5f, rect.height), dangerTexture);
 
@@ -229,6 +263,7 @@ namespace FrozenTrain.Management
             GUILayout.Label("Son yolcu da dondurucu soğuğa yenik düştü.", rowBodyStyle);
             GUILayout.Label("Kat edilen mesafe: " + trainState.DistanceKm.ToString("0.0") + " km", metricValueStyle);
             GUILayout.FlexibleSpace();
+            if (GUILayout.Button("KAYDI YÜKLE  [F9]", buttonStyle, GUILayout.Height(38f))) LoadCurrentRun();
             if (GUILayout.Button("YENİDEN BAŞLA  [R]", buttonStyle, GUILayout.Height(38f))) RestartRun();
             GUILayout.EndArea();
         }
@@ -277,6 +312,16 @@ namespace FrozenTrain.Management
             GUILayout.Space(11f);
             Rect line = GUILayoutUtility.GetRect(1f, 2f, GUILayout.ExpandWidth(true));
             GUI.DrawTexture(line, accentTexture);
+        }
+
+        private void DrawSaveControls()
+        {
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("KAYDET  [F5]", buttonStyle, GUILayout.Height(34f))) SaveCurrentRun();
+            if (GUILayout.Button("YÜKLE  [F9]", buttonStyle, GUILayout.Height(34f))) LoadCurrentRun();
+            GUILayout.EndHorizontal();
+            if (!string.IsNullOrEmpty(saveFeedback) && Time.unscaledTime < saveFeedbackExpiry)
+                GUILayout.Label(saveFeedback, rowBodyStyle);
         }
 
         private void DrawEnergySection()

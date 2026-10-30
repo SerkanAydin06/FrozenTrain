@@ -66,6 +66,20 @@ namespace FrozenTrain.Management
 
         private const float CruiseSpeedKmh = 60f;
         private float populationLossTimer;
+        private const string SaveKey = "FrozenTrain.RunSave.V1";
+
+        [System.Serializable]
+        private sealed class RunSnapshot
+        {
+            public int version = 1;
+            public float fuel, food, water, waterReserve, materials, medicine;
+            public float heatPercent, populationHealth, trainCondition;
+            public float distanceKm, greenhouseBoostSeconds, populationLossTimer;
+            public int population, pace;
+            public bool generatorOnline, livingCarPowered, workshopPowered, greenhousePowered;
+            public Vector3 playerPosition;
+            public float playerYaw;
+        }
 
         public bool GeneratorOnline => generatorOnline;
         public bool LivingCarPowered => livingCarPowered;
@@ -253,6 +267,90 @@ namespace FrozenTrain.Management
             greenhouseBoostSeconds = 120f;
             return true;
         }
+
+        /// <summary>One manual save slot for dynamic run state; balance settings stay in the scene.</summary>
+        public bool SaveRun(Transform player)
+        {
+            if (player == null || IsLost) return false;
+
+            var data = new RunSnapshot
+            {
+                fuel = fuel, food = food, water = water, waterReserve = waterReserve,
+                materials = materials, medicine = medicine, heatPercent = heatPercent,
+                populationHealth = populationHealth, trainCondition = trainCondition,
+                distanceKm = distanceKm, greenhouseBoostSeconds = greenhouseBoostSeconds,
+                populationLossTimer = populationLossTimer, population = population, pace = (int)pace,
+                generatorOnline = generatorOnline, livingCarPowered = livingCarPowered,
+                workshopPowered = workshopPowered, greenhousePowered = greenhousePowered,
+                playerPosition = player.position, playerYaw = player.eulerAngles.y
+            };
+
+            try
+            {
+                PlayerPrefs.SetString(SaveKey, JsonUtility.ToJson(data));
+                PlayerPrefs.Save();
+                return true;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning("[FrozenTrain] Save failed: " + e.Message);
+                return false;
+            }
+        }
+
+        public bool LoadRun(Transform player)
+        {
+            if (player == null || !PlayerPrefs.HasKey(SaveKey)) return false;
+            RunSnapshot data;
+            try
+            {
+                data = JsonUtility.FromJson<RunSnapshot>(PlayerPrefs.GetString(SaveKey));
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning("[FrozenTrain] Invalid save: " + e.Message);
+                return false;
+            }
+
+            if (data == null || data.version != 1 || data.population < 1 ||
+                !Finite(data.fuel) || !Finite(data.food) || !Finite(data.water) ||
+                !Finite(data.waterReserve) || !Finite(data.materials) || !Finite(data.medicine) ||
+                !Finite(data.heatPercent) || !Finite(data.populationHealth) || !Finite(data.trainCondition) ||
+                !Finite(data.distanceKm) || !Finite(data.greenhouseBoostSeconds) ||
+                !Finite(data.populationLossTimer) || !Finite(data.playerPosition.x) ||
+                !Finite(data.playerPosition.y) || !Finite(data.playerPosition.z) ||
+                !Finite(data.playerYaw))
+                return false;
+
+            fuel = Mathf.Max(0f, data.fuel);
+            food = Mathf.Clamp(data.food, 0f, 200f);
+            water = Mathf.Clamp(data.water, 0f, 200f);
+            waterReserve = Mathf.Clamp(data.waterReserve, 0f, waterReserveCapacity);
+            materials = Mathf.Max(0f, data.materials);
+            medicine = Mathf.Max(0f, data.medicine);
+            heatPercent = Mathf.Clamp(data.heatPercent, 0f, 100f);
+            populationHealth = Mathf.Clamp(data.populationHealth, 0f, 100f);
+            trainCondition = Mathf.Clamp(data.trainCondition, 0f, 100f);
+            distanceKm = Mathf.Max(0f, data.distanceKm);
+            greenhouseBoostSeconds = Mathf.Max(0f, data.greenhouseBoostSeconds);
+            populationLossTimer = Mathf.Max(0f, data.populationLossTimer);
+            population = data.population;
+            pace = (TrainPace)Mathf.Clamp(data.pace, (int)TrainPace.Economy, (int)TrainPace.Push);
+            generatorOnline = data.generatorOnline && fuel > 0.01f;
+            livingCarPowered = data.livingCarPowered;
+            workshopPowered = data.workshopPowered;
+            greenhousePowered = data.greenhousePowered;
+
+            CharacterController controller = player.GetComponent<CharacterController>();
+            bool wasEnabled = controller != null && controller.enabled;
+            if (wasEnabled) controller.enabled = false;
+            player.SetPositionAndRotation(data.playerPosition, Quaternion.Euler(0f, data.playerYaw, 0f));
+            Physics.SyncTransforms();
+            if (wasEnabled) controller.enabled = true;
+            return true;
+        }
+
+        private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
 
         public void SimulateSecond(float deltaSeconds)
         {
