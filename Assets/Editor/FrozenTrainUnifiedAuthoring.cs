@@ -27,10 +27,10 @@ namespace FrozenTrain.EditorTools
             FrozenTrainLongLightingPass.Apply();
             FrozenTrainLongExteriorPass.Apply();
             FrozenTrainPost24ScreenshotPolish.Apply();
-            FrozenTrainFinalScreenshotFix.Apply();
+            // Skip the legacy stair tread/stringer pass: only ladders remain.
             FrozenTrainMinimalInteriorPass.Apply();
             AssetDatabase.Refresh();
-            Debug.Log("FrozenTrain rebuilt: five empty 24 m cars + four inter-car vestibules, keeping only doors, stairs, structural partitions and minimal visibility lighting.");
+            Debug.Log("FrozenTrain rebuilt: five minimal car shells, plain doors and eight functional vertical ladders across four vestibules.");
         }
     }
 }

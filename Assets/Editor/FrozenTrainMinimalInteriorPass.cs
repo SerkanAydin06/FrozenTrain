@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System;
 using System.Linq;
+using FrozenTrain.Interaction;
 using UnityEditor;
 using UnityEngine;
 using L = FrozenTrain.EditorTools.FrozenTrainLayout;
@@ -9,7 +10,7 @@ namespace FrozenTrain.EditorTools
 {
     /// <summary>
     /// Bare train foundation for rebuilding the interior one element at a time.
-    /// Keep only the car shells, structural partitions, windows, doors and vestibule stairs.
+    /// Keep only the car shells, structural partitions, windows, doors and vertical ladders.
     /// Exterior train geometry and invisible visibility lighting remain functional.
     ///
     /// Runs LAST in the unified authoring chain so historical dressing passes cannot
@@ -57,11 +58,11 @@ namespace FrozenTrain.EditorTools
             try
             {
                 Transform shell = connector.transform.Find("VestibuleShell");
-                if (shell == null || !shell.GetComponentsInChildren<Transform>(true).Any(
-                        t => t.name == "UpperStairStep") ||
-                    !shell.GetComponentsInChildren<Transform>(true).Any(t => t.name == "LowerStairStep") ||
-                    shell.Find("StairCoreDoor") == null)
-                    throw new InvalidOperationException("The vestibule stairs or door are missing. Simplification aborted.");
+                if (shell == null ||
+                    shell.Find("UpperLadder")?.GetComponent<DeckLadder>() == null ||
+                    shell.Find("LowerLadder")?.GetComponent<DeckLadder>() == null ||
+                    shell.Find("StairCoreDoor")?.GetComponent<SlidingDoor>() == null)
+                    throw new InvalidOperationException("The vestibule ladders or door are missing. Simplification aborted.");
 
                 int before = CountObjects(connector.transform);
                 StripVestibule(connector.transform);
@@ -78,7 +79,7 @@ namespace FrozenTrain.EditorTools
             AssetDatabase.Refresh();
             Debug.Log("[FrozenTrain] Minimal interiors: removed " + removed +
                       " nonessential objects from five cars and the inter-car vestibule prefab. " +
-                      "Shells, windows, doors, stairs and basic invisible lighting remain.");
+                      "Shells, windows, plain doors, climbable ladders and basic invisible lighting remain.");
         }
 
         private static void StripCar(Transform root)
@@ -125,10 +126,7 @@ namespace FrozenTrain.EditorTools
                         if (doors != null)
                         {
                             KeepChildren(doors, t =>
-                                t.name == "RoomDoorJamb" ||
-                                t.name == "RoomDoorHeader" ||
-                                t.name == "PocketDoorLeaf" ||
-                                t.name == "DoorHandle");
+                                t.name == "PocketDoorLeaf");
                         }
                         break;
 
@@ -140,6 +138,7 @@ namespace FrozenTrain.EditorTools
                 }
             }
 
+            StripDoorDecorations(root);
             AddInvisibleLighting(root);
         }
 
@@ -150,7 +149,7 @@ namespace FrozenTrain.EditorTools
                 if (child.name == "VestibuleShell")
                 {
                     // Keep only the shell, walkable deck tiles, actual doors,
-                    // partition around the stair door and usable stair geometry.
+                    // partition around the ladder door and two upright ladders.
                     KeepChildren(child, t =>
                     {
                         string n = t.name;
@@ -165,16 +164,8 @@ namespace FrozenTrain.EditorTools
                             n == "MainVestibuleDoorFront" || n == "MainVestibuleDoorRear" ||
                             n == "UpperDoorFront" || n == "UpperDoorRear" ||
                             n == "TechnicalDoorFront" || n == "TechnicalDoorRear" ||
-                            n == "UpperStairStep" || n == "LowerStairStep" ||
-                            n == "StairHandrail";
+                            n == "UpperLadder" || n == "LowerLadder";
                     });
-                }
-                else if (child.name == "__FinalScreenshotFixV1")
-                {
-                    // Stringers support thin stairs; floor stripes and landing
-                    // decorations are not essential.
-                    KeepChildren(child, t => t.name == "UpperStairStringer" ||
-                        t.name == "LowerStairStringer");
                 }
                 else
                 {
@@ -182,11 +173,20 @@ namespace FrozenTrain.EditorTools
                 }
             }
 
-            // There are no visible fixtures in the connector either.
-            // These point lights make the three stair landings navigable.
+            StripDoorDecorations(root);
+
+            // No visible fixtures: invisible lights keep the three decks navigable.
             Transform lightGroup = MakeGroup(root, "__MinimalVisibility");
             foreach (float y in new[] { L.LowerTop + 2.25f, L.MainTop + 2.25f, L.UpperTop + 2.25f })
                 AddLight(lightGroup, new Vector3(0f, y, 0f), 1.0f, 7f);
+        }
+
+        private static void StripDoorDecorations(Transform root)
+        {
+            // The door panel itself remains clickable; every orange band, handle,
+            // sign and ornamental header attached to it is removed.
+            foreach (SlidingDoor door in root.GetComponentsInChildren<SlidingDoor>(true))
+                KeepChildren(door.transform, part => part.name == "DoorPanel");
         }
 
         private static void AddInvisibleLighting(Transform root)

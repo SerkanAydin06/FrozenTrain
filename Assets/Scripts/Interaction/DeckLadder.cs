@@ -176,7 +176,9 @@ namespace FrozenTrain.Interaction
                 return;
             }
 
-            Collider[] colliders = transform.parent.GetComponentsInChildren<Collider>(true);
+            // Bind only this ladder's rails and rungs, never nearby doors or
+            // the vestibule shell's colliders.
+            Collider[] colliders = GetComponentsInChildren<Collider>(true);
             foreach (Collider col in colliders)
             {
                 if (col == null || col.gameObject == gameObject)

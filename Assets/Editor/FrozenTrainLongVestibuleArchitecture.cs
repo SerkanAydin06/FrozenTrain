@@ -31,12 +31,13 @@ namespace FrozenTrain.EditorTools
         private const float WorkDoorHeight = 2.34f;
 
         private const float StairDoorWidth = 1.30f;
-        private const float StairWidth = 1.18f;
-        private const float StairLowZ = -3.82f;
-        private const float StairHighZ = -.58f;
         private const float UpperStairX = -.82f;
         private const float LowerStairX = .82f;
-        private const int StairSteps = 13;
+        // Compact ladder openings replace the former full-length staircase voids.
+        private const float LadderHoleNearZ = -1.30f;
+        private const float LadderHoleFarZ = -.20f;
+        private const float LadderZ = -.65f;
+        private const float LandingZ = .44f;
 
         private sealed class Mats
         {
@@ -314,7 +315,7 @@ namespace FrozenTrain.EditorTools
                 BuildVestibuleFloors(shell, m);
                 BuildVestibuleShell(shell, m);
                 BuildMainTransit(shell, m);
-                BuildStairCore(shell, m);
+                BuildLadderCore(shell, m);
                 BuildDeckPortals(shell, m);
                 BuildVestibuleLighting(shell, m);
 
@@ -328,10 +329,10 @@ namespace FrozenTrain.EditorTools
             Cube(p, "LowerFloor", new Vector3(0f, L.LowerY, 0f),
                 new Vector3(L.VestibuleLength, L.LowerFloorT, L.CarWidth), m.Floor, true);
 
-            Rect lowerHole = Rect.MinMaxRect(LowerStairX - .72f, StairLowZ - .18f, LowerStairX + .72f, StairHighZ + .24f);
+            Rect lowerHole = Rect.MinMaxRect(LowerStairX - .54f, LadderHoleNearZ, LowerStairX + .54f, LadderHoleFarZ);
             FloorAroundHole(p, "MainFloor", L.MainY, L.MainFloorT, lowerHole, m.Floor);
 
-            Rect upperHole = Rect.MinMaxRect(UpperStairX - .72f, StairLowZ - .18f, UpperStairX + .72f, StairHighZ + .24f);
+            Rect upperHole = Rect.MinMaxRect(UpperStairX - .54f, LadderHoleNearZ, UpperStairX + .54f, LadderHoleFarZ);
             FloorAroundHole(p, "UpperFloor", L.UpperY, L.UpperFloorT, upperHole, m.Floor);
 
             Cube(p, "Roof", new Vector3(0f, L.RoofY, 0f),
@@ -375,11 +376,6 @@ namespace FrozenTrain.EditorTools
 
         private static void BuildMainTransit(Transform p, Mats m)
         {
-            Cube(p, "TransitRunner", new Vector3(0f, L.MainTop + .018f, CorridorCenterZ),
-                new Vector3(L.VestibuleLength - .12f, .030f, CorridorWidth), m.Fabric, false);
-            Cube(p, "TransitInnerEdge", new Vector3(0f, L.MainTop + .035f, CorridorMinZ),
-                new Vector3(L.VestibuleLength - .16f, .035f, .06f), m.Hazard, false);
-
             float wallY = L.MainTop + (MainCeilingY - L.MainTop) * .5f;
             float wallH = MainCeilingY - L.MainTop;
             float halfDoor = StairDoorWidth * .5f;
@@ -395,7 +391,6 @@ namespace FrozenTrain.EditorTools
             Transform stairDoor = Group(p, "StairCoreDoor");
             stairDoor.localPosition = new Vector3(0f, L.MainTop + 1.14f, PartitionZ - .02f);
             Cube(stairDoor, "DoorPanel", Vector3.zero, new Vector3(StairDoorWidth - .06f, 2.22f, .09f), m.Frame, false);
-            Cube(stairDoor, "DoorBand", new Vector3(0f, .48f, -.055f), new Vector3(.88f, .14f, .025f), m.Hazard, false);
             stairDoor.gameObject.AddComponent<BoxCollider>().size = new Vector3(StairDoorWidth, 2.28f, .22f);
             stairDoor.gameObject.AddComponent<SlidingDoor>().Configure(new Vector3(1.46f, 0f, 0f), 2.6f);
 
@@ -405,48 +400,46 @@ namespace FrozenTrain.EditorTools
                 CorridorCenterZ, 2.40f, m, -2.22f);
         }
 
-        private static void BuildStairCore(Transform p, Mats m)
+        private static void BuildLadderCore(Transform p, Mats m)
         {
-            BuildStairFlight(p, "UpperStair", UpperStairX, L.MainTop, L.UpperTop, StairLowZ, StairHighZ, m);
-            BuildStairFlight(p, "LowerStair", LowerStairX, L.LowerTop, L.MainTop, StairLowZ, StairHighZ, m);
-
-            // Guard the open stair edges without obstructing the shared stair lobby.
-            BuildStairGuard(p, UpperStairX, L.MainTop, L.UpperTop, StairLowZ, StairHighZ, m);
-            BuildStairGuard(p, LowerStairX, L.LowerTop, L.MainTop, StairLowZ, StairHighZ, m);
-
-            Cube(p, "UpperStairLabel", new Vector3(UpperStairX, 2.45f, -4.25f),
-                new Vector3(1.08f, .22f, .035f), m.Hazard, false);
-            Cube(p, "TechnicalStairLabel", new Vector3(LowerStairX, -.62f, -4.25f),
-                new Vector3(1.08f, .22f, .035f), m.Steel, false);
+            // Both ladders stand upright in the vestibule, never inside a usable car.
+            // Their exits are on solid floor beyond the compact ladder openings.
+            BuildVerticalLadder(p, "UpperLadder", UpperStairX, L.MainTop, L.UpperTop,
+                "E - Üst kata çık", "E - Ana kata in", m);
+            BuildVerticalLadder(p, "LowerLadder", LowerStairX, L.LowerTop, L.MainTop,
+                "E - Ana kata çık", "E - Teknik kata in", m);
         }
 
-        private static void BuildStairFlight(Transform p, string prefix, float x, float lowY, float highY,
-            float zStart, float zEnd, Mats m)
+        private static void BuildVerticalLadder(Transform parent, string name, float x,
+            float lowY, float highY, string upText, string downText, Mats m)
         {
-            float rise = (highY - lowY) / StairSteps;
-            float run = (zEnd - zStart) / StairSteps;
-            for (int i = 0; i < StairSteps; i++)
-            {
-                float h = rise * (i + 1);
-                float z = zStart + run * (i + .5f);
-                Cube(p, prefix + "Step", new Vector3(x, lowY + h * .5f, z),
-                    new Vector3(StairWidth, h, Mathf.Abs(run) + .035f), m.Steel, true);
-            }
-        }
+            Transform ladder = Group(parent, name);
+            ladder.localPosition = new Vector3(x, 0f, LadderZ);
+            float height = highY - lowY;
+            float midY = (lowY + highY) * .5f;
 
-        private static void BuildStairGuard(Transform p, float x, float lowY, float highY,
-            float zStart, float zEnd, Mats m)
-        {
-            Vector3 a = new Vector3(0f, lowY + .92f, zStart);
-            Vector3 b = new Vector3(0f, highY + .92f, zEnd);
-            Vector3 dir = b - a;
-            float len = dir.magnitude;
+            // Two straight vertical rails and evenly spaced horizontal rungs.
+            // Collider hits resolve to the parent DeckLadder for E interaction.
             foreach (float side in new[] { -1f, 1f })
+                Cube(ladder, "LadderRail", new Vector3(side * .30f, midY, 0f),
+                    new Vector3(.075f, height + .30f, .075f), m.Frame, true);
+
+            int rungCount = Mathf.Max(8, Mathf.CeilToInt(height / .30f));
+            for (int i = 0; i < rungCount; i++)
             {
-                GameObject rail = Cube(p, "StairHandrail", new Vector3(x + side * (StairWidth * .5f + .08f), (a.y + b.y) * .5f, (zStart + zEnd) * .5f),
-                    new Vector3(.06f, .06f, len), m.Frame, true);
-                rail.transform.localRotation = Quaternion.FromToRotation(Vector3.forward, dir.normalized);
+                float t = rungCount == 1 ? .5f : i / (float)(rungCount - 1);
+                float y = Mathf.Lerp(lowY + .25f, highY - .23f, t);
+                Cube(ladder, "LadderRung", new Vector3(0f, y, -.035f),
+                    new Vector3(.61f, .055f, .075f), m.Steel, true);
             }
+
+            Transform lowerExit = Group(ladder, "LowerExit");
+            lowerExit.localPosition = new Vector3(0f, lowY + .06f, LandingZ - LadderZ);
+            Transform upperExit = Group(ladder, "UpperExit");
+            upperExit.localPosition = new Vector3(0f, highY + .06f, LandingZ - LadderZ);
+
+            ladder.gameObject.AddComponent<DeckLadder>().Configure(
+                lowerExit, upperExit, upText, downText);
         }
 
         private static void BuildDeckPortals(Transform p, Mats m)
@@ -461,10 +454,6 @@ namespace FrozenTrain.EditorTools
                     L.LowerTop + 1.15f, 0f, 2.12f, m, 1.86f);
             }
 
-            Cube(p, "UpperLandingMark", new Vector3(0f, L.UpperTop + .018f, -.05f),
-                new Vector3(L.VestibuleLength - .20f, .026f, 1.75f), m.Fabric, false);
-            Cube(p, "LowerLandingMark", new Vector3(0f, L.LowerTop + .018f, -.05f),
-                new Vector3(L.VestibuleLength - .20f, .026f, 1.75f), m.Floor, false);
         }
 
         private static void BuildEndSlidingDoor(Transform p, string name, float x, float y, float z,
@@ -473,8 +462,6 @@ namespace FrozenTrain.EditorTools
             Transform door = Group(p, name);
             door.localPosition = new Vector3(x, y, z);
             Cube(door, "DoorPanel", Vector3.zero, new Vector3(.10f, 2.30f, width), m.Frame, false);
-            Cube(door, "DoorBand", new Vector3(-Mathf.Sign(x) * .055f, .48f, 0f),
-                new Vector3(.025f, .14f, width - .35f), m.Hazard, false);
             door.gameObject.AddComponent<BoxCollider>().size = new Vector3(.22f, 2.34f, width + .05f);
             door.gameObject.AddComponent<SlidingDoor>().Configure(new Vector3(0f, 0f, openOffset), 2.8f);
         }
