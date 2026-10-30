@@ -19,6 +19,14 @@ Work on the existing Unity survival-management game efficiently. Prefer focused 
 - Locomotive main deck is fully private; its rear vestibule enters a private landing.
 - Locomotive front is -X. Exterior scenery moves +X.
 - Public authoring workflow: `Frozen Train > Rebuild Authored Train`.
+- **Current rebuild mode: bare interiors (user request 2026-10-31).** The last pass,
+  `Assets/Editor/FrozenTrainMinimalInteriorPass.cs`, removes all interior furniture,
+  machines, consoles, screens, beds, storage and other dressing. Only structural shell,
+  windows, partition walls, passage/cabin doors and vestibule stairs/rails remain,
+  with invisible basic lights so the scene is navigable.
+- Keep this minimal baseline until the user requests individual elements to be reintroduced.
+  Prior authored art sources are retained for later work but are stripped from rebuilt prefabs.
+  Do not put removed props back automatically in a subsequent visual pass.
 
 ## Source of truth
 - Train layout data (24 m size, 4 m vestibule spacing, decks, contents, E bindings): `Assets/Editor/FrozenTrainLayout.cs`

@@ -38,3 +38,13 @@
 - İlgili commitler: `eb739cb567e210eb1c83e352120f53b4b258e01f`, `205111abcfce99807ce0f24712614fbdb02c09cb`, `fb72d391fa1fe361d4719a06ef5b6c167167def4`.
 - **Zorunlu Unity adımı:** Değişen kodu Unity'ye aldıktan sonra `Frozen Train > Rebuild Authored Train` komutunu bir kez çalıştırıp sahneyi kaydet. Önceden üretilmiş prefab/sahne varlıkları kod değişikliğiyle kendi kendine yeniden hesaplanmaz.
 - Statik kaynak kontrolü yapıldı; bu ortamda Unity Editor derlemesi, yeniden üretilmiş prefabların görsel teyidi ve Play Mode testleri çalıştırılmadı. Yeniden üretim sonrası aynı ekran görüntülerinin güncellenmesi ve boşta kalan başka parçaların kontrolü bekliyor.
+
+## 2026-10-31 — Temel vagon iskeletine dönüş
+- Kullanıcı yeni temel olarak yalnızca lokomotif ve dört vagonun mimarisini, kapıları ve vagonlar arası merdivenleri istedi. İç donanımın tamamı aşamalı yeniden tasarım için kaldırıldı.
+- `Assets/Editor/FrozenTrainMinimalInteriorPass.cs` ve `.meta` eklendi; `Assets/Editor/FrozenTrainUnifiedAuthoring.cs` üretim zincirinin **sonuna** temizlik aşaması eklendi. Her yeni `Frozen Train > Rebuild Authored Train` çalıştırmasında kalıcı hale gelen prefab çıktısı yeniden sadeleştirilecek.
+- Kalanlar: beş 24 m vagon gövdesi ve dış kaplamaları, zemin/çatı/duvar/pencere açıklıkları, üst kat kabin bölmeleri ve kapıları, ana koridorun işlevsel bölme kapısı, dört 4 m geçişin kapıları, merdiven basamakları/korkulukları/taşıyıcıları, yalnızca görünmez asgari aydınlatma. Dış çevreye müdahale edilmedi.
+- Kaldırılanlar: lokomotif konsol/mobilyaları, jeneratör/atölye/sera ve yaşam vagonu donanımları, kabin yatakları, raflar, paneller, dekoratif tavan/floor parçaları, ekranlar ve diğer QA/prod. süslemeleri. Nesneler üretilen prefabda siliniyor; eski kaynak üretim kodları şimdilik saklandı.
+- Kaldırılan fiziksel `ManagementTerminal` artık E ile açılmayacak; oyun yönetim panelinin klavye kısayolu kullanılabilir. Mevcut yaşam simülasyonu kaynakları arka planda çalışmaya devam eder.
+- Commit: `2e2037a983df7c5cef990c3916f75f97dd9e2ced`.
+- **Unity adımı:** Yeni kodu çekip `Frozen Train > Rebuild Authored Train` çalıştır, `Ctrl+S` ile kaydet. Mevcut sahne/prefab bu adım yapılmadan sadeleşmez.
+- Kod düzeyinde temel statik kontrol yapıldı; gerçek Unity derlemesi ve yeni sahnenin görsel/fizik testleri bu ortamda yapılmadı.
