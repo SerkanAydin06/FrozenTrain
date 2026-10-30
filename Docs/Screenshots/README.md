@@ -1,6 +1,6 @@
 ﻿# FrozenTrain otomatik görüntüler
 
-Son çekim: 2026-10-05 22:30:46
+Son çekim: 2026-10-30 23:07:41
 
 Mimari: 5 x 24 m vagon + 4 x 4 m ara vestibül. `gecisN_merdiven` artık kapının dışına değil merdiven çekirdeğinin içinden basamaklara bakar; `_oda` gerçek kabin kapısından içeri bakar.
 
