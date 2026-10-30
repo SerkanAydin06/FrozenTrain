@@ -127,7 +127,7 @@ namespace FrozenTrain.EditorTools
             Material accent = Accent(index, m);
             foreach (float x in new[] { -9.2f, -4.6f, 0f, 4.6f, 9.2f })
             {
-                Cube(corridor, "CorridorLuminaire", new Vector3(x, MainCeilingY - .16f, CorridorCenterZ),
+                Cube(corridor, "CorridorLuminaire", new Vector3(x, MainCeilingY - .0275f, CorridorCenterZ),
                     new Vector3(2.40f, .055f, .22f), m.Warm, false);
                 Point(corridor, "CorridorFill", new Vector3(x, 2.52f, CorridorCenterZ),
                     .82f, 5.0f, new Color(.90f, .82f, .68f));
@@ -292,7 +292,7 @@ namespace FrozenTrain.EditorTools
                 new Vector3(L.CarLength - .80f, .024f, 1.82f), m.Fabric, false);
             foreach (float x in new[] { -9.2f, -4.6f, 0f, 4.6f, 9.2f })
             {
-                Cube(detail, "UpperHallNightLight", new Vector3(x, L.UpperTop + .30f, .96f),
+                Cube(detail, "UpperHallNightLight", new Vector3(x, L.UpperTop + .30f, L.CorridorHalf - .0275f),
                     new Vector3(.34f, .10f, .055f), accent, false);
                 Point(detail, "UpperHallFill", new Vector3(x, 5.50f, 0f), .48f, 3.9f, new Color(.88f, .76f, .58f));
             }

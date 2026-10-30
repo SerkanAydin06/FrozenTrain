@@ -39,7 +39,7 @@ namespace FrozenTrain.EditorTools
                     Transform marker = Group(root.transform, MarkerName);
                     foreach (float x in new[] { -9.2f, -4.6f, 0f, 4.6f, 9.2f })
                     {
-                        Cube(marker, "TechnicalLuminaire", new Vector3(x, L.MainY - .28f, 0f),
+                        Cube(marker, "TechnicalLuminaire", new Vector3(x, L.MainY - L.MainFloorT * .5f - .0275f, 0f),
                             new Vector3(2.35f, .055f, .24f), frame);
                         Transform t = Group(marker, "TechnicalServiceLight");
                         t.localPosition = new Vector3(x, L.MainY - .42f, 0f);

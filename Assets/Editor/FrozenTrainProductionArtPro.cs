@@ -196,8 +196,10 @@ namespace FrozenTrain.EditorTools
             // Ceiling HVAC panels and emergency strips.
             foreach (float x in new[] { -5.7f, 0f, 5.7f })
             {
-                Cube(skin, "MainCeilingVent", new Vector3(x, L.UpperY - .24f, 2.25f), new Vector3(2.0f, .06f, .55f), m.Frame, false);
-                Cube(skin, "MainCeilingVent", new Vector3(x, L.UpperY - .24f, -2.25f), new Vector3(2.0f, .06f, .55f), m.Frame, false);
+                // Flush-mounted: underside of the upper deck is the main-deck ceiling.
+                float ventY = L.UpperY - L.UpperFloorT * .5f - .03f;
+                Cube(skin, "MainCeilingVent", new Vector3(x, ventY, 2.25f), new Vector3(2.0f, .06f, .55f), m.Frame, false);
+                Cube(skin, "MainCeilingVent", new Vector3(x, ventY, -2.25f), new Vector3(2.0f, .06f, .55f), m.Frame, false);
             }
             Cube(skin, "UpperEmergencyStripL", new Vector3(0f, L.UpperTop + .035f, -L.CorridorHalf + .08f), new Vector3(L.CarLength - .7f, .02f, .05f), m.Hazard, false);
             Cube(skin, "UpperEmergencyStripR", new Vector3(0f, L.UpperTop + .035f, L.CorridorHalf - .08f), new Vector3(L.CarLength - .7f, .02f, .05f), m.Hazard, false);
@@ -576,11 +578,23 @@ namespace FrozenTrain.EditorTools
             if (living != null)
             {
                 Transform d = NewGroup(marker, "LivingWallFurniture", Vector3.zero, Quaternion.identity);
-                foreach (float z in new[] { -3.92f, 3.92f })
+                // Tie luggage racks into the side walls instead of leaving their backs
+                // half a metre away from the wall with no visible fasteners.
+                foreach (float side in new[] { -1f, 1f })
                     foreach (float x in new[] { -5.5f, -1.5f, 2.4f })
                     {
-                        Cube(d, "LuggageShelf", new Vector3(x, 2.55f, z), new Vector3(2.55f, .08f, .34f), m.BrushedSteel, false);
-                        Cylinder(d, "ShelfRail", new Vector3(x, 2.78f, z - Mathf.Sign(z) * .18f), new Vector3(.035f, 2.35f, .035f), new Vector3(0f, 0f, 90f), m.Frame, false);
+                        float z = side * (L.HalfW - .32f);
+                        Cube(d, "LuggageShelf", new Vector3(x, 2.55f, z),
+                            new Vector3(2.55f, .08f, .34f), m.BrushedSteel, false);
+                        Cylinder(d, "ShelfRail", new Vector3(x, 2.78f, z - side * .18f),
+                            new Vector3(.035f, 2.35f, .035f), new Vector3(0f, 0f, 90f), m.Frame, false);
+                        foreach (float edge in new[] { -1.08f, 1.08f })
+                        {
+                            Cube(d, "ShelfWallBracket", new Vector3(x + edge, 2.42f, side * (L.HalfW - .22f)),
+                                new Vector3(.06f, .24f, .32f), m.Frame, false);
+                            Cube(d, "ShelfRailPost", new Vector3(x + edge, 2.68f, z - side * .18f),
+                                new Vector3(.045f, .25f, .045f), m.Frame, false);
+                        }
                     }
             }
         }
@@ -756,14 +770,46 @@ namespace FrozenTrain.EditorTools
             if (shelf != null) SetMaterial(shelf, m.BrushedSteel);
 
             Transform d = ResetDetailRoot(pod, "__ProductionSleepPod");
-            Cube(d, "Pillow", new Vector3(-.72f, .67f, 0f), new Vector3(.48f, .16f, .64f), m.Bedding, false);
-            Cube(d, "FoldedBlanket", new Vector3(.48f, .65f, 0f), new Vector3(.68f, .10f, .72f), m.Fabric, false);
-            Cylinder(d, "SafetyRail", new Vector3(.18f, .83f, -.48f), new Vector3(.035f, 1.10f, .035f), new Vector3(0f, 0f, 90f), m.BrushedSteel, false);
-            Cube(d, "ReadingLight", new Vector3(-.92f, 1.47f, -.39f), new Vector3(.26f, .10f, .18f), m.WarmLight, false);
-            Cube(d, "PersonalPanel", new Vector3(-.76f, 1.23f, -.41f), new Vector3(.34f, .28f, .03f), m.Frame, false);
-            Cylinder(d, "PanelButton", new Vector3(-.76f, 1.23f, -.435f), new Vector3(.07f, .02f, .07f), new Vector3(90f, 0f, 0f), m.Hazard, false);
+            if (bedFrame == null) return;
+
+            // SleepPod is a zero-origin group. Its BedFrame is offset to the actual
+            // cabin (x, upper deck Y, +/-z). Previously these details stayed at
+            // car-local (0, 0, 0), appearing in empty space far below the beds.
+            Vector3 frameCentre = bedFrame.localPosition;
+            d.localPosition = frameCentre - Vector3.up * .22f;
+            float side = Mathf.Sign(frameCentre.z);
+            float aisleFacingZ = -side * .42f;
+
+            Cube(d, "Pillow", new Vector3(-.72f, .67f, 0f),
+                new Vector3(.48f, .16f, .64f), m.Bedding, false);
+            Cube(d, "FoldedBlanket", new Vector3(.48f, .65f, 0f),
+                new Vector3(.68f, .10f, .72f), m.Fabric, false);
+
+            // Guard rail, short uprights and reading lamp are all attached to
+            // the actual bed frame rather than left suspended in the corridor.
+            Cylinder(d, "SafetyRail", new Vector3(.18f, .83f, aisleFacingZ),
+                new Vector3(.035f, 1.10f, .035f), new Vector3(0f, 0f, 90f),
+                m.BrushedSteel, false);
+            foreach (float x in new[] { -.32f, .68f })
+                Cylinder(d, "SafetyRailPost", new Vector3(x, .64f, aisleFacingZ),
+                    new Vector3(.035f, .40f, .035f), Vector3.zero, m.Frame, false);
+
+            Cube(d, "ReadingLightPost", new Vector3(-.92f, .96f, aisleFacingZ),
+                new Vector3(.045f, 1.02f, .045f), m.Frame, false);
+            Cube(d, "ReadingLight", new Vector3(-.92f, 1.47f, aisleFacingZ),
+                new Vector3(.26f, .10f, .18f), m.WarmLight, false);
+            Cube(d, "PersonalPanel", new Vector3(-.76f, 1.23f, aisleFacingZ),
+                new Vector3(.34f, .28f, .03f), m.Frame, false);
+            Cylinder(d, "PanelButton", new Vector3(-.76f, 1.23f, aisleFacingZ - side * .025f),
+                new Vector3(.07f, .02f, .07f), new Vector3(90f, 0f, 0f), m.Hazard, false);
+
             if (locker != null)
-                Cylinder(d, "LockerHandle", locker.localPosition + new Vector3(0f, .05f, -.30f), new Vector3(.03f, .24f, .03f), Vector3.zero, m.Frame, false);
+            {
+                // Locker lives in pod-local coordinates; convert to the re-based detail group.
+                Vector3 lockerOffset = locker.localPosition - d.localPosition;
+                Cylinder(d, "LockerHandle", lockerOffset + new Vector3(0f, .05f, -side * .30f),
+                    new Vector3(.03f, .24f, .03f), Vector3.zero, m.Frame, false);
+            }
         }
 
         private static void UpgradeCabinet(Transform cabinet, Mats m, Material accent)
