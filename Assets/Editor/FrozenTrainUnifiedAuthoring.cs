@@ -28,8 +28,9 @@ namespace FrozenTrain.EditorTools
             FrozenTrainLongExteriorPass.Apply();
             FrozenTrainPost24ScreenshotPolish.Apply();
             FrozenTrainFinalScreenshotFix.Apply();
+            FrozenTrainMinimalInteriorPass.Apply();
             AssetDatabase.Refresh();
-            Debug.Log("FrozenTrain rebuilt: five 24 m cars + four 4 m inter-car vestibules + final stair/upper-light screenshot corrections applied.");
+            Debug.Log("FrozenTrain rebuilt: five empty 24 m cars + four inter-car vestibules, keeping only doors, stairs, structural partitions and minimal visibility lighting.");
         }
     }
 }
