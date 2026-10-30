@@ -48,3 +48,12 @@
 - Commit: `2e2037a983df7c5cef990c3916f75f97dd9e2ced`.
 - **Unity adımı:** Yeni kodu çekip `Frozen Train > Rebuild Authored Train` çalıştır, `Ctrl+S` ile kaydet. Mevcut sahne/prefab bu adım yapılmadan sadeleşmez.
 - Kod düzeyinde temel statik kontrol yapıldı; gerçek Unity derlemesi ve yeni sahnenin görsel/fizik testleri bu ortamda yapılmadı.
+
+## 2026-10-31 — Turuncu kapı dekorlarının silinmesi ve dik tırmanma merdiveni
+- Kullanıcı mevcut sade sahneden kapı üstü süslerini, turuncu bantları, işaretleri ve diğer kapı dekorlarını çıkartmayı; tüm basamaklı merdivenlerin düz dik tırmanma merdivenine dönüştürülmesini istedi.
+- `Assets/Editor/FrozenTrainLongVestibuleArchitecture.cs`: 4 adet vestibülde `BuildStairCore` yerine `BuildLadderCore`; her vestibülde ana↔üst ve teknik↔ana için birer `UpperLadder`/`LowerLadder` toplam 8 dik raylı-basamaklı tırmanma merdiveni, `DeckLadder` ile E etkileşimi. Basamaklı eski merdivenler kaldırıldı; uzun merdiven boşlukları yerine 1.08×1.10 m kompakt açıklıklar ve sağlam zemin üzerindeki çıkış noktaları tanımlandı. Konstrüksiyonun geçiş kapıları korunuyor; turuncu `DoorBand`, zemin işaretleri kaldırıldı.
+- `Assets/Editor/FrozenTrainMinimalInteriorPass.cs`: yalnızca `DoorPanel` bileşenleri tutularak kapı üzerindeki portakal rengi şeritler, işaretler, başlık dekorları/ek kulplar temizleniyor; kabin kapılarının cephe süsleri yerine basit açık kapı yaprakları kalıyor. Konnektör beyaz listesi dik merdivenlere geçti; artık basamak/korkuluk saklamıyor.
+- `Assets/Scripts/Interaction/DeckLadder.cs`: etkileşim aktarıcılarının vestibülün tüm duvar/kapılarına yayılması önlendi; sadece ilgili merdivenin çarpışma bileşenlerine bağlanıyor.
+- `Assets/Editor/FrozenTrainUnifiedAuthoring.cs`: eski basamak/stringer son geçişi devreden çıkarıldı. Kaynak kodu denetimi yapıldı; Unity Editor Play Mode testi bu ortamda çalıştırılamadı.
+- Commit: `6281b6e35900fe17f4c1982fd6bf29a72cf1dd0e`.
+- **Unity'de uygulama:** Güncel `main` kodunu çek → `Frozen Train > Rebuild Authored Train` → sahneyi kaydet (`Ctrl+S`) → E ile alt/üst kat merdivenlerini test et.
