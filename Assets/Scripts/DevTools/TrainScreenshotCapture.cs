@@ -12,7 +12,26 @@ namespace FrozenTrain.DevTools
 {
     public sealed class TrainScreenshotCapture : MonoBehaviour
     {
-        public static readonly bool Enabled = true;
+        // Capture is opt-in: ordinary Play must not move the player camera for QA.
+        private const string CapturePreference = "FrozenTrain.CaptureScreenshotsOnPlay";
+        private const string CaptureMenu = "Tools/FrozenTrain/Capture Screenshots on Play";
+        private static bool Enabled => UnityEditor.EditorPrefs.GetBool(CapturePreference, false);
+
+        [UnityEditor.MenuItem(CaptureMenu)]
+        private static void ToggleCapture()
+        {
+            bool enabled = !Enabled;
+            UnityEditor.EditorPrefs.SetBool(CapturePreference, enabled);
+            UnityEditor.Menu.SetChecked(CaptureMenu, enabled);
+            Debug.Log("[Screenshots] Capture on Play " + (enabled ? "enabled" : "disabled"));
+        }
+
+        [UnityEditor.MenuItem(CaptureMenu, true)]
+        private static bool ValidateCaptureMenu()
+        {
+            UnityEditor.Menu.SetChecked(CaptureMenu, Enabled);
+            return true;
+        }
 
         private const string MainSceneName = "FPSPrototype";
         private const string TrainRootName = "TRAIN_INTERIOR_PROTOTYPE";

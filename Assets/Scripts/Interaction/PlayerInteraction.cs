@@ -13,6 +13,7 @@ namespace FrozenTrain.Interaction
 
         private readonly RaycastHit[] hitBuffer = new RaycastHit[20];
         private InteractableBase currentTarget;
+        private Collider currentTargetCollider;
         private float lastTargetSeenTime = -10f;
 
         private GUIStyle promptStyle;
@@ -40,22 +41,25 @@ namespace FrozenTrain.Interaction
             if (playerCamera == null || Cursor.lockState != CursorLockMode.Locked)
             {
                 currentTarget = null;
+                currentTargetCollider = null;
                 return;
             }
 
-            InteractableBase detected = FindBestTarget();
+            InteractableBase detected = FindBestTarget(out Collider detectedCollider);
             if (detected != null)
             {
                 currentTarget = detected;
+                currentTargetCollider = detectedCollider;
                 lastTargetSeenTime = Time.unscaledTime;
             }
             else if (currentTarget != null)
             {
                 bool graceExpired = Time.unscaledTime - lastTargetSeenTime > targetGraceSeconds;
                 bool tooFar = Vector3.Distance(playerCamera.transform.position, currentTarget.transform.position) > interactionDistance + 1.25f;
-                if (graceExpired || tooFar)
+                if (graceExpired || tooFar || !HasClearSight(currentTargetCollider, currentTarget))
                 {
                     currentTarget = null;
+                    currentTargetCollider = null;
                 }
             }
 
@@ -66,42 +70,48 @@ namespace FrozenTrain.Interaction
             }
         }
 
-        private InteractableBase FindBestTarget()
+        private InteractableBase FindBestTarget(out Collider bestCollider)
         {
             Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
             int count = Physics.SphereCastNonAlloc(
-                ray,
-                aimAssistRadius,
-                hitBuffer,
-                interactionDistance,
-                interactionMask,
-                QueryTriggerInteraction.Ignore);
+                ray, aimAssistRadius, hitBuffer, interactionDistance,
+                interactionMask, QueryTriggerInteraction.Ignore);
 
             InteractableBase best = null;
+            bestCollider = null;
             float bestDistance = float.MaxValue;
 
             for (int i = 0; i < count; i++)
             {
                 RaycastHit hit = hitBuffer[i];
-                if (hit.collider == null)
-                {
-                    continue;
-                }
+                if (hit.collider == null || hit.distance >= bestDistance) continue;
 
                 InteractableBase target = hit.collider.GetComponentInParent<InteractableBase>();
-                if (target == null)
-                {
-                    continue;
-                }
+                if (target == null || !HasClearSight(hit.collider, target)) continue;
 
-                if (hit.distance < bestDistance)
-                {
-                    bestDistance = hit.distance;
-                    best = target;
-                }
+                bestDistance = hit.distance;
+                best = target;
+                bestCollider = hit.collider;
             }
-
             return best;
+        }
+
+        // Aim assistance never bypasses a wall. Check the actual surface and all
+        // ordinary physics layers, even if a narrower interaction mask is configured.
+        private bool HasClearSight(Collider collider, InteractableBase target)
+        {
+            if (playerCamera == null || collider == null || target == null) return false;
+            Vector3 origin = playerCamera.transform.position;
+            Vector3 toTarget = collider.ClosestPoint(origin) - origin;
+            float distance = toTarget.magnitude;
+            if (distance < 0.001f) return true;
+
+            if (!Physics.Raycast(origin, toTarget / distance, out RaycastHit firstHit,
+                distance + 0.05f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                return false;
+
+            return firstHit.collider == collider ||
+                firstHit.collider.GetComponentInParent<InteractableBase>() == target;
         }
 
         private void OnGUI()

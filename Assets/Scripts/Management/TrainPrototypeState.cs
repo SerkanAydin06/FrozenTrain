@@ -147,6 +147,10 @@ namespace FrozenTrain.Management
 
         private float CurrentGreenhouseProduction => greenhouseFoodProduction * (GreenhouseBoostActive ? 1.65f : 1f);
         private float CurrentGreenhouseWaterUse => greenhouseWaterUse * (GreenhouseBoostActive ? 1.30f : 1f);
+        // Resource consumption and production both respect actual power delivery.
+        private float EffectiveGreenhouseProduction => CurrentGreenhouseProduction * PowerEfficiency;
+        private float EffectiveGreenhouseWaterUse => CurrentGreenhouseWaterUse * PowerEfficiency;
+        private float EffectiveWorkshopMaterialUse => workshopMaterialUse * PowerEfficiency;
 
         public float FuelDeltaPerMinute
         {
@@ -158,10 +162,10 @@ namespace FrozenTrain.Management
             }
         }
 
-        public float FoodDeltaPerMinute => (-population * foodUsePerPerson + (GreenhouseActuallyRunning ? CurrentGreenhouseProduction : 0f)) * 60f;
-        public float WaterDeltaPerMinute => (-population * waterUsePerPerson - (GreenhouseActuallyRunning ? CurrentGreenhouseWaterUse : 0f)) * 60f;
+        public float FoodDeltaPerMinute => (-population * foodUsePerPerson + (GreenhouseActuallyRunning ? EffectiveGreenhouseProduction : 0f)) * 60f;
+        public float WaterDeltaPerMinute => (-population * waterUsePerPerson - (GreenhouseActuallyRunning ? EffectiveGreenhouseWaterUse : 0f)) * 60f;
         public float WaterReserveDeltaPerMinute => SnowIntakeActive ? snowIntakePerSecondAtCruise * MotionFactor * 60f : 0f;
-        public float MaterialsDeltaPerMinute => WorkshopActuallyRepairing ? -workshopMaterialUse * 60f : 0f;
+        public float MaterialsDeltaPerMinute => WorkshopActuallyRepairing ? -EffectiveWorkshopMaterialUse * 60f : 0f;
         public float HeatDeltaPerMinute
         {
             get
@@ -284,13 +288,13 @@ namespace FrozenTrain.Management
 
             if (GreenhouseActuallyRunning)
             {
-                food = Mathf.Min(200f, food + CurrentGreenhouseProduction * deltaSeconds);
-                water = Mathf.Max(0f, water - CurrentGreenhouseWaterUse * deltaSeconds);
+                food = Mathf.Min(200f, food + EffectiveGreenhouseProduction * deltaSeconds);
+                water = Mathf.Max(0f, water - EffectiveGreenhouseWaterUse * deltaSeconds);
             }
 
             if (WorkshopActuallyRepairing)
             {
-                materials = Mathf.Max(0f, materials - workshopMaterialUse * deltaSeconds);
+                materials = Mathf.Max(0f, materials - EffectiveWorkshopMaterialUse * deltaSeconds);
                 trainCondition = Mathf.Min(100f, trainCondition + workshopRepairRate * PowerEfficiency * deltaSeconds);
             }
 
