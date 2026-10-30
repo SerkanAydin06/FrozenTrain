@@ -255,7 +255,7 @@ namespace FrozenTrain.EditorTools
                     float z = side * 3.05f;
                     Cube(detail, "CabinCeilingLight", new Vector3(x, L.RoofBottom - .0275f, z),
                         new Vector3(.82f, .055f, .24f), m.Warm, false);
-                    Cube(detail, "CabinDoorMarker", new Vector3(x - .34f, 4.74f, side * (L.CorridorHalf + .0125f)),
+                    Cube(detail, "CabinDoorMarker", new Vector3(x - .34f, 4.74f, side * 1.10f),
                         new Vector3(.26f, .18f, .025f), accent, false);
                 }
             }

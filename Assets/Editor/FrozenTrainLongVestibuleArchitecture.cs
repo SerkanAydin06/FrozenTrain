@@ -292,7 +292,7 @@ namespace FrozenTrain.EditorTools
                 new Vector3(L.CarLength - .80f, .024f, 1.82f), m.Fabric, false);
             foreach (float x in new[] { -9.2f, -4.6f, 0f, 4.6f, 9.2f })
             {
-                Cube(detail, "UpperHallNightLight", new Vector3(x, L.UpperTop + .30f, L.CorridorHalf - .0275f),
+                Cube(detail, "UpperHallNightLight", new Vector3(x, L.UpperTop + .30f, .96f),
                     new Vector3(.34f, .10f, .055f), accent, false);
                 Point(detail, "UpperHallFill", new Vector3(x, 5.50f, 0f), .48f, 3.9f, new Color(.88f, .76f, .58f));
             }
