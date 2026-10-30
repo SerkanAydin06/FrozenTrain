@@ -731,6 +731,12 @@ namespace FrozenTrain.EditorTools
                 Cylinder(g, "IrrigationHeader", new Vector3(x, 2.62f, 0f), new Vector3(.06f, 5.5f, .06f), new Vector3(90f, 0f, 0f), m.BrushedSteel, false);
                 foreach (float z in new[] { -2.55f, 2.55f })
                     Cylinder(g, "MistDrop", new Vector3(x, 2.35f, z), new Vector3(.035f, .50f, .035f), Vector3.zero, m.BrushedSteel, false);
+                // A fixed header hanging 40 cm below the deck needs visible hangers.
+                foreach (float z in new[] { -2.20f, 2.20f })
+                    Cube(g, "HeaderCeilingHanger",
+                        new Vector3(x, (2.62f + L.UpperY - L.UpperFloorT * .5f) * .5f, z),
+                        new Vector3(.055f, L.UpperY - L.UpperFloorT * .5f - 2.62f, .055f),
+                        m.Frame, false);
             }
         }
 
@@ -802,6 +808,17 @@ namespace FrozenTrain.EditorTools
                 new Vector3(.34f, .28f, .03f), m.Frame, false);
             Cylinder(d, "PanelButton", new Vector3(-.76f, 1.23f, aisleFacingZ - side * .025f),
                 new Vector3(.07f, .02f, .07f), new Vector3(90f, 0f, 0f), m.Hazard, false);
+
+            if (shelf != null)
+            {
+                Vector3 shelfOffset = shelf.localPosition - d.localPosition;
+                // The small wall shelf has its own brackets, with no extra collider
+                // or obstruction in the sleeping compartment doorway.
+                foreach (float x in new[] { -.23f, .23f })
+                    Cube(d, "CabinShelfWallBracket",
+                        shelfOffset + new Vector3(x, -.14f, side * .05f),
+                        new Vector3(.055f, .25f, .24f), m.Frame, false);
+            }
 
             if (locker != null)
             {
