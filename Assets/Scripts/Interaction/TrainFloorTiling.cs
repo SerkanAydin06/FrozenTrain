@@ -3,17 +3,26 @@ using UnityEngine;
 namespace FrozenTrain.Visuals
 {
     /// <summary>
-    /// Keeps one shared 03_Floors URP material while tiling its generated
-    /// industrial floor image at a stable size, regardless of floor mesh size.
-    /// All five cars and both gangway decks use exactly the same scale.
-    /// This is a visual material-property override, not a collider or mesh edit.
+    /// Keeps one shared 03_Floors URP material and tiles it on the train's 1 m texture grid.
+    /// UVs are computed in car-local space from the inner corner of the car, so every floor slab
+    /// (including pieces split around hatches) continues the same pattern and the 24 x 9 m clear
+    /// floor holds exactly 24 x 9 whole tiles. Values are written by the authoring pass from
+    /// FrozenTrainLayout; this is a visual material-property override only.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class TrainFloorTiling : MonoBehaviour
     {
-        private const float MetersPerTile = 2.50f;
+        [SerializeField] private float metresPerTile = 1f;
+        [SerializeField] private Vector2 gridOriginXZ = new Vector2(-12f, -4.5f);
+
         private static readonly int BaseMapST = Shader.PropertyToID("_BaseMap_ST");
         private static readonly int BumpMapST = Shader.PropertyToID("_BumpMap_ST");
+
+        public void Configure(float tile, Vector2 originXZ)
+        {
+            metresPerTile = Mathf.Max(.05f, tile);
+            gridOriginXZ = originXZ;
+        }
 
         private void OnEnable() => Apply();
         private void Start() => Apply();
@@ -26,13 +35,14 @@ namespace FrozenTrain.Visuals
                 Material material = renderer.sharedMaterial;
                 if (material == null || material.name != "03_Floors") continue;
 
-                Vector3 size = renderer.transform.lossyScale;
-                Vector3 centre = renderer.transform.position;
-                float tileX = Mathf.Max(.05f, Mathf.Abs(size.x) / MetersPerTile);
-                float tileZ = Mathf.Max(.05f, Mathf.Abs(size.z) / MetersPerTile);
-                float offsetX = (centre.x - Mathf.Abs(size.x) * .5f) / MetersPerTile;
-                float offsetZ = (centre.z - Mathf.Abs(size.z) * .5f) / MetersPerTile;
-                Vector4 uv = new Vector4(tileX, tileZ, offsetX, offsetZ);
+                Vector3 size = renderer.bounds.size;
+                Vector3 centre = transform.InverseTransformPoint(renderer.bounds.center);
+                float minX = centre.x - size.x * .5f, minZ = centre.z - size.z * .5f;
+                Vector4 uv = new Vector4(
+                    Mathf.Max(.05f, size.x / metresPerTile),
+                    Mathf.Max(.05f, size.z / metresPerTile),
+                    (minX - gridOriginXZ.x) / metresPerTile,
+                    (minZ - gridOriginXZ.y) / metresPerTile);
 
                 renderer.GetPropertyBlock(properties);
                 properties.SetVector(BaseMapST, uv);

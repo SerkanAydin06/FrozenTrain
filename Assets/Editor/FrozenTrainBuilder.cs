@@ -86,7 +86,8 @@ namespace FrozenTrain.EditorTools
                 BuildSides(shell, car);
                 BuildEnds(shell, first, last);
                 if (car.PanoramicFront)
-                    Cube(shell, "PanoramicWindshield", new Vector3(-L.HalfL - .015f, 1.925f, 0f), new Vector3(.035f, 1.65f, 8.66f), M(TrainMat.Glass));
+                    Cube(shell, "PanoramicWindshield", new Vector3(-L.HalfL - .015f, (L.WindowBottom + L.WindowTop) * .5f, 0f),
+                        new Vector3(.035f, L.WindowTop - L.WindowBottom, L.ClearWidth - .34f), M(TrainMat.Glass));
                 BuildUnderframe(shell);
                 BuildExteriorDressing(Group(root.transform, "ExteriorDressing"), car, index);
 
@@ -165,18 +166,19 @@ namespace FrozenTrain.EditorTools
         private static void BuildMainSide(Transform p, CarSpec car, float z, string side)
         {
             Material wall = M(TrainMat.Wall);
-            float top = L.UpperY - L.UpperFloorT * .5f;
+            // Same span as the lower and upper side walls: slab centre to slab centre.
+            float bottom = L.MainY, top = L.UpperY;
             WindowSpan[] windows = z > 0f && car.CorridorSideWindows != null
                 ? car.CorridorSideWindows
                 : car.MainWindows;
             if (windows.Length == 0)
             {
-                Cube(p, "MainSide" + side, new Vector3(0f, top * .5f, z), new Vector3(L.CarLength, top, L.WallT), wall);
+                Cube(p, "MainSide" + side, new Vector3(0f, (bottom + top) * .5f, z), new Vector3(L.CarLength, top - bottom, L.WallT), wall);
                 return;
             }
 
             float wb = L.WindowBottom, wt = L.WindowTop, wy = (wb + wt) * .5f, wh = wt - wb;
-            Cube(p, "MainSideBelowWindows" + side, new Vector3(0f, wb * .5f, z), new Vector3(L.CarLength, wb, L.WallT), wall);
+            Cube(p, "MainSideBelowWindows" + side, new Vector3(0f, (bottom + wb) * .5f, z), new Vector3(L.CarLength, wb - bottom, L.WallT), wall);
             Cube(p, "MainSideAboveWindows" + side, new Vector3(0f, wt + (top - wt) * .5f, z), new Vector3(L.CarLength, top - wt, L.WallT), wall);
 
             float cursor = -L.HalfL;
@@ -207,49 +209,49 @@ namespace FrozenTrain.EditorTools
         private static void BuildEnds(Transform p, bool first, bool last)
         {
             // Coupled cars have narrow, aligned passages at BOTH middle and technical
-            // deck heights. Upper cabin decks remain sealed at the car ends.
-            float mainTop = L.UpperY - L.UpperFloorT * .5f;
-            float lowerTop = L.MainY - L.MainFloorT * .5f;
+            // deck heights. Upper cabin decks remain sealed at the car ends. Every end
+            // wall band spans slab centre to slab centre, like the side walls.
             foreach (float sign in new[] { -1f, 1f })
             {
                 bool closed = sign < 0f ? first : last;
                 string end = sign < 0f ? "Front" : "Rear";
                 float x = sign * L.HalfL;
 
-                if (closed) SolidEnd(p, x, L.LowerY, lowerTop, "Lower" + end + "Solid");
-                else EndOpening(p, x, L.LowerY, lowerTop, L.LowerEndOpening, L.EndDoorCenterZ, "Lower" + end);
+                if (closed) SolidEnd(p, x, L.LowerY, L.MainY, "Lower" + end + "Solid");
+                else EndOpening(p, x, L.LowerY, L.MainY, L.LowerTop, L.LowerEndOpening, L.EndDoorCenterZ, "Lower" + end);
 
-                if (!closed) EndOpening(p, x, L.MainY, mainTop, L.MainEndOpening, L.EndDoorCenterZ, "Main" + end);
-                else if (sign > 0f) SolidEnd(p, x, L.MainY, mainTop, "MainRearSolid");
+                if (!closed) EndOpening(p, x, L.MainY, L.UpperY, L.MainTop, L.MainEndOpening, L.EndDoorCenterZ, "Main" + end);
+                else if (sign > 0f) SolidEnd(p, x, L.MainY, L.UpperY, "MainRearSolid");
                 else BuildCabFront(p, x);
 
                 SolidEnd(p, x, L.UpperY, L.RoofY, "Upper" + end + "Solid");
             }
         }
 
-        /// <summary>Locomotive nose: a wall below and above one panoramic windshield (1.10 m to 2.75 m).</summary>
+        /// <summary>Locomotive nose: wall below and above the panoramic windshield (same 1 m..2 m band as the side windows).</summary>
         private static void BuildCabFront(Transform p, float x)
         {
             Material wall = M(TrainMat.Wall), frame = M(TrainMat.Frame);
-            float mainTop = L.UpperY - L.UpperFloorT * .5f;
-            Cube(p, "CabFrontLower", new Vector3(x, .55f, 0f), new Vector3(L.WallT, 1.10f, L.CarWidth), wall);
-            Cube(p, "CabFrontHeader", new Vector3(x, (2.75f + mainTop) * .5f, 0f), new Vector3(L.WallT, mainTop - 2.75f, L.CarWidth), wall);
-            Cube(p, "CabFrontEdgeL", new Vector3(x, 1.925f, -4.43f), new Vector3(L.WallT, 1.65f, .22f), frame);
-            Cube(p, "CabFrontEdgeR", new Vector3(x, 1.925f, 4.43f), new Vector3(L.WallT, 1.65f, .22f), frame);
+            float wb = L.WindowBottom, wt = L.WindowTop;
+            Cube(p, "CabFrontLower", new Vector3(x, (L.MainY + wb) * .5f, 0f), new Vector3(L.WallT, wb - L.MainY, L.CarWidth), wall);
+            Cube(p, "CabFrontHeader", new Vector3(x, (wt + L.UpperY) * .5f, 0f), new Vector3(L.WallT, L.UpperY - wt, L.CarWidth), wall);
+            Cube(p, "CabFrontEdgeL", new Vector3(x, (wb + wt) * .5f, -4.43f), new Vector3(L.WallT, wt - wb, .22f), frame);
+            Cube(p, "CabFrontEdgeR", new Vector3(x, (wb + wt) * .5f, 4.43f), new Vector3(L.WallT, wt - wb, .22f), frame);
         }
 
         private static void SolidEnd(Transform p, float x, float bottom, float top, string name) =>
             Cube(p, name, new Vector3(x, (bottom + top) * .5f, 0f), new Vector3(L.WallT, top - bottom, L.CarWidth), M(TrainMat.Wall));
 
-        private static void EndOpening(Transform p, float x, float bottom, float top, Vector2 opening, float centerZ, string prefix)
+        /// <summary>End wall band with one door opening. opening = (width, height above floorTop).</summary>
+        private static void EndOpening(Transform p, float x, float bottom, float top, float floorTop, Vector2 opening, float centerZ, string prefix)
         {
-            float width = opening.x, height = opening.y;
+            float width = opening.x;
             float h = top - bottom, cy = (bottom + top) * .5f;
             float leftEdge = centerZ - width * .5f, rightEdge = centerZ + width * .5f;
             Cube(p, prefix + "L", new Vector3(x, cy, (-L.HalfW + leftEdge) * .5f), new Vector3(L.WallT, h, leftEdge + L.HalfW), M(TrainMat.Wall));
             Cube(p, prefix + "R", new Vector3(x, cy, (rightEdge + L.HalfW) * .5f), new Vector3(L.WallT, h, L.HalfW - rightEdge), M(TrainMat.Wall));
-            float lintel = Mathf.Max(.1f, h - height);
-            Cube(p, prefix + "Lintel", new Vector3(x, top - lintel * .5f, centerZ), new Vector3(L.WallT, lintel, width), M(TrainMat.Frame));
+            float lintelBottom = floorTop + opening.y;
+            Cube(p, prefix + "Lintel", new Vector3(x, (lintelBottom + top) * .5f, centerZ), new Vector3(L.WallT, top - lintelBottom, width), M(TrainMat.Frame));
         }
 
         private static void BuildUnderframe(Transform p)
@@ -339,7 +341,7 @@ namespace FrozenTrain.EditorTools
                 // +Z hall wall stops at the stair landing so the ladder hatch opens onto the hall.
                 CorridorWall(u, z, cy, h, doors, wall, z > 0f ? L.UpperLandingX : L.HalfL);
                 float lintelH = h - L.CorridorDoorHeight;
-                foreach (float x in doors)
+                foreach (float x in doors.Where(d => z < 0f || d + L.CorridorDoorWidth * .5f <= L.UpperLandingX))
                     Cube(u, "CorridorDoorLintel", new Vector3(x, ceiling - lintelH * .5f, z), new Vector3(L.CorridorDoorWidth, lintelH, .12f), wall);
             }
 
@@ -348,8 +350,8 @@ namespace FrozenTrain.EditorTools
                 foreach (float sign in new[] { -1f, 1f })
                     Cube(u, "RoomDivider", new Vector3(s * x, cy, sign * (L.CorridorHalf + sideDepth * .5f)), new Vector3(.12f, h, sideDepth - .04f), wall);
 
-            // Landing partition: shortens the rear +Z cabin and closes it from the stair landing.
-            Cube(u, "RoomDivider", new Vector3(L.UpperLandingX, cy, L.CorridorHalf + sideDepth * .5f), new Vector3(.12f, h, sideDepth - .04f), wall);
+            // The divider at UpperLandingX (X = 8) already separates the last +Z cabin from the
+            // rear stair landing, which occupies the whole rear +Z bay.
 
             foreach (float x in L.SleepingPodX)
                 foreach (float sign in new[] { -1f, 1f })
@@ -404,26 +406,26 @@ namespace FrozenTrain.EditorTools
             }
 
             BuildWallLadder(a, "UpperDeckLadder", L.UpperLadderZ, L.MainTop, L.UpperTop,
-                new Vector3(L.AccessLadderX, L.MainTop + .06f, L.HalfW - 1.40f),
-                new Vector3(L.AccessLadderX, L.UpperTop + .06f, L.UpperHoleZ0 - .70f),
+                new Vector3(L.InnerHalfL - .80f, L.MainTop + .06f, L.UpperHoleZ0 - .50f),
+                new Vector3(L.UpperHoleX0 - .60f, L.UpperTop + .06f, L.UpperHoleZ0 - .50f),
                 Rect.MinMaxRect(L.UpperHoleX0, L.UpperHoleZ0, L.UpperHoleX1, L.UpperHoleZ1),
                 "E - Üst kata çık", "E - Ana kata in");
 
             if (car.TechnicalLadder)
                 BuildWallLadder(a, "TechnicalDeckLadder", L.TechnicalLadderZ, L.LowerTop, L.MainTop,
-                    new Vector3(L.AccessLadderX, L.LowerTop + .06f, -(L.HalfW - 1.40f)),
-                    new Vector3(L.AccessLadderX, L.MainTop + .06f, L.TechnicalHoleZ1 + .70f),
+                    new Vector3(L.InnerHalfL - .80f, L.LowerTop + .06f, L.TechnicalHoleZ1 + .50f),
+                    new Vector3(L.TechnicalHoleX0 - .60f, L.MainTop + .06f, L.TechnicalHoleZ1 + .50f),
                     Rect.MinMaxRect(L.TechnicalHoleX0, L.TechnicalHoleZ0, L.TechnicalHoleX1, L.TechnicalHoleZ1),
                     "E - Ana kata çık", "E - Teknik kata in");
         }
 
         private static void BuildRearEndDoor(Transform a)
         {
-            float floor = L.MainTop, lintelBottom = L.MainY + L.MainEndOpening.y;
+            float floor = L.MainTop, lintelBottom = L.MainTop + L.MainEndOpening.y;
             float height = lintelBottom - floor - .02f, width = L.MainEndOpening.x - .02f;
             Transform door = Group(a, "RearEndDoor");
             // Inside face of the rear end wall; parks toward the +Z outer wall, clear of the ladder.
-            door.localPosition = new Vector3(L.HalfL - L.WallT * .5f - .06f, (floor + lintelBottom) * .5f, L.EndDoorCenterZ);
+            door.localPosition = new Vector3(L.InnerHalfL - .06f, (floor + lintelBottom) * .5f, L.EndDoorCenterZ);
             GameObject panel = Cube(door, "DoorPanel", Vector3.zero, new Vector3(.085f, height, width), M(TrainMat.Frame));
             Object.DestroyImmediate(panel.GetComponent<Collider>());
             door.gameObject.AddComponent<BoxCollider>().size = new Vector3(.10f, height, width);
@@ -435,12 +437,12 @@ namespace FrozenTrain.EditorTools
             // One service door per technical-deck gangway. All other lower
             // car ends stay closed to the exterior, and no extra ladders are added.
             float floor = L.LowerTop;
-            float lintelBottom = L.LowerY + L.LowerEndOpening.y;
+            float lintelBottom = L.LowerTop + L.LowerEndOpening.y;
             float height = lintelBottom - floor - .02f;
             float width = L.LowerEndOpening.x - .02f;
             Transform door = Group(a, "LowerRearEndDoor");
             door.localPosition = new Vector3(
-                L.HalfL - L.WallT * .5f - .06f,
+                L.InnerHalfL - .06f,
                 (floor + lintelBottom) * .5f, L.EndDoorCenterZ);
             GameObject panel = Cube(door, "DoorPanel", Vector3.zero,
                 new Vector3(.085f, height, width), M(TrainMat.Frame));
@@ -580,7 +582,7 @@ namespace FrozenTrain.EditorTools
         {
             float gap = L.VestibuleLength - L.WallT; // clear space between end-wall outer faces
             float width = L.MainEndOpening.x + .20f, cz = L.EndDoorCenterZ;
-            float roofY = L.MainY + L.MainEndOpening.y + .06f;
+            float roofY = L.MainTop + L.MainEndOpening.y + .06f;
             Material floor = M(TrainMat.Floor), rubber = M(TrainMat.Rubber), frame = M(TrainMat.Frame);
             GameObject root = new GameObject("CarConnector");
             try
@@ -596,7 +598,7 @@ namespace FrozenTrain.EditorTools
                 // Service gangway is separately enclosed and the same width as
                 // the middle passage. Its side bellows make the lower-car gap
                 // visible; no full-width bridging wall or lower side skirt.
-                float lowerTop = L.LowerY + L.LowerEndOpening.y + .06f;
+                float lowerTop = L.LowerTop + L.LowerEndOpening.y + .06f;
                 Cube(g, "LowerGangwayFloor", new Vector3(0f, L.LowerY, cz),
                     new Vector3(L.VestibuleLength, L.LowerFloorT, width), floor);
                 foreach (float sign in new[] { -1f, 1f })

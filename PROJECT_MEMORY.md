@@ -119,3 +119,10 @@
 - Kabin sürgülü kapılarının tamamı tren arkasına (+X) açılacak şekilde düzenlendi; arka sahanlık bölmesine çarpmaması için panel +/−Z yönünde koridora hafif alındı.
 - Screenshot QA: `teknik_gecis_*`, `alt_dis_ayrim_*`, daha geniş kadrajlı kapı fotoğrafları; limit 72 ve layout alias düzeltmesi.
 - Kaynak statik/söz dizimi kontrolleri yapıldı. **Unity derlemesi, gerçek kapı hareketi, katlar arası yürüyüş ve düşme testi henüz yapılmadı.** İlk güncel build sonrası resimleri GitHub'a push edip kontrol et.
+
+## 2026-10-31 — 1 m doku ızgarası, üç özdeş kat
+- Kullanıcı: üç kat birebir aynı; zemin/duvar dokuları kesilmeden tam oturmalı; pencereler de uyumlu; alt ve üst katta pencere yok.
+- Standart: 1 karo = 1.00 m (1024²/2048² kare doku). Net iç ölçü her katta 24 × 9 × 3 m; duvar ve döşeme 0.20 m net alanın dışında; kat aralığı 3.2 m (zemin üstleri −3.2 / 0 / 3.2).
+- Pencereler (yalnız orta kat) 2 × 1 m, X ±1..3/±5..7/±9..11, 1–2 m yükseklik. Uç kapılar 1 × 2 m (Z 1.5..2.5). Koridor Z 1.5..4.5, çalışma odası kapısı 2 m. Üst kat holü 3 m, 6 × 4 m kabin/taraf; arka +Z bölme merdiven sahanlığı (kapısız). Kapaklar 1 × 1 m.
+- `TrainFloorTiling`/`TrainWallTiling` UV'leri araç iç köşesinden ve kat zemininden hesaplıyor; değerleri MinimalInterior yazıyor. `ValidateTextureGrid()` ızgara dışı ölçüde rebuild'i durduruyor.
+- Unity derlemesi/rebuild bu ortamda yapılamadı.

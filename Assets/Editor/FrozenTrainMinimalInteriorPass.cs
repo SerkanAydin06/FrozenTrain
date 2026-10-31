@@ -53,10 +53,7 @@ namespace FrozenTrain.EditorTools
                     StripCar(root.transform);
                     AssignBaselineMaterials(root.transform);
                     BuildInteriorWallFaces(root.transform);
-                    if (root.GetComponent<TrainWallTiling>() == null)
-                        root.AddComponent<TrainWallTiling>();
-                    if (root.GetComponent<TrainFloorTiling>() == null)
-                        root.AddComponent<TrainFloorTiling>();
+                    ConfigureTiling(root);
                     removed += before - CountObjects(root.transform);
 
                     PrefabUtility.SaveAsPrefabAsset(root, path);
@@ -79,10 +76,7 @@ namespace FrozenTrain.EditorTools
                 int before = CountObjects(connector.transform);
                 StripVestibule(connector.transform);
                 AssignBaselineMaterials(connector.transform);
-                if (connector.GetComponent<TrainWallTiling>() == null)
-                    connector.AddComponent<TrainWallTiling>();
-                if (connector.GetComponent<TrainFloorTiling>() == null)
-                    connector.AddComponent<TrainFloorTiling>();
+                ConfigureTiling(connector);
                 removed += before - CountObjects(connector.transform);
 
                 PrefabUtility.SaveAsPrefabAsset(connector, ConnectorPath);
@@ -182,6 +176,30 @@ namespace FrozenTrain.EditorTools
                 KeepChildren(door.transform, part => part.name == "DoorPanel");
         }
 
+        /// <summary>
+        /// Writes the texture-grid standard from FrozenTrainLayout into the runtime tiling components:
+        /// interior floors/walls 1 m tiles from the inner corner and each deck floor top; exterior body
+        /// tiles sized so length, width and full body height hold whole tiles.
+        /// </summary>
+        private static void ConfigureTiling(GameObject root)
+        {
+            Vector2 innerCorner = new Vector2(-L.InnerHalfL, -L.InnerHalfW);
+            float bodyHeight = L.RoofY - L.LowerY;
+            Vector3 outerTile = new Vector3(
+                L.CarLength / Mathf.Max(1f, Mathf.Round(L.CarLength / L.Tile)),
+                bodyHeight / Mathf.Max(1f, Mathf.Round(bodyHeight / L.Tile)),
+                L.CarWidth / Mathf.Max(1f, Mathf.Round(L.CarWidth / L.Tile)));
+            Vector3 outerOrigin = new Vector3(-L.HalfL, L.LowerY, -L.HalfW);
+
+            // Explicit Unity null checks (the ?? operator ignores Unity's destroyed/fake-null objects).
+            TrainWallTiling walls = root.GetComponent<TrainWallTiling>();
+            if (walls == null) walls = root.AddComponent<TrainWallTiling>();
+            walls.Configure(L.Tile, innerCorner, L.LowerTop, L.DeckPitch, outerTile, outerOrigin);
+            TrainFloorTiling floors = root.GetComponent<TrainFloorTiling>();
+            if (floors == null) floors = root.AddComponent<TrainFloorTiling>();
+            floors.Configure(L.Tile, innerCorner);
+        }
+
         private static void BuildCabinDoors(Transform root)
         {
             Transform upper = root.Find("UpperSleepingDeck");
@@ -193,6 +211,8 @@ namespace FrozenTrain.EditorTools
             foreach (float x in L.CorridorDoorX)
                 foreach (float side in new[] { -1f, 1f })
                 {
+                    // The rear +Z bay is the stair landing, not a cabin: no door there.
+                    if (side > 0f && x + L.CorridorDoorWidth * .5f > L.UpperLandingX) continue;
                     Transform door = MakeGroup(upper, "CabinDoor_" + (++number).ToString("00"));
                     door.localPosition = new Vector3(x, bottom + L.CorridorDoorHeight * .5f,
                         side * L.CorridorHalf);
@@ -419,7 +439,7 @@ namespace FrozenTrain.EditorTools
                 // Thin understated sill along each exterior lower side, without
                 // intruding through the train side wall or its windows.
                 Solid(exterior, "LowerExteriorSill",
-                    new Vector3(0f, -2.73f, side * (L.HalfW + .145f)),
+                    new Vector3(0f, L.LowerY + .37f, side * (L.HalfW + .145f)),
                     new Vector3(L.CarLength - 1.10f, .16f, .075f), dark);
 
                 foreach (float bogieX in new[] { -L.HalfL + 3f, L.HalfL - 3f })

@@ -2,8 +2,16 @@
 
 ## Train
 - **2 active cars**, each **24.0 m × 9.2 m**, three decks: Locomotive + Generator. Front = -X. Living, Workshop and Greenhouse are not built or placed until later expansion; source specifications remain available.
-- Cars are coupled like a real train: car-centre spacing **25 m**, a **0.8 m** visible gap between end-wall outer faces.
+- Cars are coupled like a real train: car-centre spacing **25 m**, a **0.6 m** visible gap between end-wall outer faces.
 - Each joint has **two narrow covered gangways**, one on the main deck and one on the lower technical deck; both keep the coupled car bodies separate. The upper decks remain closed between cars. The lower side skirts are recessed at joints so the separation is visible across the entire height.
+
+## Texture grid standard (2026-10-31)
+- **1 texture repeat = 1.00 m** on all floors and interior walls (square power-of-two textures: 1024² or 2048²; 96²/100² are only previews and not mip-friendly).
+- Interior clear size is identical for every car and every deck: **24 m × 9 m × 3 m** (whole tiles). Shell walls 0.20 m and floor slabs 0.20 m sit outside the clear grid; car shell 24.2 × 9.2 m, deck pitch 3.2 m (floor tops −3.2 / 0 / 3.2, ceiling 6.2).
+- Openings start/end on whole metres from the inner corner and the deck floor top: main-deck windows 2 m wide at X ±1..3, ±5..7, ±9..11, 1 m → 2 m high; end doors 1 m × 2 m at Z 1.5..2.5; cabin doors 1 m × 2 m; hatches 1 × 1 m; corridor Z 1.5..4.5; upper hall Z −1.5..1.5 with six 4 m cabin bays per side (rear +Z bay = stair landing).
+- Windows only on the main deck; lower (technical) and upper (cabin) decks have closed side walls.
+- `TrainFloorTiling` / `TrainWallTiling` map UVs from the car's inner corner and each deck floor top (values written by `FrozenTrainMinimalInteriorPass` from `FrozenTrainLayout`). Exterior body tiles are sized per axis so length, width and body height hold whole tiles.
+- `FrozenTrainLayout.ValidateTextureGrid()` aborts the rebuild if any dimension or opening leaves the grid.
 
 ## Decks
 - **Lower = technical.** Vertical entry is restricted to the locomotive's dedicated technical ladder; once inside, service personnel can traverse both active lower decks through the single narrow inter-car gangway with sliding rear doors.

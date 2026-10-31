@@ -34,3 +34,9 @@ Not: Bu aşama malzeme atama altyapısını hazırlıyor; UV unwrap, bake ve fin
 - Yapısal dış duvar küplerinin tamamı dış PBR kaporta malzemesini kullanıyor. `BuildInteriorWallFaces` sadece dolu panel parçalarının iç yüzeyine pencere/kapı açıklıklarını kapatmayan **kolidersiz Quad** ekliyor; iç yüzeylere `02_Walls` atanıyor. İç bölmelerde de `02_Walls` kullanılıyor.
 - `TrainWallTiling` malzeme bazlı UV tiling ayarlarını panellerin genişliği/yüksekliği ve konumuna göre yapıyor; hedef 3.0 m/tile. Sabit materyal dosyaları yeniden üretimde silinmez. Cam ve kapı etkileşimleri korunur.
 - İlk Unity testi: `Frozen Train > Rebuild Authored Train` → Play → iç ve dış yanları, pencere açıklıklarını, panel birleşim yerlerini ve kapıları kontrol et. 96 px çözünürlük nihai kalite değildir.
+
+## Doku ızgarası standardı (2026-10-31)
+- 1 doku tekrarı = **1.00 m** (zemin ve iç duvar). Kaynak dokular kare ve 2'nin kuvveti olmalı: **1024×1024** (≈10 px/cm) veya **2048×2048**. 96/100 px yalnızca önizleme; mipmap için uygun değil.
+- Her vagonun her katı aynı net ölçüde: 24 × 9 m zemin = 24 × 9 tam karo; 3 m duvar yüksekliği = 3 tam karo. Pencere/kapı/kapak kenarları tam metrelerde.
+- Doku tasarımı: 1 m karonun kenarları dikişsiz (seamless) olmalı; panel derzi istenirse karonun kenarına çizilir.
+- Dış gövde: boy 24.2 m / 24, en 9.2 m / 9, gövde yüksekliği 9.6 m / 10 tam karo olacak şekilde eksen başına ölçeklenir.

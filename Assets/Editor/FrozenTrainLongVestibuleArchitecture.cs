@@ -21,14 +21,14 @@ namespace FrozenTrain.EditorTools
         private const string PrototypeMaterialRoot = "Assets/Materials/Prototype";
         private const string MarkerName = "__LongCarFinalV1";
 
-        private const float PartitionZ = 1.78f;
-        private const float CorridorMinZ = 1.90f;
-        private const float CorridorMaxZ = 4.40f;
-        private const float CorridorCenterZ = 3.15f;
-        private const float CorridorWidth = 2.50f;
-        private const float MainCeilingY = 3.02f;
-        private const float WorkDoorWidth = 1.45f;
-        private const float WorkDoorHeight = 2.34f;
+        private const float PartitionZ = FrozenTrainMainStreetArchitecture.PartitionZ;
+        private const float CorridorMinZ = FrozenTrainMainStreetArchitecture.CorridorMinZ;
+        private const float CorridorMaxZ = FrozenTrainMainStreetArchitecture.CorridorMaxZ;
+        private const float CorridorCenterZ = FrozenTrainMainStreetArchitecture.CorridorCenterZ;
+        private const float CorridorWidth = FrozenTrainMainStreetArchitecture.CorridorWidth;
+        private const float MainCeilingY = L.MainTop + L.DeckClearHeight;
+        private const float WorkDoorWidth = FrozenTrainMainStreetArchitecture.DoorWidth;
+        private const float WorkDoorHeight = FrozenTrainMainStreetArchitecture.DoorHeight;
 
         private sealed class Mats
         {

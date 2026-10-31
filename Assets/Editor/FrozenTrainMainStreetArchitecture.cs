@@ -16,15 +16,18 @@ namespace FrozenTrain.EditorTools
         private const string MarkerName = "__RightSideCorridorV2";
         private const string LegacyMarkerName = "__MainStreetArchitectureV1";
 
-        public const float CorridorMinZ = 1.90f;
-        public const float CorridorMaxZ = 4.40f;
+        // Texture-grid aligned (1 m tiles from the inner corner): 3 m clear corridor Z 1.5..4.5.
+        // The 0.16 m partition sits on the functional-room side so its corridor face is at Z 1.5.
+        public const float CorridorMinZ = 1.5f;
+        public const float CorridorMaxZ = L.InnerHalfW;
         public const float CorridorCenterZ = (CorridorMinZ + CorridorMaxZ) * .5f;
         public const float CorridorWidth = CorridorMaxZ - CorridorMinZ;
-        private const float PartitionZ = 1.78f;
-        private const float DoorWidth = 1.45f;
-        private const float DoorHeight = 2.34f;
-        private const float MainFloorY = .126f;
-        private const float CeilingY = 3.02f;
+        public const float PartitionT = .16f;
+        public const float PartitionZ = CorridorMinZ - PartitionT * .5f;
+        public const float DoorWidth = 2f;   // functional-room door, X -1..1
+        public const float DoorHeight = 2f;
+        private const float MainFloorY = L.MainTop + .016f;
+        private const float CeilingY = L.MainTop + L.DeckClearHeight;
 
         private sealed class Mats
         {
@@ -102,16 +105,16 @@ namespace FrozenTrain.EditorTools
 
         private static void BuildOpaquePartition(Transform corridor, int carIndex, Mats m)
         {
-            float xMin = -L.HalfL + .22f, xMax = L.HalfL - .22f, halfDoor = DoorWidth * .5f;
+            float xMin = -L.InnerHalfL, xMax = L.InnerHalfL, halfDoor = DoorWidth * .5f;
             float wallY = L.MainTop + (CeilingY - L.MainTop) * .5f;
             float wallH = CeilingY - L.MainTop;
 
             Cube(corridor, "CompartmentWallFront", new Vector3((xMin - halfDoor) * .5f, wallY, PartitionZ),
-                new Vector3((-halfDoor) - xMin, wallH, .16f), m.Wall, true);
+                new Vector3((-halfDoor) - xMin, wallH, PartitionT), m.Wall, true);
             Cube(corridor, "CompartmentWallRear", new Vector3((halfDoor + xMax) * .5f, wallY, PartitionZ),
-                new Vector3(xMax - halfDoor, wallH, .16f), m.Wall, true);
+                new Vector3(xMax - halfDoor, wallH, PartitionT), m.Wall, true);
             Cube(corridor, "CompartmentDoorHeader", new Vector3(0f, L.MainTop + DoorHeight + (wallH - DoorHeight) * .5f, PartitionZ),
-                new Vector3(DoorWidth, wallH - DoorHeight, .16f), m.Frame, true);
+                new Vector3(DoorWidth, wallH - DoorHeight, PartitionT), m.Frame, true);
 
             Transform door = Group(corridor, "FunctionalCompartmentDoor");
             door.localPosition = new Vector3(0f, L.MainTop + DoorHeight * .5f, PartitionZ);

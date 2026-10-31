@@ -70,74 +70,89 @@ namespace FrozenTrain.EditorTools
     /// </summary>
     public static class FrozenTrainLayout
     {
-        // 24 m cars coupled by a 1 m gap (0.8 m clear between end-wall outer faces) holding the gangway.
-        public const float CarLength = 24f;
-        public const float VestibuleLength = 1f; // coupling gap / gangway length, centre to centre
-        public const float CarWidth = 9.2f;
+        // ---- Texture grid standard (2026-10-31) -------------------------------------------
+        // One texture repeat = 1.00 m on every floor and interior wall (square, power-of-two
+        // texture, e.g. 1024x1024 or 2048x2048). Every INTERIOR clear dimension is a whole number
+        // of tiles, so floor/wall textures never end in a partial tile:
+        //   clear length 24 m, clear width 9 m, clear deck height 3 m (identical on all 3 decks).
+        // Openings (windows, doors, hatches) start and end on whole metres measured from the inner
+        // corner (-InnerHalfL, -InnerHalfW) and from each deck's floor top.
+        // Shell walls (0.20 m) and floor slabs (0.20 m) sit OUTSIDE the clear grid.
+        public const float Tile = 1f;
+        public const float ClearLength = 24f;
+        public const float ClearWidth = 9f;
+        public const float DeckClearHeight = 3f;
+        public const float WallT = .20f;
+        public const float SlabT = .20f;
+
+        public const float CarLength = ClearLength + WallT;          // 24.2 m wall centre to centre
+        public const float CarWidth = ClearWidth + WallT;            // 9.2 m
+        public const float VestibuleLength = .80f;                   // end-wall centres across a joint (0.6 m clear gap)
         public const float CarSpacing = CarLength + VestibuleLength; // 25 m
         public const float HalfL = CarLength * .5f;
         public const float HalfW = CarWidth * .5f;
-        public const float WallT = .20f;
+        public const float InnerHalfL = ClearLength * .5f;           // 12 m: inner end-wall face
+        public const float InnerHalfW = ClearWidth * .5f;            // 4.5 m: inner side-wall face
+        public const float DeckPitch = DeckClearHeight + SlabT;      // 3.2 m
 
-        // Deck levels (floor centre heights) and walking surfaces.
-        public const float LowerY = -3.10f;
-        public const float MainY = 0f;
-        public const float UpperY = 3.15f;
-        public const float RoofY = 6.30f;
-        public const float LowerFloorT = .20f;
-        public const float MainFloorT = .22f;
-        public const float UpperFloorT = .18f;
-        public const float RoofT = .22f;
-        public const float LowerTop = LowerY + LowerFloorT * .5f;
-        public const float MainTop = MainY + MainFloorT * .5f;
-        public const float UpperTop = UpperY + UpperFloorT * .5f;
-        public const float RoofBottom = RoofY - RoofT * .5f;
+        // Deck walking surfaces are whole deck pitches apart; main deck floor top = 0.
+        public const float MainTop = 0f;
+        public const float LowerTop = MainTop - DeckPitch;           // -3.2
+        public const float UpperTop = MainTop + DeckPitch;           //  3.2
+        public const float RoofBottom = UpperTop + DeckClearHeight;  //  6.2
+        public const float LowerFloorT = SlabT, MainFloorT = SlabT, UpperFloorT = SlabT, RoofT = SlabT;
+        public const float LowerY = LowerTop - SlabT * .5f;          // slab centres
+        public const float MainY = MainTop - SlabT * .5f;
+        public const float UpperY = UpperTop - SlabT * .5f;
+        public const float RoofY = RoofBottom + SlabT * .5f;
 
         // Under the car and outside.
         public const float UnderframeBottom = LowerY - LowerFloorT * .5f - .30f;
         public const float RailTopY = UnderframeBottom - .44f;
         public const float GroundY = RailTopY - .14f;
 
-        // Both the middle and technical decks have aligned, narrow inter-car passages.
-        // The technical deck is accessed vertically only from the locomotive's service ladder.
-        // Upper/accommodation car ends remain sealed.
-        public static readonly Vector2 MainEndOpening = new Vector2(1.30f, 2.60f);
-        public static readonly Vector2 LowerEndOpening = new Vector2(1.30f, 2.60f);
-        public const float EndDoorCenterZ = 2.55f; // opening Z 1.90..3.20; doors park toward +Z
+        // Main and technical decks have aligned 1 m inter-car passages (Z 1.5..2.5, 2 m high above
+        // the deck floor top); upper/accommodation car ends remain sealed.
+        public static readonly Vector2 MainEndOpening = new Vector2(1f, 2f);   // width, height above floor top
+        public static readonly Vector2 LowerEndOpening = new Vector2(1f, 2f);
+        public const float EndDoorCenterZ = 2f;
 
-        public const float WindowBottom = 1.20f;
-        public const float WindowTop = 2.52f;
+        // Main-deck windows only (no windows on the lower technical or upper cabin decks).
+        public const float WindowBottom = MainTop + 1f;
+        public const float WindowTop = MainTop + 2f;
 
-        // Upper residential deck. Five cabin bays per side use the longer 24 m footprint.
-        public const float CorridorHalf = 1.05f;
-        public const float CorridorDoorWidth = .96f;
-        public const float CorridorDoorHeight = 2.05f;
-        public static readonly float[] SleepingDividerX = { -7.20f, -2.40f, 2.40f, 7.20f };
-        public static readonly float[] SleepingPodX = { -9.35f, -4.70f, 0f, 4.70f, 9.35f };
-        public static readonly float[] CorridorDoorX = { -9.35f, -4.70f, 0f, 4.70f, 9.35f };
-        public const float SleepingPodZ = 3.12f;
+        // Upper residential deck: 3 m wide hall (Z -1.5..1.5) and six 4 m cabin bays per side.
+        // Hall walls are centred just outside the hall so the hall faces sit on the grid.
+        public const float CorridorHalf = 1.5f + .06f;
+        public const float CorridorDoorWidth = 1f;
+        public const float CorridorDoorHeight = 2f;
+        public static readonly float[] SleepingDividerX = { -8f, -4f, 0f, 4f, 8f };
+        public static readonly float[] SleepingPodX = { -10f, -6f, -2f, 2f, 6f, 10f };
+        public static readonly float[] CorridorDoorX = { -9.5f, -5.5f, -1.5f, 1.5f, 5.5f, 9.5f };
+        public const float SleepingPodZ = 3f;
 
         // In-car vertical access at the rear (+X) end of every car, beside the rear end door.
         // Upper ladder: on the +Z outer wall at the end of the public corridor, main -> upper deck.
         // Technical ladder (locomotive only): on the -Z outer wall, lower -> main deck.
-        public const float AccessLadderX = HalfL - .95f;
-        public const float UpperLadderZ = HalfW - .38f;      // rail plane, mounts reach the +Z wall
-        public const float TechnicalLadderZ = -(HalfW - .38f);
-        public const float UpperHoleX0 = HalfL - 1.50f, UpperHoleX1 = HalfL - .40f;
-        public const float UpperHoleZ0 = HalfW - 1.05f, UpperHoleZ1 = HalfW - .10f;
+        // Hatches are exactly 1 x 1 tile in the rear corner.
+        public const float AccessLadderX = InnerHalfL - .5f;
+        public const float UpperLadderZ = InnerHalfW - .28f;  // rail plane, mounts reach the +Z wall
+        public const float TechnicalLadderZ = -UpperLadderZ;
+        public const float UpperHoleX0 = InnerHalfL - 1f, UpperHoleX1 = InnerHalfL;
+        public const float UpperHoleZ0 = InnerHalfW - 1f, UpperHoleZ1 = InnerHalfW;
         public const float TechnicalHoleX0 = UpperHoleX0, TechnicalHoleX1 = UpperHoleX1;
-        public const float TechnicalHoleZ0 = -(HalfW - .10f), TechnicalHoleZ1 = -(HalfW - 1.05f);
-        // Upper-deck stair landing: the +Z end cabin is shortened so the hatch opens onto the hall.
-        public const float UpperLandingX = HalfL - 1.75f;
+        public const float TechnicalHoleZ0 = -InnerHalfW, TechnicalHoleZ1 = -(InnerHalfW - 1f);
+        // Upper-deck stair landing = the whole rear +Z cabin bay (X 8..12): the hall wall stops here.
+        public const float UpperLandingX = 8f;
 
         /// <summary>
-        /// Standard public-corridor window rhythm: six equal 2.2 m windows, mirror-symmetric about the
-        /// car centre, between the end walls. Shared by every car that has the +Z public corridor.
+        /// Standard main-deck window rhythm: six 2 m windows on whole-metre edges, mirror-symmetric
+        /// about the car centre (X ±1..3, ±5..7, ±9..11), 1 m to 2 m above the floor.
         /// </summary>
         public static WindowSpan[] StandardCorridorWindows() => new[]
         {
-            new WindowSpan(-9.2f, 2.2f), new WindowSpan(-5.5f, 2.2f), new WindowSpan(-1.8f, 2.2f),
-            new WindowSpan(1.8f, 2.2f), new WindowSpan(5.5f, 2.2f), new WindowSpan(9.2f, 2.2f)
+            new WindowSpan(-10f, 2f), new WindowSpan(-6f, 2f), new WindowSpan(-2f, 2f),
+            new WindowSpan(2f, 2f), new WindowSpan(6f, 2f), new WindowSpan(10f, 2f)
         };
 
         // Minimal greybox stage: build only the locomotive and one functional car.
@@ -152,6 +167,7 @@ namespace FrozenTrain.EditorTools
         /// </summary>
         public static void ValidateSymmetricBase()
         {
+            ValidateTextureGrid();
             ValidatePairs("Cabin dividers", SleepingDividerX);
             ValidatePairs("Cabin doors", CorridorDoorX);
             ValidatePairs("Cabin bays", SleepingPodX);
@@ -176,6 +192,48 @@ namespace FrozenTrain.EditorTools
                     throw new InvalidOperationException(label + " is not mirrored about X=0.");
             if (positions.Length % 2 == 1 && Mathf.Abs(positions[positions.Length / 2]) > .001f)
                 throw new InvalidOperationException(label + " centre bay is not at X=0.");
+        }
+
+        /// <summary>
+        /// Texture-grid standard: clear dimensions and every opening edge must fall on whole tiles,
+        /// measured from the inner corner and from the deck floor top. Throws before authoring.
+        /// </summary>
+        public static void ValidateTextureGrid()
+        {
+            OnGrid("Clear length", ClearLength);
+            OnGrid("Clear width", ClearWidth);
+            OnGrid("Deck clear height", DeckClearHeight);
+            OnGrid("Window sill", WindowBottom - MainTop);
+            OnGrid("Window head", WindowTop - MainTop);
+            foreach (CarSpec car in Cars)
+                foreach (WindowSpan[] set in new[] { car.MainWindows, car.CorridorSideWindows })
+                    if (set != null)
+                        foreach (WindowSpan w in set)
+                        {
+                            OnGrid(car.Name + " window edge", w.CenterX - w.Width * .5f + InnerHalfL);
+                            OnGrid(car.Name + " window edge", w.CenterX + w.Width * .5f + InnerHalfL);
+                        }
+            foreach (Vector2 opening in new[] { MainEndOpening, LowerEndOpening })
+            {
+                OnGrid("End door edge", EndDoorCenterZ - opening.x * .5f + InnerHalfW);
+                OnGrid("End door edge", EndDoorCenterZ + opening.x * .5f + InnerHalfW);
+                OnGrid("End door height", opening.y);
+            }
+            foreach (float x in CorridorDoorX)
+                OnGrid("Cabin door edge", x - CorridorDoorWidth * .5f + InnerHalfL);
+            OnGrid("Cabin door height", CorridorDoorHeight);
+            foreach (float x in SleepingDividerX) OnGrid("Cabin divider", x + InnerHalfL);
+            foreach (float v in new[] { UpperHoleX0 + InnerHalfL, UpperHoleX1 + InnerHalfL,
+                         UpperHoleZ0 + InnerHalfW, UpperHoleZ1 + InnerHalfW,
+                         TechnicalHoleZ0 + InnerHalfW, TechnicalHoleZ1 + InnerHalfW, UpperLandingX + InnerHalfL })
+                OnGrid("Hatch / landing edge", v);
+        }
+
+        private static void OnGrid(string label, float metres)
+        {
+            float tiles = metres / Tile;
+            if (Mathf.Abs(tiles - Mathf.Round(tiles)) > .001f)
+                throw new InvalidOperationException(label + " (" + metres + " m) is off the " + Tile + " m texture grid.");
         }
 
         private static void ValidateWindows(string label, WindowSpan[] windows)
@@ -284,11 +342,7 @@ namespace FrozenTrain.EditorTools
             Name = "03_Living",
             CorridorSideWindows = StandardCorridorWindows(),
             MainGroupName = "Living_Interior",
-            MainWindows = new[]
-            {
-                new WindowSpan(-9.2f, 2.2f), new WindowSpan(-5.5f, 2.2f), new WindowSpan(-1.8f, 2.2f),
-                new WindowSpan(1.8f, 2.2f), new WindowSpan(5.5f, 2.2f), new WindowSpan(9.2f, 2.2f)
-            },
+            MainWindows = StandardCorridorWindows(),
             Lower = new[]
             {
                 OnLower(PropShape.Box, "FreshWaterTank", -7.0f, -2.95f, new Vector3(4.8f, 1.70f, 1.35f), TrainMat.Steel),
