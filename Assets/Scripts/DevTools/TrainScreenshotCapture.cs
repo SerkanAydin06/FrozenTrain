@@ -138,6 +138,7 @@ namespace FrozenTrain.DevTools
             bool previousNear = near != null && near.gameObject.activeSelf;
             bool previousFar = far != null && far.gameObject.activeSelf;
             RenderTexture activeBefore = RenderTexture.active;
+            bool previousFog = RenderSettings.fog;
             int saved = 0;
 
             try
@@ -149,6 +150,8 @@ namespace FrozenTrain.DevTools
                     bool exterior = view.Name.StartsWith("tren_dis_", StringComparison.Ordinal);
                     if (near != null) near.gameObject.SetActive(exterior ? false : previousNear);
                     if (far != null) far.gameObject.SetActive(exterior ? false : previousFar);
+                    // Full-length exterior views sit ~120 m away; linear fog would wash them out.
+                    RenderSettings.fog = !exterior && previousFog;
 
                     qaCamera.transform.position = view.Position;
                     qaCamera.transform.rotation = Quaternion.LookRotation(view.Target - view.Position, Vector3.up);
@@ -168,6 +171,7 @@ namespace FrozenTrain.DevTools
             {
                 if (near != null) near.gameObject.SetActive(previousNear);
                 if (far != null) far.gameObject.SetActive(previousFar);
+                RenderSettings.fog = previousFog;
                 RenderTexture.active = activeBefore;
                 qaCamera.targetTexture = null;
                 Cleanup(cameraHost, rt, image);
@@ -197,12 +201,18 @@ namespace FrozenTrain.DevTools
 
             Renderer[] allCarRenderers = cars.SelectMany(t => t.GetComponentsInChildren<Renderer>(true)).ToArray();
             Bounds full = BoundsOf(allCarRenderers);
-            Vector3 center = full.center, size = full.size;
+            Vector3 center = full.center;
 
-            Add(result, "tren_dis_yan", "Tren dış yan", center +
-                new Vector3(0f, Mathf.Max(6f, full.extents.y), -full.extents.z - Mathf.Max(18f, size.x * .38f)), center, 52f);
-            Add(result, "tren_dis_karsi", "Tren karşı yan", center +
-                new Vector3(0f, Mathf.Max(6f, full.extents.y), full.extents.z + Mathf.Max(18f, size.x * .38f)), center, 52f);
+            // Fit the whole train horizontally: distance from the 16:9 horizontal FOV plus 10% margin.
+            const float sideFov = 40f;
+            float halfH = sideFov * .5f * Mathf.Deg2Rad;
+            float halfHorizontal = Mathf.Atan(Mathf.Tan(halfH) * Width / (float)Height);
+            float sideDistance = full.extents.z + full.extents.x * 1.10f / Mathf.Tan(halfHorizontal);
+            float sideHeight = full.extents.y * .60f;
+            Add(result, "tren_dis_yan", "Tren dış yan (tam boy)",
+                center + new Vector3(0f, sideHeight, -sideDistance), center, sideFov);
+            Add(result, "tren_dis_karsi", "Tren karşı yan (tam boy)",
+                center + new Vector3(0f, sideHeight, sideDistance), center, sideFov);
             Add(result, "tren_dis_on", "Lokomotif önü", center +
                 new Vector3(-full.extents.x - 12f, full.extents.y * .50f, -full.extents.z - 8f),
                 center + Vector3.left * (full.extents.x * .72f), 65f);
@@ -223,14 +233,9 @@ namespace FrozenTrain.DevTools
             int doorNumber = 0;
             for (int i = 0; i < doors.Length && doorNumber < 8; i += stride)
             {
-                Renderer render = doors[i].GetComponentInChildren<Renderer>(true);
-                if (render == null) continue;
-                Bounds b = render.bounds;
-                Vector3 side = b.size.x < b.size.z ? Vector3.left : Vector3.forward;
-                Vector3 eye = b.center + side * 2.2f;
-                if (!TrySafeEye(eye, out eye)) continue;
+                if (!TryDoorView(doors[i], out Vector3 eye, out Vector3 target)) continue;
                 Add(result, "kapi_" + (++doorNumber).ToString("00"),
-                    doors[i].name + " yüzey kontrolü", eye, b.center, 65f);
+                    doors[i].name + " yüzey kontrolü", eye, target, 62f);
             }
             return result;
         }
@@ -293,6 +298,38 @@ namespace FrozenTrain.DevTools
                     new Vector3(connector.position.x, eye.y - .12f,
                         b.center.z - b.extents.z * .47f), 74f);
             }
+        }
+
+        /// <summary>
+        /// Looks at a door panel from either face along its normal and only accepts a camera point
+        /// with a clear line of sight to that same door (not the back of an opposite door or a wall).
+        /// </summary>
+        private static bool TryDoorView(Transform door, out Vector3 eye, out Vector3 target)
+        {
+            eye = target = default;
+            Renderer render = door.GetComponentInChildren<Renderer>(true);
+            if (render == null) return false;
+            Bounds b = render.bounds;
+            Vector3 normal = b.size.x < b.size.z ? Vector3.right : Vector3.forward;
+            target = b.center;
+            float eyeY = b.min.y + EyeHeight;
+
+            foreach (float distance in new[] { 1.70f, 1.30f, 2.20f, .95f })
+                foreach (float sign in new[] { 1f, -1f })
+                {
+                    Vector3 candidate = b.center + normal * sign * distance;
+                    candidate.y = eyeY;
+                    if (Physics.CheckSphere(candidate, .17f, Physics.DefaultRaycastLayers,
+                            QueryTriggerInteraction.Ignore)) continue;
+                    Vector3 toDoor = target - candidate;
+                    if (!Physics.Raycast(candidate, toDoor.normalized, out RaycastHit hit,
+                            toDoor.magnitude + .25f, Physics.DefaultRaycastLayers,
+                            QueryTriggerInteraction.Ignore)) continue;
+                    if (!hit.transform.IsChildOf(door)) continue;
+                    eye = candidate;
+                    return true;
+                }
+            return false;
         }
 
         private static bool TrySafeEye(Vector3 preferred, out Vector3 eye)

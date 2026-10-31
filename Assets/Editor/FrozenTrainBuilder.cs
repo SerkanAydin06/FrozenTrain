@@ -161,7 +161,10 @@ namespace FrozenTrain.EditorTools
         {
             Material wall = M(TrainMat.Wall);
             float top = L.UpperY - L.UpperFloorT * .5f;
-            if (car.MainWindows.Length == 0)
+            WindowSpan[] windows = z > 0f && car.CorridorSideWindows != null
+                ? car.CorridorSideWindows
+                : car.MainWindows;
+            if (windows.Length == 0)
             {
                 Cube(p, "MainSide" + side, new Vector3(0f, top * .5f, z), new Vector3(L.CarLength, top, L.WallT), wall);
                 return;
@@ -172,7 +175,7 @@ namespace FrozenTrain.EditorTools
             Cube(p, "MainSideAboveWindows" + side, new Vector3(0f, wt + (top - wt) * .5f, z), new Vector3(L.CarLength, top - wt, L.WallT), wall);
 
             float cursor = -L.HalfL;
-            foreach (WindowSpan w in car.MainWindows.OrderBy(w => w.CenterX))
+            foreach (WindowSpan w in windows.OrderBy(w => w.CenterX))
             {
                 float left = w.CenterX - w.Width * .5f;
                 if (left > cursor)

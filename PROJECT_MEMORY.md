@@ -98,3 +98,9 @@
 - Son temizlik geçişinin (`FrozenTrainMinimalInteriorPass`) sildiği çıktıları üreten ölü geçişler kaldırıldı: `ScreenshotQASafety`, `LongLightingPass`, `Post24ScreenshotPolish`, `ProductionArt` sarmalayıcısı; hiç çağrılmayan `CirculationFinalizer`, `FinalScreenshotFix`, `LongExteriorPass`, `UpperDeckCirculation`, `UpperDeckFinalPolish`.
 - `ScreenshotQARefinement` → `FrozenTrainExteriorScenery` (aynı GUID): sadece sahnedeki dağ/kaya/kar/ray ölçüsü kısmı kaldı; `ExteriorMaterialFix` buraya birleştirildi (FT_ENV_Snow/Rock doğrudan atanıyor).
 - Zincir: Builder → ProductionArtPro → ExteriorScenery → MainStreet* → LongVestibule → MinimalInterior. Unity'de derleme/rebuild bu ortamda yapılamadı.
+
+## 2026-10-31 — Koridor pencereleri, koridor ışığı, QA kamera kadrajları
+- `FrozenTrainLayout.StandardCorridorWindows()`: 6 × 2.2 m, araç merkezine göre ayna simetrik (±1.8, ±5.5, ±9.2). Vagon 2–5'in +Z (kamusal koridor) orta kat duvarında `CarSpec.CorridorSideWindows` ile kullanılıyor; -Z tarafı eski `MainWindows` düzeninde.
+- `FrozenTrainMinimalInteriorPass`: vagon 2–5 koridoruna 5 eşit aralıklı görünmez ışık (fikstür/doku yok). Pencere çerçeveleri ve önceden atlanan `MainSide*Windows` duvarları da dokusuz baseline slotlarına bağlandı; sadece cam şeffaf malzemesini koruyor.
+- `TrainScreenshotCapture`: dış yan çekimler treni tam boy sığdıracak mesafe/FOV ile ve sissiz; kapı çekimleri kapının iki yüzünü deneyip yalnızca aynı kapıya görüş hattı olan noktayı kabul ediyor.
+- Unity derlemesi/rebuild bu ortamda yapılamadı.

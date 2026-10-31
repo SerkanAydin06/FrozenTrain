@@ -50,6 +50,8 @@ namespace FrozenTrain.EditorTools
         public string Name;
         public string MainGroupName;
         public WindowSpan[] MainWindows = Array.Empty<WindowSpan>();
+        // Optional override for the +Z main-deck wall (the public corridor side in cars 2-5).
+        public WindowSpan[] CorridorSideWindows;
         public bool PanoramicFront;
         // Legacy flags are kept for source compatibility only. Normal vertical circulation now lives
         // in the inter-car vestibule modules, never inside a 24 m car.
@@ -119,6 +121,16 @@ namespace FrozenTrain.EditorTools
         public const float TechnicalLadderZ = 0f;
         public const float TechnicalHoleX0 = 0f, TechnicalHoleX1 = 0f, TechnicalHoleZ0 = 0f, TechnicalHoleZ1 = 0f;
 
+        /// <summary>
+        /// Standard public-corridor window rhythm: six equal 2.2 m windows, mirror-symmetric about the
+        /// car centre, between the end walls. Shared by every car that has the +Z public corridor.
+        /// </summary>
+        public static WindowSpan[] StandardCorridorWindows() => new[]
+        {
+            new WindowSpan(-9.2f, 2.2f), new WindowSpan(-5.5f, 2.2f), new WindowSpan(-1.8f, 2.2f),
+            new WindowSpan(1.8f, 2.2f), new WindowSpan(5.5f, 2.2f), new WindowSpan(9.2f, 2.2f)
+        };
+
         public static readonly CarSpec[] Cars = { Locomotive(), Generator(), Living(), Workshop(), Greenhouse() };
 
         public static float CarCenterX(int index) => (index - (Cars.Length - 1) * .5f) * CarSpacing;
@@ -174,6 +186,7 @@ namespace FrozenTrain.EditorTools
         private static CarSpec Generator() => new CarSpec
         {
             Name = "02_Generator",
+            CorridorSideWindows = StandardCorridorWindows(),
             MainGroupName = "GeneratorControlDeck",
             Lower = new[]
             {
@@ -196,6 +209,7 @@ namespace FrozenTrain.EditorTools
         private static CarSpec Living() => new CarSpec
         {
             Name = "03_Living",
+            CorridorSideWindows = StandardCorridorWindows(),
             MainGroupName = "Living_Interior",
             MainWindows = new[]
             {
@@ -228,6 +242,7 @@ namespace FrozenTrain.EditorTools
         private static CarSpec Workshop() => new CarSpec
         {
             Name = "04_Workshop",
+            CorridorSideWindows = StandardCorridorWindows(),
             MainGroupName = "Workshop_Interior",
             Lower = new[]
             {
@@ -265,6 +280,7 @@ namespace FrozenTrain.EditorTools
             return new CarSpec
             {
                 Name = "05_Greenhouse",
+                CorridorSideWindows = StandardCorridorWindows(),
                 MainGroupName = "Greenhouse_Interior",
                 MainLightColor = new Color(.72f, .95f, .72f),
                 MainLightIntensity = 1.22f,

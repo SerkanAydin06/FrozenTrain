@@ -149,7 +149,7 @@ namespace FrozenTrain.EditorTools
             StripDoorDecorations(root);
             BuildCabinDoors(root);
             AddMinimalExterior(root, root.name == L.Cars[0].Name);
-            AddInvisibleLighting(root);
+            AddInvisibleLighting(root, root.name != L.Cars[0].Name);
         }
 
         private static void StripVestibule(Transform root)
@@ -267,8 +267,14 @@ namespace FrozenTrain.EditorTools
             {
                 if (r is ParticleSystemRenderer) continue;
                 string source = r.sharedMaterial != null ? r.sharedMaterial.name : "";
-                if (source.Contains("Glass") || r.name.Contains("Window")) continue;
                 string n = r.name;
+                if (source.Contains("Glass") || n.Contains("WindowGlass") ||
+                    n.Contains("PanoramicWindshield")) continue; // keep transparent glass
+                if (n.StartsWith("Window", StringComparison.Ordinal) && n.EndsWith("Frame", StringComparison.Ordinal))
+                {
+                    r.sharedMaterial = metalSlot; // textureless 04_Structure slot
+                    continue;
+                }
                 if (r.GetComponentInParent<SlidingDoor>() != null ||
                     n == "DoorPanel") r.sharedMaterial = doorSlot;
                 else if (n.Contains("Floor") || n.Contains("Deck"))
@@ -416,12 +422,19 @@ namespace FrozenTrain.EditorTools
             UnityEngine.Object.DestroyImmediate(piece.GetComponent<Collider>());
         }
 
-        private static void AddInvisibleLighting(Transform root)
+        private static void AddInvisibleLighting(Transform root, bool publicCorridor)
         {
             Transform lightGroup = MakeGroup(root, "__MinimalVisibility");
             foreach (float y in new[] { L.LowerTop + 2.25f, L.MainTop + 2.25f, L.UpperTop + 2.25f })
                 foreach (float x in new[] { -7.6f, 7.6f })
                     AddLight(lightGroup, new Vector3(x, y, 0f), 1.05f, 10f);
+
+            if (!publicCorridor) return;
+            // The +Z public corridor sits behind the opaque workroom partition and was nearly black.
+            // Five evenly spaced invisible fills (no fixtures, no textures) light it uniformly.
+            float z = FrozenTrainMainStreetArchitecture.CorridorCenterZ;
+            foreach (float x in new[] { -9.6f, -4.8f, 0f, 4.8f, 9.6f })
+                AddLight(lightGroup, new Vector3(x, L.MainTop + 2.35f, z), 1.15f, 5.8f);
         }
 
         private static Transform MakeGroup(Transform parent, string name)
