@@ -83,3 +83,13 @@
 - Değişiklik commit'i: `6d755be01c5186007419347c5e86bbbbdb4467cb` (+ bu V2 ayarı ve dokümantasyon güncellemesi).
 - **Sınır:** Görseller Play sırasında yerel klasörde oluşur; otomatik GitHub'a yüklenmez. Asistanın uzaktan görebilmesi için sadece en güncel `Docs/Screenshots/` dosyaları commit/push edilmelidir. Git geçmişindeki eski commitlerin görüntü sürümleri kalabilir; yalnızca güncel klasör tek set tutar.
 - Kaynak statik kontrolü yapıldı; gerçek Unity Editor Play Mode veya kamera render doğrulaması bu oturumda çalıştırılamadı.
+
+## 2026-10-31 — Kaplamasız URP/PBR temel ve kapı hizası
+- Kullanıcı şu an hiçbir desenli kaplama istemiyor; sonraki aşamada kaliteli texture/PBR setleri eklenecek. Ayrıca kapılar açıklığa tam oturmalı, duvardan taşmamalı ve kapanmalı.
+- `FrozenTrainMinimalInteriorPass.cs`: üretim son adımında görünür zemin, duvar, gövde, metal konstrüksiyon ve kapılardaki eski desenli malzeme referanslarını temizleyip yeni **dokunsuz** `Assets/Art/Materials/TrainBaseline/01_Body.mat`, `02_Walls.mat`, `03_Floors.mat`, `04_Structure.mat`, `05_Doors.mat` URP/Lit malzeme slotlarına atıyor. Mevcut cam malzemeleri saydamlığı kaybetmesin diye korunuyor. Bu slotlar ilk rebuild'de üretilir; sonradan elle konan PBR haritaları rebuild'de silinmez. Eski texture dosyaları güvenli geri alma için kaynakta durur, sade prefab materyallerinde kullanılmaz.
+- `FrozenTrainLongVestibuleArchitecture.cs`: alt/ana/üst geçiş kapılarının merkez, yükseklik ve genişliği gerçek `L.*EndOpening` ve kat üst yüzeyinden türetilir; panelin tüm çevresinde yaklaşık 1 cm montaj payı. Açılma ekseni duvar boyunca kalır ve gövde dışına uzanmaz.
+- `FrozenTrainMainStreetArchitecture.cs`: işlev vagonu bölme kapısı duvar merkezine alındı; panel ve etkileşim kolideri yaklaşık 1cm kenar boşluğu verecek şekilde eşleştirildi.
+- `FrozenTrainMinimalInteriorPass.cs`: dekoratif, sürekli açık `PocketDoorLeaf` parçaları silindi; bunun yerine üst kabinlerde 10 adet/vagon gerçek `SlidingDoor` ve geometrik açıklıklarına eşleşen kapı panelleri bulunur.
+- Önemli sahne üretim hatası düzeltmesi: `FrozenTrainBuilder.Build` önce prefablardan sahne nesnelerini oluşturuyor, son tasarım adımları sonradan prefab assetlerini değiştiriyor. Son adım `RefreshAuthoredSceneInstances()` ile mevcut sahne vagon/geçiş örneklerini güncel prefablarla değiştiriyor ve sahneyi kaydediyor. Önceki sahne prefabları bu yüzden eski çizimler gösterebiliyordu.
+- Kaynak kod parantez/statik kontrolü yapıldı, **Unity derlemesi, tam kapı kapanışı ve sahne görsel testi burada yapılamadı**. `Frozen Train > Rebuild Authored Train` komutunu çalıştırıp Play modunda geçiş/kabin kapılarını açıp kapatarak kontrol et.
+- Pro texture iş akışı: `Docs/TEXTURE_WORKFLOW.md`.
