@@ -111,11 +111,14 @@ namespace FrozenTrain.EditorTools
         public const float RailTopY = UnderframeBottom - .44f;
         public const float GroundY = RailTopY - .14f;
 
-        // Main and technical decks have aligned 1 m inter-car passages (Z 1.5..2.5, 2 m high above
-        // the deck floor top); upper/accommodation car ends remain sealed.
-        public static readonly Vector2 MainEndOpening = new Vector2(1f, 2f);   // width, height above floor top
-        public static readonly Vector2 LowerEndOpening = new Vector2(1f, 2f);
-        public const float EndDoorCenterZ = 2f;
+        // Inter-car gangway floor already provides 1.20 m of clear width, but
+        // the former 1.00 m end doors made both levels unnecessarily narrow.
+        // One shared dimension now governs the gangway floor, wall apertures,
+        // and upper/lower sliding door leaves. +Z corridor begins at Z=1.50.
+        public const float InterCarClearWidth = 1.20f;
+        public static readonly Vector2 MainEndOpening = new Vector2(InterCarClearWidth, 2f);
+        public static readonly Vector2 LowerEndOpening = new Vector2(InterCarClearWidth, 2f);
+        public const float EndDoorCenterZ = 2.10f; // 1.50..2.70, entirely on corridor side
 
         // Main-deck windows only (no windows on the lower technical or upper cabin decks).
         public const float WindowBottom = MainTop + 1f;
@@ -213,10 +216,16 @@ namespace FrozenTrain.EditorTools
                             OnGrid(car.Name + " window edge", w.CenterX - w.Width * .5f + InnerHalfL);
                             OnGrid(car.Name + " window edge", w.CenterX + w.Width * .5f + InnerHalfL);
                         }
+            // The inter-car coupling is an intentional 1.20 m modular-joint
+            // exception to the 1 m wall tile grid. Do not reject its edge at
+            // Z=2.70: exact alignment to the gangway is more important here.
             foreach (Vector2 opening in new[] { MainEndOpening, LowerEndOpening })
             {
-                OnGrid("End door edge", EndDoorCenterZ - opening.x * .5f + InnerHalfW);
-                OnGrid("End door edge", EndDoorCenterZ + opening.x * .5f + InnerHalfW);
+                if (Mathf.Abs(opening.x - InterCarClearWidth) > .001f)
+                    throw new InvalidOperationException("Inter-car door width must match gangway clear width.");
+                if (EndDoorCenterZ - opening.x * .5f < 1.50f - .001f ||
+                    EndDoorCenterZ + opening.x * .5f > InnerHalfW + .001f)
+                    throw new InvalidOperationException("Inter-car door projects outside the corridor.");
                 OnGrid("End door height", opening.y);
             }
             foreach (float x in CorridorDoorX)

@@ -581,7 +581,9 @@ namespace FrozenTrain.EditorTools
         private static GameObject BuildConnectorPrefab()
         {
             float gap = L.VestibuleLength - L.WallT; // clear space between end-wall outer faces
-            float width = L.MainEndOpening.x + .20f, cz = L.EndDoorCenterZ;
+            // The exact walkable coupling width, not a wider floor with a
+            // narrower 1 m door. Both decks use the shared opening dimension.
+            float width = L.InterCarClearWidth, cz = L.EndDoorCenterZ;
             float roofY = L.MainTop + L.MainEndOpening.y + .06f;
             Material floor = M(TrainMat.Floor), rubber = M(TrainMat.Rubber), frame = M(TrainMat.Frame);
             GameObject root = new GameObject("CarConnector");

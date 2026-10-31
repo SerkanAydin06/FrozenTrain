@@ -19,7 +19,7 @@
 - **Upper = private cabins.** Each car's upper deck is reached only by its own ladder; no inter-car passage on this deck.
 
 ## Car ends (main + technical decks)
-- Both levels have 1 m × 2 m openings at Z 1.5..2.5 (`MainEndOpening`, `LowerEndOpening`, `EndDoorCenterZ`); the locomotive front and final car rear remain closed.
+- Both levels have **1.20 m × 2 m** openings at Z **1.50–2.70** (`InterCarClearWidth`, `MainEndOpening`, `LowerEndOpening`, `EndDoorCenterZ`). The gangway floor uses the same 1.20 m width, and both rear sliding doors use it minus 2 cm installation clearance. The locomotive front and final car rear remain closed.
 - Each intermediate **rear (+X)** end has one sliding door for each level (`RearEndDoor` and `LowerRearEndDoor`). The next car's front opening is open into its gangway; each level has exactly one door per joint.
 
 ## Vertical access (in-car, `CarAccess`, authored by `FrozenTrainBuilder`)
@@ -47,3 +47,6 @@
 - Lower technical floors remain full-width and symmetric. The locomotive's lower access hatch is placed at -Z, while the upper hatch is at +Z; this is the intentional functional exception. Generator has no technical ladder.
 - `ValidateSymmetricBase()` in `FrozenTrainLayout.cs` checks cabin bay positions, room doors, partitions and bilateral windows **before** authoring overwrites prefab/scene files. Gameplay device positions are allowed to differ by function.
 - Unity rebuilt prefab renders and walkthrough are still unverified in this environment.
+
+## 2026-10-31 — Full-width coupling doors
+The two inter-car sliding doors (middle and technical levels) now fill the **entire 1.20 m clear gangway floor width**, leaving 1 cm panel margin on each side. The opening centre is Z=2.10 (edges 1.50–2.70), inside the public corridor. This inter-car joint is an explicit exception to the whole-metre interior wall texture grid. Upper cabin doors are unchanged. Doors still slide toward +Z and should be tested fully closed/open in Unity Play Mode.
