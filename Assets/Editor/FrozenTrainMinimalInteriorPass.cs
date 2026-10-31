@@ -11,7 +11,8 @@ namespace FrozenTrain.EditorTools
 {
     /// <summary>
     /// Bare train foundation for rebuilding the interior one element at a time.
-    /// Keep only the car shells, structural partitions, windows, doors and vertical ladders.
+    /// Keep only the car shells, structural partitions, windows, doors, in-car ladders (CarAccess)
+    /// and the short main-deck gangway between coupled cars.
     /// Exterior train geometry and invisible visibility lighting remain functional.
     ///
     /// Runs LAST in the unified authoring chain so historical dressing passes cannot
@@ -66,11 +67,8 @@ namespace FrozenTrain.EditorTools
             GameObject connector = PrefabUtility.LoadPrefabContents(ConnectorPath);
             try
             {
-                Transform shell = connector.transform.Find("VestibuleShell");
-                if (shell == null ||
-                    shell.Find("UpperLadder")?.GetComponent<DeckLadder>() == null ||
-                    shell.Find("LowerLadder")?.GetComponent<DeckLadder>() == null)
-                    throw new InvalidOperationException("The vestibule ladders or door are missing. Simplification aborted.");
+                if (connector.transform.Find("GangwayFloor") == null)
+                    throw new InvalidOperationException("The main-deck gangway is missing. Simplification aborted.");
 
                 int before = CountObjects(connector.transform);
                 StripVestibule(connector.transform);
@@ -100,6 +98,10 @@ namespace FrozenTrain.EditorTools
                 {
                     case "Shell":
                         // Keep just the load-bearing body, floors, walls, windows, roof and bogies.
+                        break;
+
+                    case "CarAccess":
+                        // Rear end door, upper-deck ladder and (locomotive) technical ladder.
                         break;
 
                     case "ExteriorDressing":
@@ -154,39 +156,10 @@ namespace FrozenTrain.EditorTools
 
         private static void StripVestibule(Transform root)
         {
-            foreach (Transform child in root.Cast<Transform>().ToArray())
-            {
-                if (child.name == "VestibuleShell")
-                {
-                    // Open vestibule: keep the shell, decks, passage doors and
-                    // two ladders, without the former enclosed stair room.
-                    KeepChildren(child, t =>
-                    {
-                        string n = t.name;
-                        return n.StartsWith("LowerFloor", StringComparison.Ordinal) ||
-                            n.StartsWith("MainFloor", StringComparison.Ordinal) ||
-                            n.StartsWith("UpperFloor", StringComparison.Ordinal) ||
-                            n == "Roof" ||
-                            n == "OuterWallL" || n == "OuterWallR" ||
-                            n == "VestibuleUnderframe" ||
-                            n == "MainVestibuleDoorFront" || n == "MainVestibuleDoorRear" ||
-                            n == "UpperDoorFront" || n == "UpperDoorRear" ||
-                            n == "TechnicalDoorFront" || n == "TechnicalDoorRear" ||
-                            n == "UpperLadder" || n == "LowerLadder";
-                    });
-                }
-                else
-                {
-                    UnityEngine.Object.DestroyImmediate(child.gameObject);
-                }
-            }
-
-            StripDoorDecorations(root);
-
-            // No visible fixtures: invisible lights keep the three decks navigable.
+            // Short main-deck gangway: floor, bellows, roof and coupler only. One faint invisible
+            // light keeps the 0.8 m passage readable between the two car doors.
             Transform lightGroup = MakeGroup(root, "__MinimalVisibility");
-            foreach (float y in new[] { L.LowerTop + 2.25f, L.MainTop + 2.25f, L.UpperTop + 2.25f })
-                AddLight(lightGroup, new Vector3(0f, y, 0f), 1.0f, 7f);
+            AddLight(lightGroup, new Vector3(0f, L.MainTop + 2.10f, L.EndDoorCenterZ), .55f, 2.6f);
         }
 
         private static void StripDoorDecorations(Transform root)
@@ -217,7 +190,8 @@ namespace FrozenTrain.EditorTools
                     hit.size = new Vector3(width, height, .10f);
                     // The door parks against its adjacent partition, within
                     // the car footprint and outside the clear opening.
-                    float direction = x > L.HalfL - 2f ? -1f : 1f;
+                    // Slide toward the car centre: never across the rear stair-landing opening.
+                    float direction = x > .1f ? -1f : 1f;
                     door.gameObject.AddComponent<SlidingDoor>().Configure(
                         new Vector3(direction * (width + .025f), 0f, 0f), 2.6f);
                 }
@@ -279,7 +253,7 @@ namespace FrozenTrain.EditorTools
                     n == "DoorPanel") r.sharedMaterial = doorSlot;
                 else if (n.Contains("Floor") || n.Contains("Deck"))
                     r.sharedMaterial = floorSlot;
-                else if (n.Contains("Rail") || n.Contains("Rung") ||
+                else if (n.Contains("Rail") || n.Contains("Rung") || n.Contains("Guard") ||
                          n.Contains("Wheel") || n.Contains("Hub") ||
                          n.Contains("Underframe") || n.Contains("Bogie") ||
                          n.Contains("Bracket") || n.Contains("Mount") ||

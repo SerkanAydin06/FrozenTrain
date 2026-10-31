@@ -1,108 +1,30 @@
-# FrozenTrain — Three-Deck Five-Car Architecture
+# FrozenTrain — Five Coupled Cars (current architecture, 2026-10-31)
 
-The train remains fixed at five functional cars. No story content is introduced by this architecture.
+## Train
+- **5 separate cars**, each **24.0 m × 9.2 m**, three decks: Locomotive, Generator, Living, Workshop, Greenhouse. Front = -X.
+- Cars are coupled like a real train: car-centre spacing **25 m**, a **0.8 m** visible gap between end-wall outer faces.
+- Each joint has one short covered **gangway** on the main deck only (floor, rubber bellows, roof, coupler). Lower and upper decks are closed at every car end, so the cars read as separate bodies.
 
-## Locked footprint
+## Decks
+- **Lower = technical.** Only reachable from the locomotive (technical ladder). No inter-car passage on this deck.
+- **Main = shared work / living.** Cars 2–5: straight **+Z public corridor** (Z 1.90–4.40) and a closed functional room on the -Z side with one corridor door. Locomotive main deck is the private cab.
+- **Upper = private cabins.** Each car's upper deck is reached only by its own ladder; no inter-car passage on this deck.
 
-- Every usable car: **24.0 m long × 9.2 m wide**.
-- Every car has three full-size decks with the same footprint.
-- Between each pair of cars is a separate **4.0 m long × 9.2 m wide inter-car vestibule module**.
-- Car centres are therefore **28.0 m apart**.
-- Total authored five-car train body is about **136 m** from locomotive front to greenhouse rear.
-- Vestibules are circulation/service modules; they do not count as usable room area inside a car.
+## Car ends (main deck)
+- End openings are 1.30 m wide, centred at Z 2.55 in the corridor (`FrozenTrainLayout.MainEndOpening`, `EndDoorCenterZ`).
+- The **rear (+X) end of every car except the last** has the sliding door to the next car (`CarAccess/RearEndDoor`). The front opening of the next car has no door, so each joint has exactly one door.
 
-## Core circulation rule
+## Vertical access (in-car, `CarAccess`, authored by `FrozenTrainBuilder`)
+- **Every car:** `UpperDeckLadder` — compact wall-mounted vertical ladder on the +Z outer wall at the rear end of the corridor, beside the rear door. Hatch in the upper floor with guard rails on three sides.
+- Upper deck: the rear +Z cabin is shortened (`UpperLandingX`) so the hatch opens onto a small landing off the residential hall.
+- **Locomotive only:** `TechnicalDeckLadder` on the -Z wall at the rear of the cab, hatch in the main floor with guard rails.
+- All ladders use `DeckLadder` (E to climb / descend); guard rails forward the same interaction.
 
-There are no normal passenger/residential stairs inside the 24 m cars.
-
-Each of the four inter-car vestibules contains:
-- a straight +Z/right-side through passage aligned with the public corridor;
-- an enclosed stair core on the left;
-- a real stepped flight from the main deck to the upper residential landing;
-- a separate real stepped flight from the lower technical landing to the main deck;
-- end doors into both adjacent cars on all relevant decks.
-
-This keeps vertical circulation out of locomotive, generator, living, workshop and greenhouse usable floor area.
-
-## Deck 1 — Lower technical deck
-
-The entire lower deck of each 24 m car is technical infrastructure.
-
-- Full-length power, data, ventilation, water, return-water and heating services run here.
-- Locomotive: traction motors, batteries and inverter.
-- Generator: engine, alternator, fuel storage and manifold.
-- Living: fresh/waste water, boiler, HVAC and treatment.
-- Workshop: compressor, hydraulics, power distribution and parts.
-- Greenhouse: water, nutrient, irrigation, pumps and climate plant.
-- Normal vertical access comes from the adjacent inter-car vestibule technical landing, not from a hole or ladder inside the room.
-
-## Deck 2 — Main occupied deck
-
-### Locomotive
-- The **entire 24 m locomotive main deck is private operations space**.
-- There is no public corridor running through the locomotive.
-- The first vestibule enters a private rear landing; the full-width cab begins immediately after it.
-- Driver console, seats, cabinets and management terminal may use the full width.
-- The locomotive keeps one single-piece panoramic front windshield.
-
-### Cars 2–5 public corridor
-- Generator, Living, Workshop and Greenhouse use one straight public corridor along the **+Z/right side**.
-- Corridor envelope: approximately **Z=1.90..4.40**, about **2.5 m wide** for two-person passage.
-- It stays clear for the full 24 m car length.
-- Inter-car vestibule through passages align with exactly the same +Z corridor.
-- Furniture, hydroponics, machines, shelves, QA decoration and work lights may never occupy the public corridor envelope.
-
-### Closed functional rooms
-The left side of cars 2–5 is one opaque closed work/life room with exactly one centred corridor-facing staff door.
-
-- **Generator:** operator desk, generator controls, monitoring and staff work area.
-- **Living:** lounge/seating, galley, medical storage and heater/service zone.
-- **Workshop:** benches, machine station, tools and parts storage.
-- **Greenhouse:** hydroponic production rows and climate controls.
-
-A passenger travelling through the train never needs to enter any of those rooms.
-
-## Deck 3 — Upper residential deck
-
-- The full 24 m upper deck is residential accommodation.
-- Five cabin bays per side use the longer footprint.
-- Cabins open onto a local central residential hall.
-- There are no ladder holes or stair shafts consuming cabin space.
-- Residential access occurs from the upper landing of either adjacent vestibule.
-- Vestibule landings open to shared residential hall space, never directly into a private bed area.
-- Upper decks are not the primary long-distance transit route; the main public route remains deck 2.
-
-## Inter-car vestibule design
-
-Each 4 m vestibule is a distinct railway-style transition zone:
-- full-width insulated shell;
-- right-side main through passage with doors at both car ends;
-- left-side stair core behind its own door;
-- upper residential landing with doors to both adjacent cars;
-- lower technical landing with doors to both adjacent cars;
-- guard rails, hazard markings and dedicated lighting;
-- roof/underframe continuity so the module reads as part of the train rather than an empty gap.
-
-## Windows and exterior
-
-- Locomotive: panoramic front glass plus limited cab side glazing.
-- Living uses a longer six-window rhythm appropriate to the 24 m body.
-- Work-room/corridor separators remain opaque.
-- Bogies, wheels, roof chamfers, body bands and locomotive nose details are positioned from the 24 m footprint, not legacy 18 m coordinates.
-- Exterior generated scenery must use persistent URP/Lit materials; magenta missing-material rendering is not acceptable.
-
-## Authoring
-
-`Frozen Train > Rebuild Authored Train` is the only public authoring command.
-
-Current chain (`FrozenTrainUnifiedAuthoring.cs`):
-1. `FrozenTrainBuilder` — canonical five-car prefabs, connector, scene and player.
-2. `FrozenTrainProductionArtPro` — FT_PRO materials/textures and shell/light tuning.
-3. `FrozenTrainExteriorScenery` — mountains, rocks, snow drifts and rail gauge (scene).
-4. `FrozenTrainMainStreetArchitecture` / `Connector` / `Safety` — +Z corridor, shifted main openings, partition colliders.
-5. `FrozenTrainLongVestibuleArchitecture` — 4 m vestibules, doors and wall-mounted ladders.
-6. `FrozenTrainMinimalInteriorPass` — final authority: strip dressing, baseline materials, cabin doors, minimal exterior, scene refresh.
-
-Removed on 2026-10-31 (their output was always deleted by the minimal pass): ScreenshotQARefinement (car part), ScreenshotQASafety, ExteriorMaterialFix (merged into ExteriorScenery), LongLightingPass, Post24ScreenshotPolish, LongExteriorPass, CirculationFinalizer, UpperDeckCirculation, UpperDeckFinalPolish, FinalScreenshotFix, ProductionArt wrapper.
-
-Runtime gameplay does not construct train geometry.
+## Rebuild chain
+`Frozen Train > Rebuild Authored Train` (`FrozenTrainUnifiedAuthoring.cs`):
+1. `FrozenTrainBuilder` — cars, end openings, floor hatches, upper landing, `CarAccess`, gangway connector, scene, player.
+2. `FrozenTrainProductionArtPro` — FT_PRO materials/textures.
+3. `FrozenTrainExteriorScenery` — mountains, rocks, snow drifts, rail gauge.
+4. `FrozenTrainMainStreetArchitecture` / `Safety` — +Z corridor partition and colliders.
+5. `FrozenTrainLongVestibuleArchitecture` (historic name) — per-car room layout.
+6. `FrozenTrainMinimalInteriorPass` — final authority: strip dressing, baseline untextured slots, cabin doors, minimal exterior, scene refresh.

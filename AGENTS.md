@@ -4,8 +4,8 @@ Use **concise Turkish**. Prefer direct, narrowly scoped GitHub edits and link th
 
 ## Fixed current state
 - Unity **6.3 LTS**, URP, Windows; `Assets/Scenes/FPSPrototype.unity`.
-- **5 cars × 24 × 9.2 m**, 3 decks; **4 vestibules × 4 × 9.2 m**; 28 m centre spacing, front = -X.
-- Locomotive main deck private; cars 2–5 public +Z corridor with left closed workroom. Ladders are in **vestibules only** (2 compact wall-mounted vertical/E-interactive ladders per vestibule; no stair room).
+- **5 separate coupled cars × 24 × 9.2 m**, 3 decks; 25 m centre spacing, 0.8 m gap, main-deck-only gangway per joint; front = -X.
+- Locomotive main deck private; cars 2–5 public +Z corridor with left closed workroom. Ladders are **inside cars** at the rear end of the corridor beside the rear end door (1 upper ladder per car); only the locomotive reaches the technical deck. See `Docs/FiveCarArchitecture.md`.
 - **Bare, untextured baseline** until requested otherwise. No furnishing, orange accents, patterned material restoration or bulky exterior decoration. 5 persistent PBR-ready URP slots in `Assets/Art/Materials/TrainBaseline/`: `01_Body`, `02_Walls`, `03_Floors`, `04_Structure`, `05_Doors`.
 - **Authoritative files**: `Assets/Editor/FrozenTrainUnifiedAuthoring.cs` (rebuild order), `FrozenTrainLayout.cs` (dimensions), `FrozenTrainBuilder.cs` (base), `FrozenTrainLongVestibuleArchitecture.cs` (doors and access), `FrozenTrainMinimalInteriorPass.cs` (final removal/materials and scene refresh). Gameplay in `Assets/Scripts/`.
 

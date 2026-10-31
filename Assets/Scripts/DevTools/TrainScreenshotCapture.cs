@@ -126,7 +126,7 @@ namespace FrozenTrain.DevTools
             report.AppendLine("# FrozenTrain – güncel QA ekran görüntüleri");
             report.AppendLine();
             report.AppendLine("Son çekim (UTC): " + DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss") + " UTC");
-            report.AppendLine("Kameralar vagon ve kat sınırları, geçişler, merdivenler ve kapılardan otomatik seçildi.");
+            report.AppendLine("Kameralar vagon ve kat sınırları, vagon içi merdivenler ve kapılardan otomatik seçildi.");
             report.AppendLine("Yalnızca son çekim dosyaları tutulur. GitHub üzerinden görülebilmeleri için push gerekir.");
             report.AppendLine();
             report.AppendLine("| Görüntü | Bölüm | Kamera (dünya) |");
@@ -220,10 +220,14 @@ namespace FrozenTrain.DevTools
             for (int i = 0; i < cars.Length; i++)
                 AddCarViews(result, cars[i], i + 1);
 
-            Transform[] connectors = train.Cast<Transform>()
-                .Where(t => t.name.Contains("Connector")).OrderBy(t => t.position.x).ToArray();
-            for (int i = 0; i < connectors.Length; i++)
-                AddConnectorViews(result, connectors[i], i + 1);
+            // In-car ladders (upper deck in every car, technical deck in the locomotive).
+            DeckLadder[] ladders = train.GetComponentsInChildren<DeckLadder>(true)
+                .OrderBy(l => l.transform.position.x).ToArray();
+            foreach (DeckLadder ladder in ladders)
+            {
+                int carIndex = Array.FindIndex(cars, c => ladder.transform.IsChildOf(c)) + 1;
+                AddLadderViews(result, ladder.transform, carIndex);
+            }
 
             // Sample representative door panels from throughout the train.
             Transform[] doors = train.GetComponentsInChildren<Transform>(true)
@@ -269,35 +273,25 @@ namespace FrozenTrain.DevTools
             }
         }
 
-        private static void AddConnectorViews(List<View> views, Transform connector, int index)
+        private static void AddLadderViews(List<View> views, Transform ladder, int carIndex)
         {
-            Renderer[] parts = connector.GetComponentsInChildren<Renderer>(true);
-            foreach (Transform ladder in connector.GetComponentsInChildren<Transform>(true)
-                .Where(t => t.name == "UpperLadder" || t.name == "LowerLadder"))
-            {
-                Renderer[] rails = ladder.GetComponentsInChildren<Renderer>(true);
-                if (rails.Length == 0) continue;
-                Bounds b = BoundsOf(rails);
-                Vector3 candidate = new Vector3(b.center.x, b.min.y + EyeHeight, b.center.z + 1.65f);
-                if (!TrySafeEye(candidate, out Vector3 eye)) continue;
-                Add(views, "gecis" + index + "_" + ladder.name.ToLowerInvariant(),
-                    "Geçiş " + index + " – " + ladder.name, eye, b.center, 69f);
-            }
+            Transform low = ladder.Find("LowerExit"), high = ladder.Find("UpperExit");
+            Renderer[] parts = ladder.GetComponentsInChildren<Renderer>(true);
+            if (low == null || high == null || parts.Length == 0) return;
+            Bounds b = BoundsOf(parts);
+            string kind = ladder.name.StartsWith("Technical", StringComparison.Ordinal) ? "teknik" : "ust";
+            string label = "Vagon " + carIndex + " – " + (kind == "teknik" ? "teknik kat merdiveni" : "üst kat merdiveni");
 
-            foreach (string level in new[] { "LowerFloor", "MainFloor", "UpperFloor" })
-            {
-                Renderer[] floorParts = parts
-                    .Where(r => r.name.StartsWith(level, StringComparison.Ordinal)).ToArray();
-                if (floorParts.Length == 0) continue;
-                Bounds b = BoundsOf(floorParts);
-                Vector3 candidate = new Vector3(connector.position.x,
-                    b.max.y + EyeHeight, b.center.z + b.extents.z * .57f);
-                if (!TrySafeEye(candidate, out Vector3 eye)) continue;
-                Add(views, "gecis" + index + "_" + level.ToLowerInvariant(),
-                    "Geçiş " + index + " – " + level, eye,
-                    new Vector3(connector.position.x, eye.y - .12f,
-                        b.center.z - b.extents.z * .47f), 74f);
-            }
+            // From the lower landing: step back from the wall-mounted ladder and look at it.
+            Vector3 away = new Vector3(-.55f, 0f, -Mathf.Sign(ladder.position.z) * .95f);
+            if (TrySafeEye(low.position + away + Vector3.up * EyeHeight, out Vector3 eye))
+                Add(views, "merdiven_vagon" + carIndex + "_" + kind + "_alt", label + " (alt giriş)", eye,
+                    new Vector3(b.center.x, low.position.y + 1.30f, b.center.z), 72f);
+
+            // From the upper landing: look down into the guarded hatch.
+            if (TrySafeEye(high.position + new Vector3(-.60f, 0f, 0f) + Vector3.up * EyeHeight, out eye))
+                Add(views, "merdiven_vagon" + carIndex + "_" + kind + "_ust", label + " (üst çıkış)", eye,
+                    new Vector3(b.center.x, high.position.y, b.center.z), 72f);
         }
 
         /// <summary>

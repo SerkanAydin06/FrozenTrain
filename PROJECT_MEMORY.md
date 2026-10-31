@@ -104,3 +104,10 @@
 - `FrozenTrainMinimalInteriorPass`: vagon 2–5 koridoruna 5 eşit aralıklı görünmez ışık (fikstür/doku yok). Pencere çerçeveleri ve önceden atlanan `MainSide*Windows` duvarları da dokusuz baseline slotlarına bağlandı; sadece cam şeffaf malzemesini koruyor.
 - `TrainScreenshotCapture`: dış yan çekimler treni tam boy sığdıracak mesafe/FOV ile ve sissiz; kapı çekimleri kapının iki yüzünü deneyip yalnızca aynı kapıya görüş hattı olan noktayı kabul ediyor.
 - Unity derlemesi/rebuild bu ortamda yapılamadı.
+
+## 2026-10-31 — Ayrı vagonlar, körük geçiş, vagon içi merdivenler
+- Kullanıcı isteği: vagonlar gerçek tren gibi ayrı ve birbirine eklenmiş olmalı; birleşim yeri kapılar. 4 m vestibüller ve içlerindeki 8 merdiven kaldırıldı.
+- `FrozenTrainLayout`: `VestibuleLength` 1 m (araç aralığı 25 m, uç duvarlar arası 0.8 m). Uç açıklık sadece orta katta, 1.30 m, Z 2.55. Alt/üst katlar araç uçlarında kapalı.
+- `FrozenTrainBuilder`: `CarAccess` grubu — her vagonun arka (+X) ucunda bir sonraki vagona kapı (son vagon hariç), yanında +Z duvarında üst kat merdiveni + korkuluklu kapak; üst katta arka +Z kabin kısaltılıp sahanlık açıldı. Teknik kata iniş sadece lokomotifte (-Z duvar). Bağlantı prefabı kısa körük geçiş (zemin, körük, çatı, kavrama).
+- `FrozenTrainMainStreetConnector` silindi; `LongVestibuleArchitecture` artık vestibül üretmiyor. MinimalInterior `CarAccess`'i koruyor, kabin kapıları merkeze doğru kayıyor.
+- Unity derlemesi/rebuild bu ortamda yapılamadı.

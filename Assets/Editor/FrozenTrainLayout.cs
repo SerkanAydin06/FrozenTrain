@@ -53,10 +53,9 @@ namespace FrozenTrain.EditorTools
         // Optional override for the +Z main-deck wall (the public corridor side in cars 2-5).
         public WindowSpan[] CorridorSideWindows;
         public bool PanoramicFront;
-        // Legacy flags are kept for source compatibility only. Normal vertical circulation now lives
-        // in the inter-car vestibule modules, never inside a 24 m car.
+        // TechnicalLadder: this car has the lower (technical) deck ladder. Every car has an upper ladder.
         public bool TechnicalLadder;
-        public bool UpperLaddersAtFront;
+        public bool UpperLaddersAtFront; // legacy, unused (always false)
         public Color MainLightColor = new Color(.91f, .82f, .68f);
         public float MainLightIntensity = 1.08f;
         public Prop[] Lower = Array.Empty<Prop>();
@@ -64,16 +63,17 @@ namespace FrozenTrain.EditorTools
     }
 
     /// <summary>
-    /// Canonical five-car train layout. Cars are deliberately long; the four 4 m inter-car vestibules
-    /// are separate circulation/service modules and do not consume usable car floor area.
+    /// Canonical five-car train layout. Five separate 24 m cars are coupled by short main-deck gangways
+    /// (real-train style): only the main-deck corridor doors connect cars; lower and upper decks are
+    /// closed at every car end. Each car owns its own vertical access.
     /// </summary>
     public static class FrozenTrainLayout
     {
-        // 24 m usable cars separated by 4 m full vestibule modules.
+        // 24 m cars coupled by a 1 m gap (0.8 m clear between end-wall outer faces) holding the gangway.
         public const float CarLength = 24f;
-        public const float VestibuleLength = 4f;
+        public const float VestibuleLength = 1f; // coupling gap / gangway length, centre to centre
         public const float CarWidth = 9.2f;
-        public const float CarSpacing = CarLength + VestibuleLength; // 28 m
+        public const float CarSpacing = CarLength + VestibuleLength; // 25 m
         public const float HalfL = CarLength * .5f;
         public const float HalfW = CarWidth * .5f;
         public const float WallT = .20f;
@@ -97,10 +97,10 @@ namespace FrozenTrain.EditorTools
         public const float RailTopY = UnderframeBottom - .44f;
         public const float GroundY = RailTopY - .14f;
 
-        // End-wall openings. Main opening is shifted to the +Z public corridor by the corridor pass.
-        public static readonly Vector2 LowerEndOpening = new Vector2(2.40f, 2.48f);
-        public static readonly Vector2 MainEndOpening = new Vector2(2.50f, 2.60f);
-        public static readonly Vector2 UpperEndOpening = new Vector2(2.40f, 2.55f);
+        // Only the main deck has end-wall openings (width, height above MainY), centred in the +Z
+        // public corridor beside the access ladder. Lower and upper decks are closed at car ends.
+        public static readonly Vector2 MainEndOpening = new Vector2(1.30f, 2.60f);
+        public const float EndDoorCenterZ = 2.55f; // opening Z 1.90..3.20; door parks toward +Z
 
         public const float WindowBottom = 1.20f;
         public const float WindowTop = 2.52f;
@@ -114,12 +114,18 @@ namespace FrozenTrain.EditorTools
         public static readonly float[] CorridorDoorX = { -9.35f, -4.70f, 0f, 4.70f, 9.35f };
         public const float SleepingPodZ = 3.12f;
 
-        // Legacy hole constants intentionally collapse to zero: car floors stay solid. All stairs are in
-        // the four inter-car vestibules. The builder still references these names for compatibility.
-        public const float UpperLadderZ = 0f;
-        public const float UpperHoleX0 = 0f, UpperHoleX1 = 0f, UpperHoleZ0 = 0f, UpperHoleZ1 = 0f;
-        public const float TechnicalLadderZ = 0f;
-        public const float TechnicalHoleX0 = 0f, TechnicalHoleX1 = 0f, TechnicalHoleZ0 = 0f, TechnicalHoleZ1 = 0f;
+        // In-car vertical access at the rear (+X) end of every car, beside the rear end door.
+        // Upper ladder: on the +Z outer wall at the end of the public corridor, main -> upper deck.
+        // Technical ladder (locomotive only): on the -Z outer wall, lower -> main deck.
+        public const float AccessLadderX = HalfL - .95f;
+        public const float UpperLadderZ = HalfW - .38f;      // rail plane, mounts reach the +Z wall
+        public const float TechnicalLadderZ = -(HalfW - .38f);
+        public const float UpperHoleX0 = HalfL - 1.50f, UpperHoleX1 = HalfL - .40f;
+        public const float UpperHoleZ0 = HalfW - 1.05f, UpperHoleZ1 = HalfW - .10f;
+        public const float TechnicalHoleX0 = UpperHoleX0, TechnicalHoleX1 = UpperHoleX1;
+        public const float TechnicalHoleZ0 = -(HalfW - .10f), TechnicalHoleZ1 = -(HalfW - 1.05f);
+        // Upper-deck stair landing: the +Z end cabin is shortened so the hatch opens onto the hall.
+        public const float UpperLandingX = HalfL - 1.75f;
 
         /// <summary>
         /// Standard public-corridor window rhythm: six equal 2.2 m windows, mirror-symmetric about the
@@ -152,6 +158,7 @@ namespace FrozenTrain.EditorTools
             Name = "01_Locomotive",
             MainGroupName = "Locomotive_Interior",
             PanoramicFront = true,
+            TechnicalLadder = true, // only the locomotive reaches the technical deck for now
             MainWindows = new[]
             {
                 new WindowSpan(-9.2f, 2.25f), new WindowSpan(-6.2f, 2.25f), new WindowSpan(-3.2f, 2.25f)
