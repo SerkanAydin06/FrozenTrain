@@ -15,10 +15,10 @@
 ## Kalıcı çalışma protokolü
 - Kaynak: Bu deponun güncel kodu ve belgeleri. Sohbet hafızası eksik veya eski olabilir.
 - GitHub bağlantısını kontrol et, mevcut GitHub araçlarıyla doğrudan çalış.
-- Kod değiştirmeden önce `PROJECT_MEMORY.md`, `CLAUDE.md` ve ilgili kaynak dosyaları incele.
+- Önce `AGENTS.md` (ChatGPT/Codex) veya `CLAUDE.md` (Claude) kısa rehberi ve yalnızca ilgili 1–3 kaynak dosya/aralık oku. Bu uzun hafızayı her seferinde baştan sona okumak yerine ihtiyaç duyulan başlık/son karar bölümünü aç.
 - Repo kuralları ve beş vagonlu mimari korunmalı; kapsam dışı hikâye/NPC veya yeni vagon ekleme.
-- İstenen değişiklikleri mümkün olduğunda doğrudan GitHub'a uygula; commit bağlantısını bildir.
-- Her görevden sonra yeni karar, değişen dosyalar, doğrulama ve bekleyen işleri bu dosyaya yaz.
+- Mümkün olduğunda GitHub'a doğrudan tek tutarlı değişiklik yap; commit bağlantısını bildir.
+- Bu arşive yalnızca **kalıcı karar, mimari değişiklik, önemli bulgu veya çözülmemiş engel** ekle; sıradan commit ve tekrarları kaydetme.
 - Yanıt dili Türkçe; kısa, net, gereksiz anlatımdan uzak.
 - Eski kararları uygulanmış varsayma; güncel kod ile doğrula.
 
