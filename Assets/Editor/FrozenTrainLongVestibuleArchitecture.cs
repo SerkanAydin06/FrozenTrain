@@ -308,7 +308,7 @@ namespace FrozenTrain.EditorTools
             try
             {
                 for (int i = root.transform.childCount - 1; i >= 0; i--)
-                    Object.DestroyImmediate(root.transform.GetChild(i).gameObject);
+                    UnityEngine.Object.DestroyImmediate(root.transform.GetChild(i).gameObject);
 
                 root.name = "CarConnector";
                 Transform shell = Group(root.transform, "VestibuleShell");
@@ -568,7 +568,7 @@ namespace FrozenTrain.EditorTools
             if (!collider)
             {
                 Collider c = go.GetComponent<Collider>();
-                if (c != null) Object.DestroyImmediate(c);
+                if (c != null) UnityEngine.Object.DestroyImmediate(c);
             }
             return go;
         }
@@ -588,14 +588,14 @@ namespace FrozenTrain.EditorTools
         private static void RemoveDirectChild(Transform root, string name)
         {
             Transform t = root.Find(name);
-            if (t != null) Object.DestroyImmediate(t.gameObject);
+            if (t != null) UnityEngine.Object.DestroyImmediate(t.gameObject);
         }
 
         private static void DestroyNamedChild(Transform root, string name)
         {
             if (root == null) return;
             Transform t = root.Find(name);
-            if (t != null) Object.DestroyImmediate(t.gameObject);
+            if (t != null) UnityEngine.Object.DestroyImmediate(t.gameObject);
         }
 
         private static void RemoveAllNamed(Transform root, params string[] names)
@@ -605,7 +605,7 @@ namespace FrozenTrain.EditorTools
             for (int i = all.Length - 1; i >= 0; i--)
             {
                 Transform t = all[i];
-                if (t != null && t != root && set.Contains(t.name)) Object.DestroyImmediate(t.gameObject);
+                if (t != null && t != root && set.Contains(t.name)) UnityEngine.Object.DestroyImmediate(t.gameObject);
             }
         }
 
