@@ -64,8 +64,8 @@ namespace FrozenTrain.EditorTools
 
     /// <summary>
     /// Canonical five-car train layout. Five separate 24 m cars are coupled by short main-deck gangways
-    /// (real-train style): only the main-deck corridor doors connect cars; lower and upper decks are
-    /// closed at every car end. Each car owns its own vertical access.
+    /// (real-train style): main and technical-deck gangways connect cars, while the
+    /// upper accommodation decks remain closed between cars. Vertical access is restricted.
     /// </summary>
     public static class FrozenTrainLayout
     {
@@ -97,10 +97,12 @@ namespace FrozenTrain.EditorTools
         public const float RailTopY = UnderframeBottom - .44f;
         public const float GroundY = RailTopY - .14f;
 
-        // Only the main deck has end-wall openings (width, height above MainY), centred in the +Z
-        // public corridor beside the access ladder. Lower and upper decks are closed at car ends.
+        // Both the middle and technical decks have aligned, narrow inter-car passages.
+        // The technical deck is accessed vertically only from the locomotive's service ladder.
+        // Upper/accommodation car ends remain sealed.
         public static readonly Vector2 MainEndOpening = new Vector2(1.30f, 2.60f);
-        public const float EndDoorCenterZ = 2.55f; // opening Z 1.90..3.20; door parks toward +Z
+        public static readonly Vector2 LowerEndOpening = new Vector2(1.30f, 2.60f);
+        public const float EndDoorCenterZ = 2.55f; // opening Z 1.90..3.20; doors park toward +Z
 
         public const float WindowBottom = 1.20f;
         public const float WindowTop = 2.52f;

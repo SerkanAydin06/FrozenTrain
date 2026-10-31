@@ -156,10 +156,11 @@ namespace FrozenTrain.EditorTools
 
         private static void StripVestibule(Transform root)
         {
-            // Short main-deck gangway: floor, bellows, roof and coupler only. One faint invisible
-            // light keeps the 0.8 m passage readable between the two car doors.
+            // Independent middle/technical gangways, with a low-intensity fill
+            // at each level so the new service connection is also readable.
             Transform lightGroup = MakeGroup(root, "__MinimalVisibility");
             AddLight(lightGroup, new Vector3(0f, L.MainTop + 2.10f, L.EndDoorCenterZ), .55f, 2.6f);
+            AddLight(lightGroup, new Vector3(0f, L.LowerTop + 2.00f, L.EndDoorCenterZ), .60f, 2.7f);
         }
 
         private static void StripDoorDecorations(Transform root)
@@ -190,10 +191,12 @@ namespace FrozenTrain.EditorTools
                     hit.size = new Vector3(width, height, .10f);
                     // The door parks against its adjacent partition, within
                     // the car footprint and outside the clear opening.
-                    // Slide toward the car centre: never across the rear stair-landing opening.
-                    float direction = x > .1f ? -1f : 1f;
+                    // All cabin leaves retract toward the train rear (+X),
+                    // including rooms before the midpoint. Keep their leaf
+                    // slightly toward the hall to clear the rear landing divider.
+                    door.localPosition += new Vector3(0f, 0f, -side * .075f);
                     door.gameObject.AddComponent<SlidingDoor>().Configure(
-                        new Vector3(direction * (width + .025f), 0f, 0f), 2.6f);
+                        new Vector3(width + .025f, 0f, 0f), 2.6f);
                 }
         }
 
@@ -331,7 +334,7 @@ namespace FrozenTrain.EditorTools
                 // intruding through the train side wall or its windows.
                 Solid(exterior, "LowerExteriorSill",
                     new Vector3(0f, -2.73f, side * (L.HalfW + .145f)),
-                    new Vector3(L.CarLength - .50f, .16f, .075f), dark);
+                    new Vector3(L.CarLength - 1.10f, .16f, .075f), dark);
 
                 foreach (float bogieX in new[] { -L.HalfL + 3f, L.HalfL - 3f })
                     foreach (float axleOffset in new[] { -.70f, .70f })

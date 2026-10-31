@@ -217,6 +217,29 @@ namespace FrozenTrain.DevTools
                 new Vector3(-full.extents.x - 12f, full.extents.y * .50f, -full.extents.z - 8f),
                 center + Vector3.left * (full.extents.x * .72f), 65f);
 
+            // Lower-level coupling seams: the old full-width lower hull appeared
+            // merged in distant views. Capture each joint at a closer distance
+            // for assessing clearance, bellows and side-body separation.
+            Transform[] joints = train.Cast<Transform>()
+                .Where(t => t.name.StartsWith("CarConnector", StringComparison.Ordinal))
+                .OrderBy(t => t.position.x).ToArray();
+            for (int joint = 0; joint < joints.Length; joint++)
+            {
+                Vector3 p = joints[joint].position;
+                Vector3 sideEye = p + new Vector3(-2.5f, L.LowerTop + 1.30f,
+                    -L.HalfW - 5.2f);
+                Add(result, "alt_dis_ayrim_" + (joint + 1),
+                    "Teknik seviye – vagon alt gövde ayrımı " + (joint + 1),
+                    sideEye, p + new Vector3(0f, L.LowerTop + 1.15f, 0f), 62f);
+
+                Vector3 passageEye = p + new Vector3(-1.9f, L.LowerTop + EyeHeight,
+                    L.EndDoorCenterZ);
+                if (TrySafeEye(passageEye, out Vector3 safe))
+                    Add(result, "teknik_gecis_" + (joint + 1),
+                        "Alt katlar arası teknik geçiş " + (joint + 1),
+                        safe, p + new Vector3(1.25f, L.LowerTop + 1.40f, L.EndDoorCenterZ), 72f);
+            }
+
             for (int i = 0; i < cars.Length; i++)
                 AddCarViews(result, cars[i], i + 1);
 
@@ -239,7 +262,7 @@ namespace FrozenTrain.DevTools
             {
                 if (!TryDoorView(doors[i], out Vector3 eye, out Vector3 target)) continue;
                 Add(result, "kapi_" + (++doorNumber).ToString("00"),
-                    doors[i].name + " yüzey kontrolü", eye, target, 62f);
+                    doors[i].name + " – kapı ve çevre açıklığı", eye, target, 72f);
             }
             return result;
         }
@@ -308,7 +331,7 @@ namespace FrozenTrain.DevTools
             target = b.center;
             float eyeY = b.min.y + EyeHeight;
 
-            foreach (float distance in new[] { 1.70f, 1.30f, 2.20f, .95f })
+            foreach (float distance in new[] { 2.80f, 2.25f, 3.20f, 1.70f })
                 foreach (float sign in new[] { 1f, -1f })
                 {
                     Vector3 candidate = b.center + normal * sign * distance;
