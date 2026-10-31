@@ -17,7 +17,8 @@ namespace FrozenTrain.DevTools
     {
         // New installations capture automatically on every Editor Play.
         // User opt-out persists via EditorPrefs.
-        private const string CapturePreference = "FrozenTrain.CaptureScreenshotsOnPlay";
+        // V2 preference enables capture even if the prior opt-in toggle was saved as false.
+        private const string CapturePreference = "FrozenTrain.CaptureScreenshotsOnPlay.V2";
         private const string CaptureMenu = "Tools/FrozenTrain/Capture Screenshots on Play";
         private static bool Enabled => UnityEditor.EditorPrefs.GetBool(CapturePreference, true);
 

@@ -96,11 +96,11 @@ Legacy note: `FrozenTrainUpperDeckCirculation.cs`, `FrozenTrainUpperDeckFinalPol
 Use the project skills when their descriptions match the task.
 
 ## Visual review loop
-- Screenshot capture is OFF during normal Play. Opt in via `Tools > FrozenTrain > Capture Screenshots on Play` in the Unity Editor before collecting QA captures; disable it again afterward. The editor-only capture script is `Assets/Scripts/DevTools/TrainScreenshotCapture.cs`.
-- Car views remain `vagonN_katK.jpg`, `_ters`, `_bolme`, `_oda` where relevant.
-- New vestibule QA views are `gecisN_kat2.jpg`, `gecisN_merdiven.jpg`, `gecisN_kat3.jpg`, `gecisN_kat1.jpg` for N=1..4.
+- Screenshot capture is ON by default during every Editor Play of `FPSPrototype`. Turn it off via `Tools > FrozenTrain > Capture Screenshots on Play`. The V2 EditorPrefs key intentionally migrates old opt-in OFF states. `Assets/Scripts/DevTools/TrainScreenshotCapture.cs` uses a separate camera and scene-object-driven car/deck, ladder, connector and door views, not static screenshot coordinates. It removes old JPG/PNG snapshots before creating the latest set; do not accumulate archived copies.
+- Car views use `vagonN_katK.jpg`, `_ters` as applicable; adaptive extras use `gecisN_*`, `kapi_*` and `tren_dis_*`. Capture positions depend on current visible geometry and collision safety.
+- Vestibule QA views are dynamically named `gecisN_lowerfloor`, `gecisN_mainfloor`, `gecisN_upperfloor`, `gecisN_upperladder`, `gecisN_lowerladder` where geometry exists. All images are 1600x900 JPG quality 92 (max 60 per run).
 - `Docs/Screenshots/README.md` lists capture time, labels and camera positions.
-- When `Docs/Screenshots/**` is pushed to `main`, `.github/workflows/screenshots-artifact.yml` uploads the whole screenshot set as a `frozen-train-screenshots-<commit>` GitHub Actions artifact for binary visual review.
+- Running Editor Play writes screenshots only to local `Docs/Screenshots/`; they become visible to a remote GitHub review **only after committing/pushing that folder**. The GitHub Actions workflow uploads a CI artifact when pushed. Do not claim that local Play automatically syncs captures to GitHub. Git commit history can retain prior image revisions despite latest-only files in the working tree.
 - For visual tasks, inspect the newest screenshot artifact when available; otherwise do not claim pixel-level visual review.
-- The newest checked screenshot set has capture timestamp 2026-10-30 23:07:41 and predates the current wall-ladder/minimal-exterior changes. Never describe it as a confirmed screenshot of the current build. Request fresh Unity captures after rebuild for actual visual QA.
+- The latest known pushed screenshot set has capture timestamp 2026-10-30 23:07:41 and predates the wall-ladder/minimal-exterior changes. Do not treat it as current until newly generated images are pushed.
 - Compare affected views against the previous screenshot set when judging visual changes.

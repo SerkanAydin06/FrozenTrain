@@ -75,3 +75,11 @@
 - `PC_RPAsset.asset`: MSAA 1→4. `FrozenTrainBuilder.cs`: mevcut/yeniden oluşturulan oyuncu kamerasında SMAA High ve MSAA, near clip 0.04→0.10, far clip 260→220. Render dokümanlarına göre MSAA polygon kenarlarını, trilinear+mipmap/anisotropic filtreleme uzak/oblik doku taramasını azaltır; üst üste binen tam eşdüzlemsel geometriyi tek başına gidermez.
 - Commit: `18a8521c39263db7bcec0859a09a2d14613b4544`.
 - **Unity kontrolü hâlâ gerekli:** `Frozen Train > Rebuild Authored Train` → `Ctrl+S`; özellikle geçişlerde merdiven uzunluğu, zemin/duvar titreşimi, ve hareket esnasındaki aliasing'i Play Mode'da kontrol et. Yeni ekran görüntülerini tarihle kaydet. Bu ortamda Unity derlemesi/render doğrulaması yapılmadı.
+
+## 2026-10-31 — Varsayılan açık, adaptif QA ekran görüntüleri
+- `Assets/Scripts/DevTools/TrainScreenshotCapture.cs` yeniden düzenlendi: `Tools > FrozenTrain > Capture Screenshots on Play` yeni `EditorPrefs` V2 anahtarıyla varsayılan AÇIK; kullanıcı isterse menüden kapatabilir. Sadece `FPSPrototype` Editor Play modunda devreye girer.
+- Önceki sabit kamera pozisyonları kaldırıldı. Kamera planı sahnedeki gerçek tren/vagon gövde render bounds, fiziksel zemin isimleri, vagon geçişleri, işlevsel `UpperLadder`/`LowerLadder` ve örnek kapılardan üretilir. Fiziksel olarak duvara gömülen kamera noktaları alternatif konumlarla denenir; bulunamazsa görüntü atlanır. Bu, harici yapay zekâ model çağrısı değil, geometriye duyarlı algoritmik seçimdir.
+- FPS oyuncu kamerasını oynatmayan ayrı `Camera`, otomatik 1600×900 JPEG kalite 92; bir çalışmada en fazla 60 fotoğraf. Oyuncu kontrolleri kapatılmaz. Eski JPG/PNG her çalıştırma başında silinir, `Docs/Screenshots/README.md` son çekimin tarihini ve görüntü noktalarını içerir. Tarihli arşiv oluşturulmaz.
+- Değişiklik commit'i: `6d755be01c5186007419347c5e86bbbbdb4467cb` (+ bu V2 ayarı ve dokümantasyon güncellemesi).
+- **Sınır:** Görseller Play sırasında yerel klasörde oluşur; otomatik GitHub'a yüklenmez. Asistanın uzaktan görebilmesi için sadece en güncel `Docs/Screenshots/` dosyaları commit/push edilmelidir. Git geçmişindeki eski commitlerin görüntü sürümleri kalabilir; yalnızca güncel klasör tek set tutar.
+- Kaynak statik kontrolü yapıldı; gerçek Unity Editor Play Mode veya kamera render doğrulaması bu oturumda çalıştırılamadı.
