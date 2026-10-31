@@ -91,7 +91,7 @@ namespace FrozenTrain.EditorTools
             RefreshAuthoredSceneInstances();
             AssetDatabase.Refresh();
             Debug.Log("[FrozenTrain] Minimal interiors: removed " + removed +
-                      " nonessential objects from five cars and the inter-car vestibule prefab. " +
+                      " nonessential objects from five cars and the two-level gangway connector prefab. " +
                       "Shells, windows, plain doors, climbable ladders and basic invisible lighting remain.");
         }
 

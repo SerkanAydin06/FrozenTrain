@@ -481,7 +481,9 @@ namespace FrozenTrain.EditorTools
             // ladders. The rear edge already faces the solid end bulkhead;
             // leave the approach side completely open for the CharacterController.
             // Do not generate the former HatchGuardRail/HatchGuardPost cage.
-
+            // Exit coordinates are authored in car-local space. Translate them
+            // to ladder-local space so the E interaction lands on the deck.
+            Vector3 origin = ladder.localPosition;
             Transform low = Empty(ladder, "LowerExit", lowExit - origin);
             Transform high = Empty(ladder, "UpperExit", highExit - origin);
             ladder.gameObject.AddComponent<DeckLadder>().Configure(low, high, upText, downText);
