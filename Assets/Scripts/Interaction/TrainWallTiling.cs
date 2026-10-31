@@ -34,8 +34,6 @@ namespace FrozenTrain.Visuals
                 if (insideFace)
                 {
                     span = Mathf.Abs(t.lossyScale.x);
-                    bool sideWall = Mathf.Abs(t.position.z) >= Mathf.Abs(t.position.x) &&
-                        (renderer.name.Contains("Side") || renderer.name.Contains("CabFront") == false);
                     // End pieces have Z as their horizontal world axis.
                     bool endWall = renderer.name.Contains("Front") || renderer.name.Contains("Rear");
                     axisPosition = endWall ? t.position.z : t.position.x;

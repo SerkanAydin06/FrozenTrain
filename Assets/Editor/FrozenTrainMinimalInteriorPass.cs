@@ -251,6 +251,7 @@ namespace FrozenTrain.EditorTools
 
         private static void AssignBaselineMaterials(Transform root)
         {
+            Transform hull = root.Find("Shell");
             foreach (Renderer r in root.GetComponentsInChildren<Renderer>(true))
             {
                 if (r is ParticleSystemRenderer) continue;
@@ -273,7 +274,7 @@ namespace FrozenTrain.EditorTools
                          n.Contains("Bracket") || n.Contains("Mount") ||
                          n.Contains("Sill"))
                     r.sharedMaterial = metalSlot;
-                else if (r.transform.IsChildOf(root.Find("Shell")) &&
+                else if (hull != null && r.transform.IsChildOf(hull) &&
                          IsHullWallPiece(n))
                     r.sharedMaterial = bodySlot;
                 else if (n == "Roof" || n.Contains("GangwayRoof"))
@@ -345,7 +346,9 @@ namespace FrozenTrain.EditorTools
                         Quaternion.Euler(0f, sign > 0f ? -90f : 90f, 0f);
                     plane.transform.localScale = new Vector3(size.z, size.y, 1f);
                 }
-                plane.GetComponent<MeshRenderer>().sharedMaterial = wallSlot;
+                MeshRenderer faceRenderer = plane.GetComponent<MeshRenderer>();
+                faceRenderer.sharedMaterial = wallSlot;
+                faceRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 Collider collider = plane.GetComponent<Collider>();
                 if (collider != null) UnityEngine.Object.DestroyImmediate(collider);
             }
