@@ -4,28 +4,12 @@ paths:
   - "Docs/FiveCarArchitecture.md"
   - "Docs/MainStreetArchitecture.md"
 ---
-# Train authoring rules
+# Train authoring — current
 
-- `FrozenTrainLayout.cs` remains the canonical dimensions/content source and `FrozenTrainBuilder.cs` remains the canonical generator. Final architecture/art passes may reorganize generated placement but must not duplicate gameplay state or interaction ownership.
-- E interactions are declared in the layout with `.Bind(...)` / `.AsTerminal()`. Architecture passes may move the bound root but must not recreate gameplay bindings by object name.
-- Keep exactly 5 usable cars unless the user explicitly changes that constraint.
-- **Permanent footprint:** every usable car is 24.0 m x 9.2 m and every inter-car vestibule is 4.0 m x 9.2 m. Car centres are 28.0 m apart.
-- There are exactly four inter-car vestibules between the five cars. Vestibules are circulation/service modules, not additional functional cars.
-- Lower deck: propulsion, generator, batteries, fuel, electric, water/waste, heating/HVAC, hydraulics, pumps and other technical infrastructure.
-- **Locomotive main deck is a full private cab. It has no public through-corridor.**
-- **Cars 2–5 use asymmetric circulation:** a straight public corridor runs only on the +Z/right side, approximately Z=1.90..4.40 (about 2.5 m wide, two-person passage).
-- The remaining left side of cars 2–5 is one opaque, closed functional compartment for that car's purpose.
-- Each functional compartment has exactly one centred corridor-facing staff/work-room door. Travelling passengers never cross the work room.
-- The public corridor envelope must stay free of furniture, machines, shelves, QA decoration, hydroponic props and production-art leftovers.
-- **No normal vertical circulation may consume usable car floor area.** Do not add residential ladders, stair towers, stair lobbies, technical access ladders or open stair hatches inside any of the five cars.
-- **All normal vertical circulation belongs in the four inter-car vestibules.** Each vestibule contains a right-side through passage and a separate left-side stair core with main-to-upper and lower-to-main flights.
-- Vestibule main-deck through passage must align with the +Z/right public corridor. The Generator-to-Locomotive vestibule enters the locomotive's private rear landing rather than continuing a corridor through the cab.
-- Vestibule upper landing doors open to shared residential hall space in the adjacent cars, never directly into a private cabin.
-- Vestibule lower landing doors open to the adjacent technical decks. Keep stair openings and guard rails inside the vestibule module only.
-- Upper car decks are private/local residential accommodation using the full 24 m footprint. They are not the primary long-distance transit route.
-- Keep the locomotive panoramic front glass and correct -X front orientation.
-- `FrozenTrainLongVestibuleArchitecture.cs` is the final circulation/layout authority after base corridor passes. Do not reintroduce old `FrozenTrainCirculationFinalizer` or in-car upper-ladder architecture into the rebuild chain.
-- `FrozenTrainLongLightingPass.cs` and `FrozenTrainLongExteriorPass.cs` own long-car lighting/exterior corrections that depend on the 24 m footprint.
-- Keep only one public `Frozen Train` menu command: `Rebuild Authored Train`.
-- When circulation geometry changes, update both `Docs/FiveCarArchitecture.md` and `Docs/MainStreetArchitecture.md` in the same change.
-- Before adding a new helper, search for an existing builder/helper and extend it when practical.
+- Fixed architecture unless explicitly changed: **5 × 24 × 9.2 m cars**, **4 × 4 × 9.2 m vestibules**, 3 decks, car spacing 28 m; front -X.
+- `FrozenTrainLayout.cs` owns dimensions; `FrozenTrainBuilder.cs` creates base; `FrozenTrainUnifiedAuthoring.cs` sequences passes. Final authoritative geometry cleanup/URP material slots + scene-instance refresh: `FrozenTrainMinimalInteriorPass.cs`. Do not make competing generators or add user-facing rebuild menu entries.
+- Locomotive main deck private. Cars 2–5: unobstructed **+Z corridor** (Z 1.90–4.40), left closed functional room with 1 corridor-facing door.
+- Vertical access: **exactly two wall-mounted E-interactive vertical ladders per vestibule**, no stair compartment/flight, no ladders or holes in usable car floors. Transit and doors stay clear; upper/lower vestibule landings connect corresponding decks.
+- Active visual mode **bare/untextured**: keep structural shell, windows, aligned functional doors, ladders, minimum lighting/exterior. Do not restore retired furniture, snow ornaments, hazard stripes or patterned textures.
+- Door panels match real opening geometry; no clipping outside walls. Preserve stable `SlidingDoor`, `DeckLadder`, `E` targets and persistent URP materials. Cabin doors must close.
+- Change source authoring, not generated prefab/scene YAML by hand. Update architecture docs **only for material architectural changes**. On geometry changes rebuild using `Frozen Train > Rebuild Authored Train` then save; review affected fresh screenshots when available.
