@@ -52,6 +52,9 @@ namespace FrozenTrain.EditorTools
                     int before = CountObjects(root.transform);
                     StripCar(root.transform);
                     AssignBaselineMaterials(root.transform);
+                    BuildInteriorWallFaces(root.transform);
+                    if (root.GetComponent<TrainWallTiling>() == null)
+                        root.AddComponent<TrainWallTiling>();
                     if (root.GetComponent<TrainFloorTiling>() == null)
                         root.AddComponent<TrainFloorTiling>();
                     removed += before - CountObjects(root.transform);
@@ -76,6 +79,8 @@ namespace FrozenTrain.EditorTools
                 int before = CountObjects(connector.transform);
                 StripVestibule(connector.transform);
                 AssignBaselineMaterials(connector.transform);
+                if (connector.GetComponent<TrainWallTiling>() == null)
+                    connector.AddComponent<TrainWallTiling>();
                 if (connector.GetComponent<TrainFloorTiling>() == null)
                     connector.AddComponent<TrainFloorTiling>();
                 removed += before - CountObjects(connector.transform);
@@ -215,9 +220,9 @@ namespace FrozenTrain.EditorTools
                 AssetDatabase.CreateFolder("Assets/Art/Materials", "TrainBaseline");
             }
 
-            // These are intentionally neutral URP/Lit PBR material slots with NO
-            // textures. A future texture pass can edit each material without
-            // changing any geometry or replacing references.
+            // Persistent URP/Lit material slots: exterior body and interior wall
+            // textures are now enabled. The other slots stay independent.
+            // Existing materials are never reset during a rebuild.
             bodySlot = BaselineSlot("01_Body", new Color(.40f, .43f, .47f));
             wallSlot = BaselineSlot("02_Walls", new Color(.55f, .57f, .60f));
             floorSlot = BaselineSlot("03_Floors", new Color(.35f, .37f, .40f));
@@ -268,11 +273,81 @@ namespace FrozenTrain.EditorTools
                          n.Contains("Bracket") || n.Contains("Mount") ||
                          n.Contains("Sill"))
                     r.sharedMaterial = metalSlot;
+                else if (r.transform.IsChildOf(root.Find("Shell")) &&
+                         IsHullWallPiece(n))
+                    r.sharedMaterial = bodySlot;
+                else if (n == "Roof" || n.Contains("GangwayRoof"))
+                    r.sharedMaterial = metalSlot;
                 else if (n.Contains("Wall") || n.Contains("Divider") ||
                          n.Contains("Lintel") || n.Contains("Header") ||
-                         n.Contains("Roof") || n.Contains("Partition"))
+                         n.Contains("Partition"))
                     r.sharedMaterial = wallSlot;
                 else r.sharedMaterial = bodySlot;
+            }
+        }
+
+
+        private static bool IsHullWallPiece(string n)
+        {
+            return n.StartsWith("LowerSide", StringComparison.Ordinal) ||
+                   n.StartsWith("MainSide", StringComparison.Ordinal) ||
+                   n.StartsWith("UpperSide", StringComparison.Ordinal) ||
+                   n.StartsWith("LowerFront", StringComparison.Ordinal) ||
+                   n.StartsWith("LowerRear", StringComparison.Ordinal) ||
+                   n.StartsWith("MainFront", StringComparison.Ordinal) ||
+                   n.StartsWith("MainRear", StringComparison.Ordinal) ||
+                   n.StartsWith("UpperFront", StringComparison.Ordinal) ||
+                   n.StartsWith("UpperRear", StringComparison.Ordinal) ||
+                   n.StartsWith("CabFront", StringComparison.Ordinal);
+        }
+
+        private static void BuildInteriorWallFaces(Transform root)
+        {
+            // Cubes have a single material for both sides. Add thin, collider-free
+            // planes slightly inside the solid shell so inside/outside can use
+            // separate PBR textures without blocking window/door cutouts.
+            Transform shell = root.Find("Shell");
+            if (shell == null) return;
+            Transform previous = shell.Find("__InteriorWallFaces");
+            if (previous != null) UnityEngine.Object.DestroyImmediate(previous.gameObject);
+
+            Transform group = MakeGroup(shell, "__InteriorWallFaces");
+            foreach (Transform source in shell.Cast<Transform>().ToArray())
+            {
+                if (!IsHullWallPiece(source.name)) continue;
+                if (source.name.StartsWith("CabFrontEdge", StringComparison.Ordinal)) continue;
+                Vector3 p = source.localPosition;
+                Vector3 size = source.localScale;
+                bool side = Mathf.Abs(p.z) > L.HalfW - .30f &&
+                            size.z <= L.WallT + .11f && size.y > .25f;
+                bool end = Mathf.Abs(p.x) > L.HalfL - .30f &&
+                           size.x <= L.WallT + .11f && size.y > .25f;
+                if (!side && !end) continue;
+
+                GameObject plane = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                plane.name = "__InsideFace_" + source.name;
+                plane.transform.SetParent(group, false);
+                if (side)
+                {
+                    float sign = Mathf.Sign(p.z);
+                    plane.transform.localPosition = new Vector3(
+                        p.x, p.y, p.z - sign * (size.z * .5f + .012f));
+                    plane.transform.localRotation =
+                        Quaternion.Euler(0f, sign > 0f ? 180f : 0f, 0f);
+                    plane.transform.localScale = new Vector3(size.x, size.y, 1f);
+                }
+                else
+                {
+                    float sign = Mathf.Sign(p.x);
+                    plane.transform.localPosition = new Vector3(
+                        p.x - sign * (size.x * .5f + .012f), p.y, p.z);
+                    plane.transform.localRotation =
+                        Quaternion.Euler(0f, sign > 0f ? -90f : 90f, 0f);
+                    plane.transform.localScale = new Vector3(size.z, size.y, 1f);
+                }
+                plane.GetComponent<MeshRenderer>().sharedMaterial = wallSlot;
+                Collider collider = plane.GetComponent<Collider>();
+                if (collider != null) UnityEngine.Object.DestroyImmediate(collider);
             }
         }
 

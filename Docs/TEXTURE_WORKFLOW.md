@@ -28,3 +28,9 @@ Not: Bu aşama malzeme atama altyapısını hazırlıyor; UV unwrap, bake ve fin
 - `TrainFloorTiling` tüm zeminlerin URP tiling/offset değerini 2.50 m gerçek dünya ölçeğinde tutar; malzeme paylaşılır, kapılar, duvarlar ve diğer yüzeyler dokusuz kalır.
 - Daha yüksek çözünürlükte değerlendirmek için aynı asset yolundaki görseli orijinal PNG ile değiştirmek yeterlidir. `03_Floors.mat` ve 5 PBR slotunun GUID'lerini değiştirme.
 - `Frozen Train > Rebuild Authored Train` ve Play → en güncel screenshotları GitHub'a push et. Unity derlemesi/render testi bu ortamda yapılamadı.
+
+## Duvar dokuları — ilk oyun içi önizleme (2026-10-31)
+- Oluşturulan metal panel görsellerinin sıkıştırılmış **96×96 JPG önizlemeleri** eklendi. İç: `Assets/Art/Textures/Walls/FT_Wall_Interior_Preview.jpg` → `02_Walls.mat`. Dış: `FT_Wall_Exterior_Preview.jpg` → `01_Body.mat`. Bu, düşük çözünürlüklü yerleşim testidir; nihai 1254px kaynaklar henüz depoya aktarılmadı.
+- Yapısal dış duvar küplerinin tamamı dış PBR kaporta malzemesini kullanıyor. `BuildInteriorWallFaces` sadece dolu panel parçalarının iç yüzeyine pencere/kapı açıklıklarını kapatmayan **kolidersiz Quad** ekliyor; iç yüzeylere `02_Walls` atanıyor. İç bölmelerde de `02_Walls` kullanılıyor.
+- `TrainWallTiling` malzeme bazlı UV tiling ayarlarını panellerin genişliği/yüksekliği ve konumuna göre yapıyor; hedef 3.0 m/tile. Sabit materyal dosyaları yeniden üretimde silinmez. Cam ve kapı etkileşimleri korunur.
+- İlk Unity testi: `Frozen Train > Rebuild Authored Train` → Play → iç ve dış yanları, pencere açıklıklarını, panel birleşim yerlerini ve kapıları kontrol et. 96 px çözünürlük nihai kalite değildir.
