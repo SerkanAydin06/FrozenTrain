@@ -25,12 +25,12 @@ namespace FrozenTrain.EditorTools
             FrozenTrainMainStreetSafety.Apply();
             FrozenTrainLongVestibuleArchitecture.Apply();
             FrozenTrainLongLightingPass.Apply();
-            FrozenTrainLongExteriorPass.Apply();
+            // The minimal exterior pass replaces bulky legacy roof/nose dressing.
             FrozenTrainPost24ScreenshotPolish.Apply();
             // Skip the legacy stair tread/stringer pass: only ladders remain.
             FrozenTrainMinimalInteriorPass.Apply();
             AssetDatabase.Refresh();
-            Debug.Log("FrozenTrain rebuilt: five minimal car shells, plain doors and eight functional vertical ladders across four vestibules.");
+            Debug.Log("FrozenTrain rebuilt: clean five-car exterior, open vestibules and eight wall-mounted ladders.");
         }
     }
 }

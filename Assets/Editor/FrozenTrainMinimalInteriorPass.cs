@@ -60,8 +60,7 @@ namespace FrozenTrain.EditorTools
                 Transform shell = connector.transform.Find("VestibuleShell");
                 if (shell == null ||
                     shell.Find("UpperLadder")?.GetComponent<DeckLadder>() == null ||
-                    shell.Find("LowerLadder")?.GetComponent<DeckLadder>() == null ||
-                    shell.Find("StairCoreDoor")?.GetComponent<SlidingDoor>() == null)
+                    shell.Find("LowerLadder")?.GetComponent<DeckLadder>() == null)
                     throw new InvalidOperationException("The vestibule ladders or door are missing. Simplification aborted.");
 
                 int before = CountObjects(connector.transform);
@@ -89,9 +88,14 @@ namespace FrozenTrain.EditorTools
                 switch (child.name)
                 {
                     case "Shell":
+                        // Keep just the load-bearing body, floors, walls, windows, roof and bogies.
+                        break;
+
                     case "ExteriorDressing":
                     case "__LongExteriorV1":
-                        // Structural floors, walls, windows, roof, wheels and outside trim.
+                        // Snow drifts, icicles, duplicate wheels, roof chamfers, raised
+                        // exterior bands and nose ornaments are intentionally discarded.
+                        UnityEngine.Object.DestroyImmediate(child.gameObject);
                         break;
 
                     case "UpperSleepingDeck":
@@ -118,10 +122,9 @@ namespace FrozenTrain.EditorTools
                         break;
 
                     case "__ProductionArtV2":
-                        // Exterior work stays; keep only the doorway parts from the
-                        // old upstairs art pass, not the furniture or its decorations.
-                        KeepChildren(child, t => t.name == "ExteriorProductionDetails" ||
-                            t.name == "UpperAccommodationDetails");
+                        // Strip the former exterior detail layer too: some wide trim
+                        // pieces crossed the hull outline or overlapped the interior.
+                        KeepChildren(child, t => t.name == "UpperAccommodationDetails");
                         Transform doors = child.Find("UpperAccommodationDetails");
                         if (doors != null)
                         {
@@ -139,6 +142,7 @@ namespace FrozenTrain.EditorTools
             }
 
             StripDoorDecorations(root);
+            AddMinimalExterior(root, root.name == L.Cars[0].Name);
             AddInvisibleLighting(root);
         }
 
@@ -148,8 +152,8 @@ namespace FrozenTrain.EditorTools
             {
                 if (child.name == "VestibuleShell")
                 {
-                    // Keep only the shell, walkable deck tiles, actual doors,
-                    // partition around the ladder door and two upright ladders.
+                    // Open vestibule: keep the shell, decks, passage doors and
+                    // two ladders, without the former enclosed stair room.
                     KeepChildren(child, t =>
                     {
                         string n = t.name;
@@ -159,8 +163,6 @@ namespace FrozenTrain.EditorTools
                             n == "Roof" || n == "RoofSnow" ||
                             n == "OuterWallL" || n == "OuterWallR" ||
                             n == "VestibuleUnderframe" ||
-                            n == "StairPartitionA" || n == "StairPartitionB" ||
-                            n == "StairDoorHeader" || n == "StairCoreDoor" ||
                             n == "MainVestibuleDoorFront" || n == "MainVestibuleDoorRear" ||
                             n == "UpperDoorFront" || n == "UpperDoorRear" ||
                             n == "TechnicalDoorFront" || n == "TechnicalDoorRear" ||
@@ -187,6 +189,94 @@ namespace FrozenTrain.EditorTools
             // sign and ornamental header attached to it is removed.
             foreach (SlidingDoor door in root.GetComponentsInChildren<SlidingDoor>(true))
                 KeepChildren(door.transform, part => part.name == "DoorPanel");
+        }
+
+        private static void AddMinimalExterior(Transform root, bool locomotive)
+        {
+            // Geometry is entirely outside the structural side-wall face (+/-4.7 m).
+            // No duplicate roof ornaments, oversized nose pieces or snow clutter.
+            Transform exterior = MakeGroup(root, "__MinimalExteriorV1");
+            Material dark = AssetDatabase.LoadAssetAtPath<Material>(
+                "Assets/Art/Materials/TrainProduction/FT_PRO_Frame.mat");
+            Material steel = AssetDatabase.LoadAssetAtPath<Material>(
+                "Assets/Art/Materials/TrainProduction/FT_PRO_BrushedSteel.mat");
+            Material body = AssetDatabase.LoadAssetAtPath<Material>(
+                "Assets/Art/Materials/TrainProduction/FT_PRO_Exterior.mat");
+            Material lens = AssetDatabase.LoadAssetAtPath<Material>(
+                "Assets/Art/Materials/TrainProduction/FT_PRO_WhiteEnamel.mat");
+            if (dark == null || steel == null || body == null || lens == null)
+                throw new InvalidOperationException(
+                    "Exterior materials missing. Run the unified production build before minimal cleanup.");
+
+            foreach (float side in new[] { -1f, 1f })
+            {
+                // Thin understated sill along each exterior lower side, without
+                // intruding through the train side wall or its windows.
+                Solid(exterior, "LowerExteriorSill",
+                    new Vector3(0f, -2.73f, side * (L.HalfW + .145f)),
+                    new Vector3(L.CarLength - .50f, .16f, .075f), dark);
+
+                foreach (float bogieX in new[] { -L.HalfL + 3f, L.HalfL - 3f })
+                    foreach (float axleOffset in new[] { -.70f, .70f })
+                    {
+                        // Actual round train wheels, below the passenger floors.
+                        float x = bogieX + axleOffset;
+                        float y = L.RailTopY + .44f;
+                        float z = side * (L.HalfW + .14f);
+                        Wheel(exterior, "Wheel", new Vector3(x, y, z), .94f, .17f, dark);
+                        Wheel(exterior, "Hub", new Vector3(x, y, z + side * .105f),
+                            .32f, .025f, steel);
+                    }
+            }
+
+            if (!locomotive) return;
+
+            // Simple closed nose, completely in front of the cab bulkhead (-X).
+            Solid(exterior, "LocomotiveLowerNose",
+                new Vector3(-L.HalfL - .43f, .29f, 0f),
+                new Vector3(.82f, .62f, 7.55f), body);
+            foreach (float z in new[] { -3.05f, 3.05f })
+            {
+                Solid(exterior, "Headlamp",
+                    new Vector3(-L.HalfL - .86f, .48f, z),
+                    new Vector3(.055f, .26f, .34f), lens);
+                GameObject lightObject = new GameObject("HeadlampLight");
+                lightObject.transform.SetParent(exterior, false);
+                lightObject.transform.localPosition = new Vector3(-L.HalfL - .91f, .48f, z);
+                lightObject.transform.localRotation = Quaternion.LookRotation(Vector3.left);
+                Light light = lightObject.AddComponent<Light>();
+                light.type = LightType.Spot;
+                light.range = 55f;
+                light.spotAngle = 38f;
+                light.intensity = 3.2f;
+                light.color = new Color(.94f, .96f, 1f);
+                light.shadows = LightShadows.None;
+            }
+        }
+
+        private static void Wheel(Transform parent, string name, Vector3 position,
+            float diameter, float thickness, Material material)
+        {
+            GameObject wheel = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            wheel.name = name;
+            wheel.transform.SetParent(parent, false);
+            wheel.transform.localPosition = position;
+            wheel.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            wheel.transform.localScale = new Vector3(diameter, thickness * .5f, diameter);
+            wheel.GetComponent<Renderer>().sharedMaterial = material;
+            UnityEngine.Object.DestroyImmediate(wheel.GetComponent<Collider>());
+        }
+
+        private static void Solid(Transform parent, string name, Vector3 position,
+            Vector3 size, Material material)
+        {
+            GameObject piece = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            piece.name = name;
+            piece.transform.SetParent(parent, false);
+            piece.transform.localPosition = position;
+            piece.transform.localScale = size;
+            piece.GetComponent<Renderer>().sharedMaterial = material;
+            UnityEngine.Object.DestroyImmediate(piece.GetComponent<Collider>());
         }
 
         private static void AddInvisibleLighting(Transform root)

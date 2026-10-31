@@ -30,14 +30,13 @@ namespace FrozenTrain.EditorTools
         private const float WorkDoorWidth = 1.45f;
         private const float WorkDoorHeight = 2.34f;
 
-        private const float StairDoorWidth = 1.30f;
         private const float UpperStairX = -.82f;
         private const float LowerStairX = .82f;
-        // Compact ladder openings replace the former full-length staircase voids.
-        private const float LadderHoleNearZ = -1.30f;
-        private const float LadderHoleFarZ = -.20f;
-        private const float LadderZ = -.65f;
-        private const float LandingZ = .44f;
+        // Side-wall ladder locations. The outer wall inner surface is z = -HalfW + .10.
+        private const float LadderHoleNearZ = -L.HalfW + .10f;
+        private const float LadderHoleFarZ = -L.HalfW + 1.55f;
+        private const float LadderZ = -L.HalfW + .30f;
+        private const float LandingZ = -L.HalfW + 1.92f;
 
         private sealed class Mats
         {
@@ -376,28 +375,12 @@ namespace FrozenTrain.EditorTools
 
         private static void BuildMainTransit(Transform p, Mats m)
         {
-            float wallY = L.MainTop + (MainCeilingY - L.MainTop) * .5f;
-            float wallH = MainCeilingY - L.MainTop;
-            float halfDoor = StairDoorWidth * .5f;
-            float xMin = -L.VestibuleLength * .5f + .08f;
-            float xMax = L.VestibuleLength * .5f - .08f;
-            Cube(p, "StairPartitionA", new Vector3((xMin - halfDoor) * .5f, wallY, PartitionZ),
-                new Vector3((-halfDoor) - xMin, wallH, .16f), m.Wall, true);
-            Cube(p, "StairPartitionB", new Vector3((halfDoor + xMax) * .5f, wallY, PartitionZ),
-                new Vector3(xMax - halfDoor, wallH, .16f), m.Wall, true);
-            Cube(p, "StairDoorHeader", new Vector3(0f, L.MainTop + 2.35f + .28f, PartitionZ),
-                new Vector3(StairDoorWidth, .56f, .16f), m.Frame, true);
-
-            Transform stairDoor = Group(p, "StairCoreDoor");
-            stairDoor.localPosition = new Vector3(0f, L.MainTop + 1.14f, PartitionZ - .02f);
-            Cube(stairDoor, "DoorPanel", Vector3.zero, new Vector3(StairDoorWidth - .06f, 2.22f, .09f), m.Frame, false);
-            stairDoor.gameObject.AddComponent<BoxCollider>().size = new Vector3(StairDoorWidth, 2.28f, .22f);
-            stairDoor.gameObject.AddComponent<SlidingDoor>().Configure(new Vector3(1.46f, 0f, 0f), 2.6f);
-
-            BuildEndSlidingDoor(p, "MainVestibuleDoorFront", -L.VestibuleLength * .5f + .055f, L.MainTop + 1.22f,
-                CorridorCenterZ, 2.40f, m, -2.22f);
-            BuildEndSlidingDoor(p, "MainVestibuleDoorRear", L.VestibuleLength * .5f - .055f, L.MainTop + 1.22f,
-                CorridorCenterZ, 2.40f, m, -2.22f);
+            // Shared open vestibule: no separate stair room, internal partition,
+            // overhead header or additional stair-core door.
+            BuildEndSlidingDoor(p, "MainVestibuleDoorFront", -L.VestibuleLength * .5f + .055f,
+                L.MainTop + 1.22f, CorridorCenterZ, 2.40f, m, -2.22f);
+            BuildEndSlidingDoor(p, "MainVestibuleDoorRear", L.VestibuleLength * .5f - .055f,
+                L.MainTop + 1.22f, CorridorCenterZ, 2.40f, m, -2.22f);
         }
 
         private static void BuildLadderCore(Transform p, Mats m)
@@ -414,30 +397,39 @@ namespace FrozenTrain.EditorTools
             float lowY, float highY, string upText, string downText, Mats m)
         {
             Transform ladder = Group(parent, name);
+            // Both rails face the open room and are mechanically tied into the -Z wall.
             ladder.localPosition = new Vector3(x, 0f, LadderZ);
-            float height = highY - lowY;
-            float midY = (lowY + highY) * .5f;
+            const float railHalfWidth = .30f;
+            float railBottom = lowY + .03f;
+            float railTop = highY + 1.08f; // accessible handhold from the upper landing
 
-            // Two straight vertical rails and evenly spaced horizontal rungs.
-            // Collider hits resolve to the parent DeckLadder for E interaction.
             foreach (float side in new[] { -1f, 1f })
-                Cube(ladder, "LadderRail", new Vector3(side * .30f, midY, 0f),
-                    new Vector3(.075f, height + .30f, .075f), m.Frame, true);
+            {
+                Cube(ladder, "LadderRail",
+                    new Vector3(side * railHalfWidth, (railBottom + railTop) * .5f, 0f),
+                    new Vector3(.075f, railTop - railBottom, .075f), m.Frame, true);
 
-            int rungCount = Mathf.Max(8, Mathf.CeilToInt(height / .30f));
+                // Small support arms enter the side wall, rather than a floating ladder.
+                foreach (float y in new[] { lowY + .75f, highY - .25f })
+                    Cube(ladder, "WallMount",
+                        new Vector3(side * railHalfWidth, y, -.11f),
+                        new Vector3(.085f, .09f, .26f), m.Frame, false);
+            }
+
+            int rungCount = Mathf.Max(8, Mathf.CeilToInt((highY - lowY) / .30f));
             for (int i = 0; i < rungCount; i++)
             {
-                float t = rungCount == 1 ? .5f : i / (float)(rungCount - 1);
-                float y = Mathf.Lerp(lowY + .25f, highY - .23f, t);
-                Cube(ladder, "LadderRung", new Vector3(0f, y, -.035f),
+                float ratio = i / (float)(rungCount - 1);
+                float y = Mathf.Lerp(lowY + .25f, highY - .23f, ratio);
+                Cube(ladder, "LadderRung", new Vector3(0f, y, .06f),
                     new Vector3(.61f, .055f, .075f), m.Steel, true);
             }
 
+            // Exit anchors stand on intact deck outside the narrow hatch cutouts.
             Transform lowerExit = Group(ladder, "LowerExit");
             lowerExit.localPosition = new Vector3(0f, lowY + .06f, LandingZ - LadderZ);
             Transform upperExit = Group(ladder, "UpperExit");
             upperExit.localPosition = new Vector3(0f, highY + .06f, LandingZ - LadderZ);
-
             ladder.gameObject.AddComponent<DeckLadder>().Configure(
                 lowerExit, upperExit, upText, downText);
         }
