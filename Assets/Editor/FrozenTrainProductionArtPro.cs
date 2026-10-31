@@ -98,8 +98,10 @@ namespace FrozenTrain.EditorTools
 
             return new Mats
             {
-                Floor = Textured("FT_PRO_Floor", floorA, floorN, .24f, .28f, new Color(.72f, .76f, .80f), 3.5f),
-                Wall = Textured("FT_PRO_Wall", wallA, wallN, .20f, .34f, new Color(.76f, .79f, .80f), 2.0f),
+                // Restrained large-scale finishes: the previous 3.5x diagonal floor
+                // repeat aliased badly in oblique views even with mipmaps.
+                Floor = Textured("FT_PRO_Floor", floorA, floorN, .16f, .34f, new Color(.72f, .76f, .80f), 1.25f),
+                Wall = Textured("FT_PRO_Wall", wallA, wallN, .16f, .32f, new Color(.76f, .79f, .80f), 1.00f),
                 Frame = Solid("FT_PRO_Frame", new Color(.035f, .045f, .055f), .50f, .42f),
                 Steel = Textured("FT_PRO_Steel", steelA, steelN, .76f, .34f, new Color(.72f, .76f, .78f), 2.2f),
                 BrushedSteel = Textured("FT_PRO_BrushedSteel", steelA, steelN, .90f, .58f, new Color(.86f, .88f, .90f), 1.2f),
@@ -854,6 +856,9 @@ namespace FrozenTrain.EditorTools
             if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", tint);
             if (mat.HasProperty("_Metallic")) mat.SetFloat("_Metallic", metallic);
             if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", smoothness);
+            if (mat.HasProperty("_BumpScale"))
+                mat.SetFloat("_BumpScale", name == "FT_PRO_Floor" ? .24f :
+                    name == "FT_PRO_Wall" ? .30f : 1f);
             mat.EnableKeyword("_NORMALMAP");
             EditorUtility.SetDirty(mat);
             return mat;
@@ -914,7 +919,16 @@ namespace FrozenTrain.EditorTools
                 importer.wrapMode = TextureWrapMode.Repeat;
                 importer.mipmapEnabled = true;
                 importer.maxTextureSize = TextureSize;
-                importer.textureCompression = TextureImporterCompression.Compressed;
+                bool isArchitectural = path.Contains("FT_PRO_Floor_") ||
+                                       path.Contains("FT_PRO_Wall_");
+                // Trilinear mip filtering + anisotropy preserve detail on long
+                // oblique corridors without shimmering or moire.
+                importer.filterMode = FilterMode.Trilinear;
+                importer.anisoLevel = path.Contains("FT_PRO_Floor_") ? 8 : 4;
+                importer.textureCompression = isArchitectural
+                    ? TextureImporterCompression.Uncompressed
+                    : TextureImporterCompression.CompressedHQ;
+                importer.compressionQuality = 100;
                 importer.SaveAndReimport();
             }
         }

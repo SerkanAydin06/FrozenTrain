@@ -399,30 +399,32 @@ namespace FrozenTrain.EditorTools
             Transform ladder = Group(parent, name);
             // Both rails face the open room and are mechanically tied into the -Z wall.
             ladder.localPosition = new Vector3(x, 0f, LadderZ);
-            const float railHalfWidth = .30f;
-            float railBottom = lowY + .03f;
-            float railTop = highY + 1.08f; // accessible handhold from the upper landing
+            // A compact wall ladder spans one deck only. The former one-metre
+            // extension above the landing made the rails look implausibly tall.
+            const float railHalfWidth = .255f;
+            float railBottom = lowY + .12f;
+            float railTop = highY + .14f;
 
             foreach (float side in new[] { -1f, 1f })
             {
                 Cube(ladder, "LadderRail",
                     new Vector3(side * railHalfWidth, (railBottom + railTop) * .5f, 0f),
-                    new Vector3(.075f, railTop - railBottom, .075f), m.Frame, true);
+                    new Vector3(.065f, railTop - railBottom, .065f), m.Frame, true);
 
                 // Small support arms enter the side wall, rather than a floating ladder.
-                foreach (float y in new[] { lowY + .75f, highY - .25f })
+                foreach (float y in new[] { lowY + .63f, highY - .31f })
                     Cube(ladder, "WallMount",
                         new Vector3(side * railHalfWidth, y, -.11f),
-                        new Vector3(.085f, .09f, .26f), m.Frame, false);
+                        new Vector3(.07f, .075f, .26f), m.Frame, false);
             }
 
-            int rungCount = Mathf.Max(8, Mathf.CeilToInt((highY - lowY) / .30f));
+            int rungCount = Mathf.Max(8, Mathf.CeilToInt((highY - lowY) / .31f));
             for (int i = 0; i < rungCount; i++)
             {
                 float ratio = i / (float)(rungCount - 1);
                 float y = Mathf.Lerp(lowY + .25f, highY - .23f, ratio);
                 Cube(ladder, "LadderRung", new Vector3(0f, y, .06f),
-                    new Vector3(.61f, .055f, .075f), m.Steel, true);
+                    new Vector3(.52f, .05f, .07f), m.Steel, true);
             }
 
             // Exit anchors stand on intact deck outside the narrow hatch cutouts.

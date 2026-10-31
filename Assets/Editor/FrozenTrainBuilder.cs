@@ -726,7 +726,7 @@ namespace FrozenTrain.EditorTools
                 camObject.transform.localPosition = new Vector3(0f, 1.62f, 0f);
                 camObject.tag = "MainCamera";
                 Camera cam = camObject.AddComponent<Camera>();
-                cam.fieldOfView = 72f; cam.nearClipPlane = .04f; cam.farClipPlane = 260f;
+                cam.fieldOfView = 72f; cam.nearClipPlane = .10f; cam.farClipPlane = 220f;
                 camObject.AddComponent<AudioListener>();
             }
 
@@ -737,8 +737,16 @@ namespace FrozenTrain.EditorTools
             GetOrAdd<ProceduralMetalFootsteps>(player);
             if (camera != null)
             {
+                // Also upgrade existing authored cameras, not just new scenes.
+                // A 4cm near clip versus a 260m far clip wasted depth precision
+                // in the small interior and amplified coplanar-surface flicker.
+                camera.nearClipPlane = .10f;
+                camera.farClipPlane = 220f;
+                camera.allowMSAA = true;
                 UniversalAdditionalCameraData data = camera.GetUniversalAdditionalCameraData();
                 data.renderPostProcessing = true;
+                data.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
+                data.antialiasingQuality = AntialiasingQuality.High;
                 data.dithering = true;
             }
         }
