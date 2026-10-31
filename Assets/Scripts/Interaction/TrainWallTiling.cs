@@ -1,20 +1,23 @@
+using System;
 using UnityEngine;
 
 namespace FrozenTrain.Visuals
 {
     /// <summary>
-    /// Keeps interior and exterior wall textures consistent across separately
-    /// constructed wall panels. No geometry or collision changes at runtime.
+    /// Tile the industrial wall preview by *physical metres* instead of
+    /// stretching each 96 px preview over an entire 24 m car panel.
+    /// Both materials stay separate; colliders and authored geometry are untouched.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class TrainWallTiling : MonoBehaviour
     {
-        private const float MetresPerTile = 3.0f;
+        private const float InteriorMetresPerTile = 1.20f;
+        private const float ExteriorMetresPerTile = 1.45f;
         private static readonly int BaseMapST = Shader.PropertyToID("_BaseMap_ST");
         private static readonly int BumpMapST = Shader.PropertyToID("_BumpMap_ST");
 
-        private void OnEnable() { Apply(); }
-        private void Start() { Apply(); }
+        private void OnEnable() => Apply();
+        private void Start() => Apply();
 
         private void Apply()
         {
@@ -23,37 +26,49 @@ namespace FrozenTrain.Visuals
             {
                 Material material = renderer.sharedMaterial;
                 if (material == null) continue;
-                bool wall = material.name == "02_Walls";
-                if (!wall && material.name != "01_Body") continue;
 
-                Transform t = renderer.transform;
-                Vector3 size = renderer.bounds.size;
-                bool insideFace = renderer.name.StartsWith("__InsideFace_", System.StringComparison.Ordinal);
-                float span;
-                float axisPosition;
-                if (insideFace)
+                bool interior = material.name == "02_Walls";
+                if (!interior && material.name != "01_Body") continue;
+                float metresPerTile = interior ? InteriorMetresPerTile : ExteriorMetresPerTile;
+
+                // The generated inner liner is a Quad. On its X-end faces
+                // the horizontal world span is Z, but its local scale.x is
+                // already the correct width. Other walls are Unity cubes.
+                bool innerQuad = renderer.name.StartsWith("__InsideFace_", StringComparison.Ordinal);
+                bool endFace = innerQuad &&
+                    (renderer.name.Contains("Front") || renderer.name.Contains("Rear"));
+                Vector3 bounds = renderer.bounds.size;
+                float horizontalSpan;
+                float horizontalCentre;
+
+                if (innerQuad)
                 {
-                    span = Mathf.Abs(t.lossyScale.x);
-                    // End pieces have Z as their horizontal world axis.
-                    bool endWall = renderer.name.Contains("Front") || renderer.name.Contains("Rear");
-                    axisPosition = endWall ? t.position.z : t.position.x;
+                    horizontalSpan = Mathf.Abs(renderer.transform.lossyScale.x);
+                    horizontalCentre = endFace
+                        ? renderer.bounds.center.z : renderer.bounds.center.x;
                 }
-                else if (size.x >= size.z)
+                else if (bounds.x >= bounds.z)
                 {
-                    span = size.x;
-                    axisPosition = t.position.x;
+                    horizontalSpan = bounds.x;
+                    horizontalCentre = renderer.bounds.center.x;
                 }
                 else
                 {
-                    span = size.z;
-                    axisPosition = t.position.z;
+                    horizontalSpan = bounds.z;
+                    horizontalCentre = renderer.bounds.center.z;
                 }
 
-                float h = Mathf.Max(.05f, size.y / MetresPerTile);
-                float w = Mathf.Max(.05f, span / MetresPerTile);
-                Vector4 uv = new Vector4(w, h,
-                    (axisPosition - span * .5f) / MetresPerTile,
-                    (renderer.bounds.center.y - size.y * .5f) / MetresPerTile);
+                float verticalSpan = bounds.y;
+                if (horizontalSpan < .01f || verticalSpan < .01f) continue;
+
+                // Shared world-origin offsets align the pattern at adjacent
+                // seams instead of restarting the image at every wall fragment.
+                Vector4 uv = new Vector4(
+                    horizontalSpan / metresPerTile,
+                    verticalSpan / metresPerTile,
+                    (horizontalCentre - horizontalSpan * .5f) / metresPerTile,
+                    renderer.bounds.min.y / metresPerTile);
+
                 renderer.GetPropertyBlock(block);
                 block.SetVector(BaseMapST, uv);
                 block.SetVector(BumpMapST, uv);

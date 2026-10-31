@@ -152,10 +152,11 @@ namespace FrozenTrain.EditorTools
             foreach (float z in new[] { -L.HalfW, L.HalfW })
             {
                 string side = z < 0f ? "L" : "R";
-                // Recess the lower side panels slightly at both coupling faces so
-                // each car reads as a separate lower body, not one continuous skirt.
+                // Meet the inner face of both end bulkheads without leaving
+                // the old 7 cm-per-end gap. The coupling still separates cars
+                // because the shell ends at the joint, not across the gap.
                 Cube(p, "LowerSide" + side, new Vector3(0f, L.LowerY + lowerH * .5f, z),
-                    new Vector3(L.CarLength - .34f, lowerH, L.WallT), wall);
+                    new Vector3(L.CarLength - .14f, lowerH, L.WallT), wall);
                 Cube(p, "UpperSide" + side, new Vector3(0f, L.UpperY + upperH * .5f, z), new Vector3(L.CarLength, upperH, L.WallT), wall);
                 BuildMainSide(p, car, z, side);
             }

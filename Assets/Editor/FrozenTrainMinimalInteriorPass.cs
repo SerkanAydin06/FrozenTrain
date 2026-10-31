@@ -335,7 +335,9 @@ namespace FrozenTrain.EditorTools
                         p.x, p.y, p.z - sign * (size.z * .5f + .012f));
                     plane.transform.localRotation =
                         Quaternion.Euler(0f, sign > 0f ? 180f : 0f, 0f);
-                    plane.transform.localScale = new Vector3(size.x, size.y, 1f);
+                    // A small overlap at the INNER side-wall seams prevents
+                    // subpixel cracks without changing solid wall colliders.
+                    plane.transform.localScale = new Vector3(size.x + .05f, size.y + .02f, 1f);
                 }
                 else
                 {
@@ -344,7 +346,7 @@ namespace FrozenTrain.EditorTools
                         p.x - sign * (size.x * .5f + .012f), p.y, p.z);
                     plane.transform.localRotation =
                         Quaternion.Euler(0f, sign > 0f ? -90f : 90f, 0f);
-                    plane.transform.localScale = new Vector3(size.z, size.y, 1f);
+                    plane.transform.localScale = new Vector3(size.z + .05f, size.y + .02f, 1f);
                 }
                 MeshRenderer faceRenderer = plane.GetComponent<MeshRenderer>();
                 faceRenderer.sharedMaterial = wallSlot;
