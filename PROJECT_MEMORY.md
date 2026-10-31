@@ -111,3 +111,11 @@
 - `FrozenTrainBuilder`: `CarAccess` grubu — her vagonun arka (+X) ucunda bir sonraki vagona kapı (son vagon hariç), yanında +Z duvarında üst kat merdiveni + korkuluklu kapak; üst katta arka +Z kabin kısaltılıp sahanlık açıldı. Teknik kata iniş sadece lokomotifte (-Z duvar). Bağlantı prefabı kısa körük geçiş (zemin, körük, çatı, kavrama).
 - `FrozenTrainMainStreetConnector` silindi; `LongVestibuleArchitecture` artık vestibül üretmiyor. MinimalInterior `CarAccess`'i koruyor, kabin kapıları merkeze doğru kayıyor.
 - Unity derlemesi/rebuild bu ortamda yapılamadı.
+
+## 2026-10-31 — Teknik katlar arası geçiş ve merdiven/kamera düzeltmesi
+- Güncel kullanıcı kararı: teknik alt kata dikey giriş yalnız lokomotifteki özel merdivenden (diğer vagonlarda ekstra merdiven yok), ama tüm 5 alt kat birbirine bağlanıyor. Ana kattaki gibi +Z yönünde (Z=2.55) dar, kapılı alt servis geçitleri ve körükler; üst kat vagon uçları kapalı.
+- Builder/Layout: `LowerEndOpening`, `LowerRearEndDoor`, `LowerGangwayFloor/Bellows/Roof`; lower yan gövde ve dış eşikler bağlantıda hafif geriye alınarak tam yükseklikte vagon ayrımı görünür.
+- Merdivenlerde oyuncunun önünü kesen `HatchGuardRail`/`HatchGuardPost` kafesi kaldırıldı (lokomotif teknik merdiveni dahil). Güvenli iniş ve düşme riski Unity Play Mode'da ayrıca test edilmeli.
+- Kabin sürgülü kapılarının tamamı tren arkasına (+X) açılacak şekilde düzenlendi; arka sahanlık bölmesine çarpmaması için panel +/−Z yönünde koridora hafif alındı.
+- Screenshot QA: `teknik_gecis_*`, `alt_dis_ayrim_*`, daha geniş kadrajlı kapı fotoğrafları; limit 72 ve layout alias düzeltmesi.
+- Kaynak statik/söz dizimi kontrolleri yapıldı. **Unity derlemesi, gerçek kapı hareketi, katlar arası yürüyüş ve düşme testi henüz yapılmadı.** İlk güncel build sonrası resimleri GitHub'a push edip kontrol et.

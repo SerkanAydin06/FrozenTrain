@@ -4,9 +4,9 @@
 
 ## Current contract (2026-10-31)
 - Unity 6.3 LTS / URP / Windows; scene: `Assets/Scenes/FPSPrototype.unity`.
-- Exactly 5 separate coupled cars (Locomotive, Generator, Living, Workshop, Greenhouse), each **24 × 9.2 m**, 3 decks; car-centre spacing **25 m** with a 0.8 m gap and a short **main-deck-only gangway** per joint. Locomotive faces **-X**.
+- Exactly 5 separate coupled cars (Locomotive, Generator, Living, Workshop, Greenhouse), each **24 × 9.2 m**, 3 decks; car-centre spacing **25 m** with a 0.8 m gap and separate **main + technical-deck gangways** per joint. Locomotive faces **-X**.
 - Middle deck: private locomotive cab; cars 2–5 have straight **+Z public corridor** (Z≈1.90…4.40) and an opaque left functional compartment. Lower = technical, upper = accommodation.
-- Vertical access is **inside cars** (`CarAccess`, Builder): every car has one wall-mounted E ladder to the upper deck at the rear (+X) end of the +Z corridor beside the rear end door; only the locomotive has a technical-deck ladder. Lower/upper decks never connect between cars. No stair rooms or decorative flights.
+- Vertical access is **inside cars** (`CarAccess`, Builder): every car has one wall-mounted E ladder to the upper deck at the rear (+X) end of the +Z corridor beside the rear end door; only the locomotive has a technical-deck ladder; the lower decks connect between all cars, but upper decks do not. Open ladder approaches, no guard-rail cage or decorative flights. All upper cabin doors open toward the train rear (+X).
 - **Current look is deliberately bare and UNTEXTURED.** Keep structural shell, windows, simple aligned functional doors, vertical ladders, essential lighting and minimal exterior. Do not restore removed props, orange trim or old patterned finishes. Future PBR slots: `Assets/Art/Materials/TrainBaseline/{01_Body,02_Walls,03_Floors,04_Structure,05_Doors}.mat`. See `Docs/TEXTURE_WORKFLOW.md`.
 
 ## Sources — open only what this task needs

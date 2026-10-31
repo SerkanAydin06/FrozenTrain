@@ -6,3 +6,6 @@ See `Docs/FiveCarArchitecture.md` for the full current architecture.
 - Corridor outer wall: six standard mirror-symmetric 2.2 m windows (`FrozenTrainLayout.StandardCorridorWindows`).
 - Corridor ends: rear end door to the next car (Z 2.55) with the upper-deck ladder beside it on the +Z wall; the front end opening receives the previous car's gangway.
 - Passes: `FrozenTrainMainStreetArchitecture` (corridor partition) and `FrozenTrainMainStreetSafety` (partition colliders). The former `MainStreetConnector` was removed with the 4 m vestibules.
+
+- Technical deck inter-car circulation: lower gangway is aligned at Z 2.55; only the locomotive has the vertical entry ladder. Each joint has a separate lower sliding door and covered service gangway; upper car ends stay sealed.
+- Upper cabin doors slide consistently toward +X (train rear); hatches are unobstructed for ladder access.
