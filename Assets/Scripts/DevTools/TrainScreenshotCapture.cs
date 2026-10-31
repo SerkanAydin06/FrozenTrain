@@ -10,7 +10,6 @@ using FrozenTrain.Player;
 using UnityEngine.Rendering.Universal;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using L = FrozenTrain.EditorTools.FrozenTrainLayout;
 
 namespace FrozenTrain.DevTools
 {
@@ -221,24 +220,38 @@ namespace FrozenTrain.DevTools
             // Lower-level coupling seams: the old full-width lower hull appeared
             // merged in distant views. Capture each joint at a closer distance
             // for assessing clearance, bellows and side-body separation.
+            // Determine camera positions from the authored scene, without referencing
+            // FrozenTrainLayout in the Editor-only assembly (runtime scripts cannot
+            // compile against classes in Assets/Editor).
+            Transform firstShell = cars[0].Find("Shell");
+            float sideExtent = firstShell != null
+                ? BoundsOf(firstShell.GetComponentsInChildren<Renderer>(true)).extents.z
+                : full.extents.z;
+
             Transform[] joints = train.Cast<Transform>()
                 .Where(t => t.name.StartsWith("CarConnector", StringComparison.Ordinal))
                 .OrderBy(t => t.position.x).ToArray();
             for (int joint = 0; joint < joints.Length; joint++)
             {
-                Vector3 p = joints[joint].position;
-                Vector3 sideEye = p + new Vector3(-2.5f, L.LowerTop + 1.30f,
-                    -L.HalfW - 5.2f);
+                Transform connector = joints[joint];
+                Renderer gangwayFloor = connector.GetComponentsInChildren<Renderer>(true)
+                    .FirstOrDefault(r => r.name == "LowerGangwayFloor");
+                if (gangwayFloor == null) continue;
+                Vector3 p = connector.position;
+                float passageZ = gangwayFloor.bounds.center.z;
+                float serviceTop = gangwayFloor.bounds.max.y;
+                Vector3 sideEye = new Vector3(p.x - 2.5f, serviceTop + 1.30f,
+                    p.z - sideExtent - 5.2f);
                 Add(result, "alt_dis_ayrim_" + (joint + 1),
                     "Teknik seviye – vagon alt gövde ayrımı " + (joint + 1),
-                    sideEye, p + new Vector3(0f, L.LowerTop + 1.15f, 0f), 62f);
+                    sideEye, new Vector3(p.x, serviceTop + 1.15f, p.z), 62f);
 
-                Vector3 passageEye = p + new Vector3(-1.9f, L.LowerTop + EyeHeight,
-                    L.EndDoorCenterZ);
+                Vector3 passageEye = new Vector3(p.x - 1.9f,
+                    serviceTop + EyeHeight, passageZ);
                 if (TrySafeEye(passageEye, out Vector3 safe))
                     Add(result, "teknik_gecis_" + (joint + 1),
                         "Alt katlar arası teknik geçiş " + (joint + 1),
-                        safe, p + new Vector3(1.25f, L.LowerTop + 1.40f, L.EndDoorCenterZ), 72f);
+                        safe, new Vector3(p.x + 1.25f, serviceTop + 1.40f, passageZ), 72f);
             }
 
             for (int i = 0; i < cars.Length; i++)
