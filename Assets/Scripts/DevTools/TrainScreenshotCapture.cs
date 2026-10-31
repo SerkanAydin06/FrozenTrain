@@ -1,10 +1,13 @@
 #if UNITY_EDITOR
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using FrozenTrain.Interaction;
-using FrozenTrain.Management;
 using FrozenTrain.Player;
+using UnityEngine.Rendering.Universal;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -12,10 +15,11 @@ namespace FrozenTrain.DevTools
 {
     public sealed class TrainScreenshotCapture : MonoBehaviour
     {
-        // Capture is opt-in: ordinary Play must not move the player camera for QA.
+        // New installations capture automatically on every Editor Play.
+        // User opt-out persists via EditorPrefs.
         private const string CapturePreference = "FrozenTrain.CaptureScreenshotsOnPlay";
         private const string CaptureMenu = "Tools/FrozenTrain/Capture Screenshots on Play";
-        private static bool Enabled => UnityEditor.EditorPrefs.GetBool(CapturePreference, false);
+        private static bool Enabled => UnityEditor.EditorPrefs.GetBool(CapturePreference, true);
 
         [UnityEditor.MenuItem(CaptureMenu)]
         private static void ToggleCapture()
@@ -35,22 +39,27 @@ namespace FrozenTrain.DevTools
 
         private const string MainSceneName = "FPSPrototype";
         private const string TrainRootName = "TRAIN_INTERIOR_PROTOTYPE";
-        private const int Width = 1280;
-        private const int Height = 720;
-        private const int JpgQuality = 84;
-        private const float StartDelaySeconds = 2.5f;
-        private const float ReviewFov = 74f;
-        private static readonly string[] CarNames = { "01_Locomotive", "02_Generator", "03_Living", "04_Workshop", "05_Greenhouse" };
-        private static readonly string[] CarLabels = { "Lokomotif", "Jeneratör", "Yaşam", "Atölye", "Sera" };
-        private const float CarSpacing = 28f;
-        private const float VestibuleLength = 4f;
-        private static readonly float[] DeckFloorY = { -3.0f, 0.11f, 3.24f };
-        private static readonly string[] DeckLabels = { "alt / teknik", "orta / özel kabin veya sağ transit koridor", "üst / özel konut" };
+        private const int Width = 1600;
+        private const int Height = 900;
+        private const int JpgQuality = 92;
+        private const int MaxShots = 60;
         private const float EyeHeight = 1.55f;
-        private const float EndInset = 10.45f;
-        private const float MainCorridorZ = 3.15f;
-        private const float MainCompartmentZ = -1.35f;
-        private const float UpperCabinX = -9.35f;
+        private const float StartDelaySeconds = 2f;
+
+        private struct View
+        {
+            public string Name, Label;
+            public Vector3 Position, Target;
+            public float Fov;
+            public View(string name, string label, Vector3 pos, Vector3 target, float fov)
+            {
+                Name = name;
+                Label = label;
+                Position = pos;
+                Target = target;
+                Fov = fov;
+            }
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
@@ -63,166 +72,278 @@ namespace FrozenTrain.DevTools
         private IEnumerator Start()
         {
             yield return new WaitForSecondsRealtime(StartDelaySeconds);
-            Camera cam = FindPlayerCamera();
-            if (cam == null) { Debug.LogWarning("[Screenshots] Kamera bulunamadı; görüntü alınmadı."); Destroy(gameObject); yield break; }
 
+            Camera original = FindPlayerCamera();
+            Transform train = GameObject.Find(TrainRootName)?.transform;
+            if (original == null || train == null)
+            {
+                Debug.LogWarning("[Screenshots] Player camera or train root missing.");
+                Destroy(gameObject);
+                yield break;
+            }
+
+            // Isolated camera: no player teleport, cursor unlocking or gameplay pause.
+            GameObject cameraHost = new GameObject("__TrainQACamera");
+            cameraHost.hideFlags = HideFlags.DontSave;
+            Camera qaCamera = cameraHost.AddComponent<Camera>();
+            qaCamera.CopyFrom(original);
+            qaCamera.enabled = false;
+            qaCamera.allowMSAA = true;
+            UniversalAdditionalCameraData qaData = qaCamera.GetUniversalAdditionalCameraData();
+            UniversalAdditionalCameraData playerData = original.GetUniversalAdditionalCameraData();
+            qaData.renderPostProcessing = playerData.renderPostProcessing;
+            qaData.antialiasing = playerData.antialiasing;
+            qaData.antialiasingQuality = playerData.antialiasingQuality;
+
+            RenderTexture rt = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32)
+            {
+                antiAliasing = 4,
+                name = "FrozenTrain_QA_Capture"
+            };
+            Texture2D image = new Texture2D(Width, Height, TextureFormat.RGB24, false);
             string folder = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Docs", "Screenshots"));
             Directory.CreateDirectory(folder);
-            foreach (string old in Directory.GetFiles(folder, "*.jpg")) File.Delete(old);
-            foreach (string old in Directory.GetFiles(folder, "*.jpeg")) File.Delete(old);
 
-            FpsPlayerController controller = FindFirstObjectByType<FpsPlayerController>();
-            PlayerInteraction interaction = FindFirstObjectByType<PlayerInteraction>();
-            TrainManagementPanel panel = FindFirstObjectByType<TrainManagementPanel>();
-            if (panel != null) panel.ClosePanel();
-            bool controllerWasEnabled = controller != null && controller.enabled;
-            bool interactionWasEnabled = interaction != null && interaction.enabled;
-            bool panelWasEnabled = panel != null && panel.enabled;
-            if (controller != null) controller.enabled = false;
-            if (interaction != null) interaction.enabled = false;
-            if (panel != null) panel.enabled = false;
-            CursorLockMode previousLock = Cursor.lockState;
-            Cursor.lockState = CursorLockMode.None;
+            Physics.SyncTransforms();
+            List<View> plan = BuildPlan(train);
+            if (plan.Count == 0)
+            {
+                Debug.LogWarning("[Screenshots] No safe views found.");
+                Cleanup(cameraHost, rt, image);
+                Destroy(gameObject);
+                yield break;
+            }
 
-            Renderer[] playerRenderers = controller != null ? controller.GetComponentsInChildren<Renderer>() : new Renderer[0];
-            bool[] rendererStates = new bool[playerRenderers.Length];
-            for (int i = 0; i < playerRenderers.Length; i++) { rendererStates[i] = playerRenderers[i].enabled; playerRenderers[i].enabled = false; }
+            // One current set: remove previous generated images, never create dated archives.
+            foreach (string previous in Directory.GetFiles(folder))
+            {
+                string ext = Path.GetExtension(previous).ToLowerInvariant();
+                if (ext == ".jpg" || ext == ".jpeg" || ext == ".png") File.Delete(previous);
+            }
 
-            Transform camTransform = cam.transform;
-            Transform originalParent = camTransform.parent;
-            Vector3 originalLocalPos = camTransform.localPosition;
-            Quaternion originalLocalRot = camTransform.localRotation;
-            float originalFov = cam.fieldOfView;
-            RenderTexture originalTarget = cam.targetTexture;
-            RenderTexture rt = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB) { antiAliasing = 4 };
-            Texture2D image = new Texture2D(Width, Height, TextureFormat.RGB24, false);
-            StringBuilder manifest = new StringBuilder();
-            manifest.AppendLine("# FrozenTrain otomatik görüntüler\n");
-            manifest.AppendLine("Son çekim: " + System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "\n");
-            manifest.AppendLine("Mimari: 5 x 24 m vagon + 4 x 4 m ara vestibül. `gecisN_merdiven` artık kapının dışına değil merdiven çekirdeğinin içinden basamaklara bakar; `_oda` gerçek kabin kapısından içeri bakar.\n");
-            manifest.AppendLine("| Dosya | Açıklama | Kamera (dünya) |\n|---|---|---|");
+            StringBuilder report = new StringBuilder();
+            report.AppendLine("# FrozenTrain – güncel QA ekran görüntüleri");
+            report.AppendLine();
+            report.AppendLine("Son çekim (UTC): " + DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss") + " UTC");
+            report.AppendLine("Kameralar vagon ve kat sınırları, geçişler, merdivenler ve kapılardan otomatik seçildi.");
+            report.AppendLine("Yalnızca son çekim dosyaları tutulur. GitHub üzerinden görülebilmeleri için push gerekir.");
+            report.AppendLine();
+            report.AppendLine("| Görüntü | Bölüm | Kamera (dünya) |");
+            report.AppendLine("|---|---|---|");
 
-            camTransform.SetParent(null, true);
-            cam.fieldOfView = ReviewFov;
-            cam.targetTexture = rt;
+            Transform environment = GameObject.Find("OUTSIDE_ENVIRONMENT")?.transform;
+            Transform near = environment?.Find("NEAR_SCENERY");
+            Transform far = environment?.Find("DISTANT_SCENERY");
+            bool previousNear = near != null && near.gameObject.activeSelf;
+            bool previousFar = far != null && far.gameObject.activeSelf;
+            RenderTexture activeBefore = RenderTexture.active;
             int saved = 0;
-            GameObject trainObject = GameObject.Find(TrainRootName);
-            Transform trainRoot = trainObject != null ? trainObject.transform : null;
 
-            for (int car = 0; car < CarNames.Length; car++)
+            try
             {
-                Transform carTransform = trainRoot != null ? trainRoot.Find(CarNames[car]) : null;
-                for (int deck = 0; deck < DeckFloorY.Length; deck++)
+                rt.Create();
+                qaCamera.targetTexture = rt;
+                foreach (View view in plan.Take(MaxShots))
                 {
-                    float y = DeckFloorY[deck] + EyeHeight;
-                    float z = deck == 1 ? (car == 0 ? 0f : MainCorridorZ) : 0f;
-                    string baseName = "vagon" + (car + 1) + "_kat" + (deck + 1);
-                    string label = CarLabels[car] + ", kat " + (deck + 1) + " (" + DeckLabels[deck] + ")";
-                    yield return Shoot(cam, image, rt, folder, baseName, label + ", öne bakış", carTransform, car,
-                        new Vector3(EndInset, y, z), -90f, manifest, () => saved++);
-                    yield return Shoot(cam, image, rt, folder, baseName + "_ters", label + ", arkaya bakış", carTransform, car,
-                        new Vector3(-EndInset, y, z), 90f, manifest, () => saved++);
+                    bool exterior = view.Name.StartsWith("tren_dis_", StringComparison.Ordinal);
+                    if (near != null) near.gameObject.SetActive(exterior ? false : previousNear);
+                    if (far != null) far.gameObject.SetActive(exterior ? false : previousFar);
+
+                    qaCamera.transform.position = view.Position;
+                    qaCamera.transform.rotation = Quaternion.LookRotation(view.Target - view.Position, Vector3.up);
+                    qaCamera.fieldOfView = view.Fov;
+                    qaCamera.Render();
+                    RenderTexture.active = rt;
+                    image.ReadPixels(new Rect(0, 0, Width, Height), 0, 0);
+                    image.Apply(false, false);
+                    File.WriteAllBytes(Path.Combine(folder, view.Name + ".jpg"), image.EncodeToJPG(JpgQuality));
+                    report.AppendLine("| " + view.Name + ".jpg | " + view.Label + " | " + view.Position.ToString("F2") + " |");
+                    saved++;
+                    RenderTexture.active = activeBefore;
+                    yield return null;
                 }
-
-                float mainY = DeckFloorY[1] + EyeHeight;
-                yield return Shoot(cam, image, rt, folder, "vagon" + (car + 1) + "_kat2_bolme",
-                    car == 0 ? "Lokomotif tam özel sürüş kabini" : CarLabels[car] + ", 24 m kapalı işlev bölümü", carTransform, car,
-                    new Vector3(10.15f, mainY, car == 0 ? 0f : MainCompartmentZ), -90f, manifest, () => saved++);
-
-                float upperY = DeckFloorY[2] + EyeHeight;
-                yield return Shoot(cam, image, rt, folder, "vagon" + (car + 1) + "_kat3_oda",
-                    CarLabels[car] + ", üst konut örnek kabinine kapıdan bakış", carTransform, car,
-                    new Vector3(UpperCabinX, upperY, .08f), 0f, manifest, () => saved++);
             }
-
-            for (int gap = 0; gap < CarNames.Length - 1; gap++)
+            finally
             {
-                float vestibuleX = ((gap - 1.5f) * CarSpacing);
-                Vector3 origin = trainRoot != null ? trainRoot.TransformPoint(new Vector3(vestibuleX, 0f, 0f)) : new Vector3(vestibuleX, 0f, 0f);
-                string prefix = "gecis" + (gap + 1);
-
-                yield return ShootWorld(cam, image, rt, folder, prefix + "_kat2",
-                    "Ara vestibül " + (gap + 1) + ", sağ ana geçiş", origin + new Vector3(-VestibuleLength * .32f, DeckFloorY[1] + EyeHeight, MainCorridorZ),
-                    Quaternion.Euler(5f, 90f, 0f), manifest, () => saved++);
-
-                // Camera is physically inside the stair core; the previous shot only showed its closed door.
-                yield return ShootWorld(cam, image, rt, folder, prefix + "_merdiven",
-                    "Ara vestibül " + (gap + 1) + ", merdiven çekirdeğinin içinden basamaklar", origin + new Vector3(0f, DeckFloorY[1] + EyeHeight, .64f),
-                    Quaternion.Euler(4f, 180f, 0f), manifest, () => saved++);
-
-                yield return ShootWorld(cam, image, rt, folder, prefix + "_kat3",
-                    "Ara vestibül " + (gap + 1) + ", üst konut sahanlığı ve merdiven", origin + new Vector3(1.12f, DeckFloorY[2] + EyeHeight, .82f),
-                    Quaternion.Euler(7f, 190f, 0f), manifest, () => saved++);
-
-                yield return ShootWorld(cam, image, rt, folder, prefix + "_kat1",
-                    "Ara vestibül " + (gap + 1) + ", alt teknik sahanlık ve merdiven", origin + new Vector3(-1.12f, DeckFloorY[0] + EyeHeight, .82f),
-                    Quaternion.Euler(7f, 170f, 0f), manifest, () => saved++);
+                if (near != null) near.gameObject.SetActive(previousNear);
+                if (far != null) far.gameObject.SetActive(previousFar);
+                RenderTexture.active = activeBefore;
+                qaCamera.targetTexture = null;
+                Cleanup(cameraHost, rt, image);
             }
 
-            Vector3 trainCenter = trainRoot != null ? trainRoot.position : Vector3.zero;
-
-            // Train-profile QA must not be hidden by the procedural foreground mountains/rocks.
-            GameObject environment = GameObject.Find("OUTSIDE_ENVIRONMENT");
-            Transform near = environment != null ? environment.transform.Find("NEAR_SCENERY") : null;
-            Transform far = environment != null ? environment.transform.Find("DISTANT_SCENERY") : null;
-            bool nearWasActive = near != null && near.gameObject.activeSelf;
-            bool farWasActive = far != null && far.gameObject.activeSelf;
-            if (near != null) near.gameObject.SetActive(false);
-            if (far != null) far.gameObject.SetActive(false);
-            yield return ShootWorld(cam, image, rt, folder, "tren_dis_yan", "Tüm 136 m tren, temiz yandan profil (QA için sahne engelleri gizli)",
-                trainCenter + new Vector3(0f, 12f, -76f), Quaternion.Euler(8f, 0f, 0f), manifest, () => saved++);
-            if (near != null) near.gameObject.SetActive(nearWasActive);
-            if (far != null) far.gameObject.SetActive(farWasActive);
-
-            yield return ShootWorld(cam, image, rt, folder, "tren_dis_on", "Uzun lokomotif önü, yakın çapraz",
-                trainCenter + new Vector3(-2f * CarSpacing - 18f, 5.5f, -16f), Quaternion.Euler(7f, 54f, 0f), manifest, () => saved++);
-
-            File.WriteAllText(Path.Combine(folder, "README.md"), manifest.ToString(), Encoding.UTF8);
-            cam.targetTexture = originalTarget;
-            cam.fieldOfView = originalFov;
-            camTransform.SetParent(originalParent, false);
-            camTransform.localPosition = originalLocalPos;
-            camTransform.localRotation = originalLocalRot;
-            for (int i = 0; i < playerRenderers.Length; i++) if (playerRenderers[i] != null) playerRenderers[i].enabled = rendererStates[i];
-            if (controller != null) controller.enabled = controllerWasEnabled;
-            if (interaction != null) interaction.enabled = interactionWasEnabled;
-            if (panel != null) panel.enabled = panelWasEnabled;
-            Cursor.lockState = previousLock;
-            rt.Release(); Destroy(rt); Destroy(image);
-            Debug.Log("[Screenshots] " + saved + " görüntü kaydedildi: " + folder);
+            File.WriteAllText(Path.Combine(folder, "README.md"), report.ToString(), Encoding.UTF8);
+            Debug.Log("[Screenshots] " + saved + " current scene-adaptive QA views: " + folder +
+                " (GitHub upload requires git commit/push).");
             Destroy(gameObject);
         }
 
-        private IEnumerator Shoot(Camera cam, Texture2D image, RenderTexture rt, string folder, string fileName, string label,
-            Transform carTransform, int carIndex, Vector3 local, float yaw, StringBuilder manifest, System.Action onSaved)
+        private static void Cleanup(GameObject host, RenderTexture texture, Texture2D image)
         {
-            Vector3 position;
-            Quaternion rotation;
-            if (carTransform != null) { position = carTransform.TransformPoint(local); rotation = carTransform.rotation * Quaternion.Euler(5f, yaw, 0f); }
-            else { position = new Vector3((carIndex - 2) * CarSpacing + local.x, local.y, local.z); rotation = Quaternion.Euler(5f, yaw, 0f); }
-            yield return ShootWorld(cam, image, rt, folder, fileName, label, position, rotation, manifest, onSaved);
+            if (texture != null) { texture.Release(); Destroy(texture); }
+            if (image != null) Destroy(image);
+            if (host != null) Destroy(host);
         }
 
-        private static IEnumerator ShootWorld(Camera cam, Texture2D image, RenderTexture rt, string folder, string fileName, string label,
-            Vector3 position, Quaternion rotation, StringBuilder manifest, System.Action onSaved)
+        private static List<View> BuildPlan(Transform train)
         {
-            cam.transform.SetPositionAndRotation(position, rotation);
-            for (int i = 0; i < 4; i++) yield return null;
-            yield return new WaitForEndOfFrame();
-            RenderTexture previous = RenderTexture.active;
-            RenderTexture.active = rt;
-            image.ReadPixels(new Rect(0, 0, Width, Height), 0, 0);
-            image.Apply(false);
-            RenderTexture.active = previous;
-            File.WriteAllBytes(Path.Combine(folder, fileName + ".jpg"), image.EncodeToJPG(JpgQuality));
-            manifest.AppendLine("| " + fileName + ".jpg | " + label + " | " + position.ToString("F1") + " |");
-            onSaved();
+            List<View> result = new List<View>();
+            Transform[] cars = train.Cast<Transform>()
+                .Where(t => t.name.Contains("Locomotive") || t.name.Contains("Generator") ||
+                    t.name.Contains("Living") || t.name.Contains("Workshop") || t.name.Contains("Greenhouse"))
+                .OrderBy(t => t.position.x).ToArray();
+            if (cars.Length == 0) return result;
+
+            Renderer[] allCarRenderers = cars.SelectMany(t => t.GetComponentsInChildren<Renderer>(true)).ToArray();
+            Bounds full = BoundsOf(allCarRenderers);
+            Vector3 center = full.center, size = full.size;
+
+            Add(result, "tren_dis_yan", "Tren dış yan", center +
+                new Vector3(0f, Mathf.Max(6f, full.extents.y), -full.extents.z - Mathf.Max(18f, size.x * .38f)), center, 52f);
+            Add(result, "tren_dis_karsi", "Tren karşı yan", center +
+                new Vector3(0f, Mathf.Max(6f, full.extents.y), full.extents.z + Mathf.Max(18f, size.x * .38f)), center, 52f);
+            Add(result, "tren_dis_on", "Lokomotif önü", center +
+                new Vector3(-full.extents.x - 12f, full.extents.y * .50f, -full.extents.z - 8f),
+                center + Vector3.left * (full.extents.x * .72f), 65f);
+
+            for (int i = 0; i < cars.Length; i++)
+                AddCarViews(result, cars[i], i + 1);
+
+            Transform[] connectors = train.Cast<Transform>()
+                .Where(t => t.name.Contains("Connector")).OrderBy(t => t.position.x).ToArray();
+            for (int i = 0; i < connectors.Length; i++)
+                AddConnectorViews(result, connectors[i], i + 1);
+
+            // Sample representative door panels from throughout the train.
+            Transform[] doors = train.GetComponentsInChildren<Transform>(true)
+                .Where(t => t.GetComponent<SlidingDoor>() != null)
+                .OrderBy(t => t.position.x).ToArray();
+            int stride = Mathf.Max(1, Mathf.CeilToInt(doors.Length / 8f));
+            int doorNumber = 0;
+            for (int i = 0; i < doors.Length && doorNumber < 8; i += stride)
+            {
+                Renderer render = doors[i].GetComponentInChildren<Renderer>(true);
+                if (render == null) continue;
+                Bounds b = render.bounds;
+                Vector3 side = b.size.x < b.size.z ? Vector3.left : Vector3.forward;
+                Vector3 eye = b.center + side * 2.2f;
+                if (!TrySafeEye(eye, out eye)) continue;
+                Add(result, "kapi_" + (++doorNumber).ToString("00"),
+                    doors[i].name + " yüzey kontrolü", eye, b.center, 65f);
+            }
+            return result;
+        }
+
+        private static void AddCarViews(List<View> views, Transform car, int index)
+        {
+            Transform shell = car.Find("Shell");
+            if (shell == null) return;
+            Bounds hull = BoundsOf(shell.GetComponentsInChildren<Renderer>(true));
+            string[] decks = { "LowerFloor", "MainFloor", "UpperFloor" };
+            for (int deck = 0; deck < decks.Length; deck++)
+            {
+                Renderer[] floorParts = shell.GetComponentsInChildren<Renderer>(true)
+                    .Where(r => r.name.StartsWith(decks[deck], StringComparison.Ordinal)).ToArray();
+                if (floorParts.Length == 0) continue;
+                Bounds floor = BoundsOf(floorParts);
+                float y = floor.max.y + EyeHeight;
+                float z = floor.center.z;
+                if (deck == 1 && index > 1)
+                    z += floor.extents.z * .65f;
+
+                for (int side = 0; side < 2; side++)
+                {
+                    float sign = side == 0 ? 1f : -1f;
+                    Vector3 candidate = new Vector3(car.position.x + sign * hull.extents.x * .76f, y, z);
+                    if (!TrySafeEye(candidate, out Vector3 eye)) continue;
+                    Vector3 lookAt = new Vector3(car.position.x - sign * hull.extents.x * .55f, y - .10f, z);
+                    Add(views, "vagon" + index + "_kat" + (deck + 1) +
+                        (side == 0 ? "" : "_ters"), car.name + " kat " + (deck + 1), eye, lookAt, 75f);
+                }
+            }
+        }
+
+        private static void AddConnectorViews(List<View> views, Transform connector, int index)
+        {
+            Renderer[] parts = connector.GetComponentsInChildren<Renderer>(true);
+            foreach (Transform ladder in connector.GetComponentsInChildren<Transform>(true)
+                .Where(t => t.name == "UpperLadder" || t.name == "LowerLadder"))
+            {
+                Renderer[] rails = ladder.GetComponentsInChildren<Renderer>(true);
+                if (rails.Length == 0) continue;
+                Bounds b = BoundsOf(rails);
+                Vector3 candidate = new Vector3(b.center.x, b.min.y + EyeHeight, b.center.z + 1.65f);
+                if (!TrySafeEye(candidate, out Vector3 eye)) continue;
+                Add(views, "gecis" + index + "_" + ladder.name.ToLowerInvariant(),
+                    "Geçiş " + index + " – " + ladder.name, eye, b.center, 69f);
+            }
+
+            foreach (string level in new[] { "LowerFloor", "MainFloor", "UpperFloor" })
+            {
+                Renderer[] floorParts = parts
+                    .Where(r => r.name.StartsWith(level, StringComparison.Ordinal)).ToArray();
+                if (floorParts.Length == 0) continue;
+                Bounds b = BoundsOf(floorParts);
+                Vector3 candidate = new Vector3(connector.position.x,
+                    b.max.y + EyeHeight, b.center.z + b.extents.z * .57f);
+                if (!TrySafeEye(candidate, out Vector3 eye)) continue;
+                Add(views, "gecis" + index + "_" + level.ToLowerInvariant(),
+                    "Geçiş " + index + " – " + level, eye,
+                    new Vector3(connector.position.x, eye.y - .12f,
+                        b.center.z - b.extents.z * .47f), 74f);
+            }
+        }
+
+        private static bool TrySafeEye(Vector3 preferred, out Vector3 eye)
+        {
+            // Probe several positions instead of putting the camera inside walls.
+            Vector3[] shifts =
+            {
+                Vector3.zero,
+                Vector3.right * .40f, Vector3.left * .40f,
+                Vector3.forward * .40f, Vector3.back * .40f,
+                Vector3.right * .85f, Vector3.left * .85f,
+                Vector3.forward * .85f, Vector3.back * .85f
+            };
+            foreach (Vector3 move in shifts)
+            {
+                Vector3 candidate = preferred + move;
+                if (!Physics.CheckSphere(candidate, .17f, Physics.DefaultRaycastLayers,
+                        QueryTriggerInteraction.Ignore))
+                {
+                    eye = candidate;
+                    return true;
+                }
+            }
+            eye = default;
+            return false;
+        }
+
+        private static Bounds BoundsOf(IEnumerable<Renderer> renderers)
+        {
+            Bounds result = new Bounds(Vector3.zero, Vector3.zero);
+            bool hasBounds = false;
+            foreach (Renderer r in renderers)
+            {
+                if (r == null || !r.enabled) continue;
+                if (!hasBounds) { result = r.bounds; hasBounds = true; }
+                else result.Encapsulate(r.bounds);
+            }
+            return result;
+        }
+
+        private static void Add(List<View> views, string name, string label,
+            Vector3 eye, Vector3 target, float fov)
+        {
+            if (Vector3.SqrMagnitude(target - eye) < .1f) return;
+            if (views.Any(v => v.Name == name)) return;
+            views.Add(new View(name, label, eye, target, fov));
         }
 
         private static Camera FindPlayerCamera()
         {
-            FpsPlayerController controller = FindFirstObjectByType<FpsPlayerController>();
-            Camera cam = controller != null ? controller.GetComponentInChildren<Camera>(true) : null;
+            FpsPlayerController player = FindFirstObjectByType<FpsPlayerController>();
+            Camera cam = player != null ? player.GetComponentInChildren<Camera>(true) : null;
             return cam != null ? cam : Camera.main;
         }
     }
