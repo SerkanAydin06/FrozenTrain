@@ -5,10 +5,14 @@ using UnityEngine;
 namespace FrozenTrain.EditorTools
 {
     /// <summary>
-    /// Single public authoring entry point. The canonical builder owns the five 24 m cars; final passes
-    /// create the right-side public corridor in cars 2-5, replace the old connector with four full
-    /// inter-car vestibules containing all normal vertical circulation, then apply screenshot-driven
-    /// visual placement and stair/lighting corrections without changing gameplay ownership.
+    /// Single public authoring entry point. Order matters:
+    /// 1. Builder: five 24 m car prefabs, connector, scene, player.
+    /// 2. ProductionArtPro: FT_PRO_* materials/textures (used by later passes) and shell/light tuning.
+    /// 3. ExteriorScenery: mountains, rocks, snow drifts and rail gauge in the scene.
+    /// 4. MainStreet*: +Z public corridor, partition colliders and shifted car end openings.
+    /// 5. LongVestibule: four open vestibules with doors and wall-mounted ladders.
+    /// 6. MinimalInterior (final authority): strips dressing, assigns baseline material slots,
+    ///    builds cabin doors/minimal exterior and refreshes scene prefab instances.
     /// </summary>
     public static class FrozenTrainUnifiedAuthoring
     {
@@ -16,18 +20,12 @@ namespace FrozenTrain.EditorTools
         public static void RebuildAuthoredTrain()
         {
             if (!FrozenTrainBuilder.Build()) return;
-            FrozenTrainProductionArt.Apply();
-            FrozenTrainScreenshotQARefinement.Apply();
-            FrozenTrainExteriorMaterialFix.Apply();
-            FrozenTrainScreenshotQASafety.Apply();
+            FrozenTrainProductionArtPro.Apply();
+            FrozenTrainExteriorScenery.Apply();
             FrozenTrainMainStreetArchitecture.Apply();
             FrozenTrainMainStreetConnector.Apply();
             FrozenTrainMainStreetSafety.Apply();
             FrozenTrainLongVestibuleArchitecture.Apply();
-            FrozenTrainLongLightingPass.Apply();
-            // The minimal exterior pass replaces bulky legacy roof/nose dressing.
-            FrozenTrainPost24ScreenshotPolish.Apply();
-            // Skip the legacy stair tread/stringer pass: only ladders remain.
             FrozenTrainMinimalInteriorPass.Apply();
             AssetDatabase.Refresh();
             Debug.Log("FrozenTrain rebuilt: clean five-car exterior, open vestibules and eight wall-mounted ladders.");

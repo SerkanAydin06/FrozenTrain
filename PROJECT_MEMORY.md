@@ -93,3 +93,8 @@
 - Önemli sahne üretim hatası düzeltmesi: `FrozenTrainBuilder.Build` önce prefablardan sahne nesnelerini oluşturuyor, son tasarım adımları sonradan prefab assetlerini değiştiriyor. Son adım `RefreshAuthoredSceneInstances()` ile mevcut sahne vagon/geçiş örneklerini güncel prefablarla değiştiriyor ve sahneyi kaydediyor. Önceki sahne prefabları bu yüzden eski çizimler gösterebiliyordu.
 - Kaynak kod parantez/statik kontrolü yapıldı, **Unity derlemesi, tam kapı kapanışı ve sahne görsel testi burada yapılamadı**. `Frozen Train > Rebuild Authored Train` komutunu çalıştırıp Play modunda geçiş/kabin kapılarını açıp kapatarak kontrol et.
 - Pro texture iş akışı: `Docs/TEXTURE_WORKFLOW.md`.
+
+## 2026-10-31 — Eski editör geçişlerinin temizliği
+- Son temizlik geçişinin (`FrozenTrainMinimalInteriorPass`) sildiği çıktıları üreten ölü geçişler kaldırıldı: `ScreenshotQASafety`, `LongLightingPass`, `Post24ScreenshotPolish`, `ProductionArt` sarmalayıcısı; hiç çağrılmayan `CirculationFinalizer`, `FinalScreenshotFix`, `LongExteriorPass`, `UpperDeckCirculation`, `UpperDeckFinalPolish`.
+- `ScreenshotQARefinement` → `FrozenTrainExteriorScenery` (aynı GUID): sadece sahnedeki dağ/kaya/kar/ray ölçüsü kısmı kaldı; `ExteriorMaterialFix` buraya birleştirildi (FT_ENV_Snow/Rock doğrudan atanıyor).
+- Zincir: Builder → ProductionArtPro → ExteriorScenery → MainStreet* → LongVestibule → MinimalInterior. Unity'de derleme/rebuild bu ortamda yapılamadı.

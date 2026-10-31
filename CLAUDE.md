@@ -22,7 +22,7 @@
 | UI | `Assets/Scripts/Management/TrainManagementPanel.cs` |
 | Screenshots | `Assets/Scripts/DevTools/TrainScreenshotCapture.cs` |
 
-Older editor passes still run upstream but **the minimal pass is final authority**. Never reactivate `FrozenTrainLongExteriorPass` or old in-car stair generators. Final pass refreshes scene prefab instances: keep this.
+Rebuild chain: Builder → ProductionArtPro → ExteriorScenery → MainStreet* → LongVestibule → MinimalInterior; **the minimal pass is final authority**. Legacy QA/polish passes were deleted 2026-10-31; do not recreate them or old in-car stair generators. Final pass refreshes scene prefab instances: keep this.
 
 ## Low-cost workflow
 1. For repo tasks, check status/current branch; search **exact filenames/symbols** and read relevant ranges (typically 1–3 files). Do not read this project's whole archive on every task.

@@ -95,12 +95,14 @@ Each 4 m vestibule is a distinct railway-style transition zone:
 
 `Frozen Train > Rebuild Authored Train` is the only public authoring command.
 
-The final chain is:
-1. canonical builder and production art;
-2. screenshot/environment QA passes;
-3. right-side corridor and shifted main-deck openings;
-4. `FrozenTrainLongVestibuleArchitecture` — final 24 m room layout and 4 m vestibules;
-5. `FrozenTrainLongLightingPass` — five-point technical lighting for the longer cars;
-6. `FrozenTrainLongExteriorPass` — 24 m exterior details.
+Current chain (`FrozenTrainUnifiedAuthoring.cs`):
+1. `FrozenTrainBuilder` — canonical five-car prefabs, connector, scene and player.
+2. `FrozenTrainProductionArtPro` — FT_PRO materials/textures and shell/light tuning.
+3. `FrozenTrainExteriorScenery` — mountains, rocks, snow drifts and rail gauge (scene).
+4. `FrozenTrainMainStreetArchitecture` / `Connector` / `Safety` — +Z corridor, shifted main openings, partition colliders.
+5. `FrozenTrainLongVestibuleArchitecture` — 4 m vestibules, doors and wall-mounted ladders.
+6. `FrozenTrainMinimalInteriorPass` — final authority: strip dressing, baseline materials, cabin doors, minimal exterior, scene refresh.
+
+Removed on 2026-10-31 (their output was always deleted by the minimal pass): ScreenshotQARefinement (car part), ScreenshotQASafety, ExteriorMaterialFix (merged into ExteriorScenery), LongLightingPass, Post24ScreenshotPolish, LongExteriorPass, CirculationFinalizer, UpperDeckCirculation, UpperDeckFinalPolish, FinalScreenshotFix, ProductionArt wrapper.
 
 Runtime gameplay does not construct train geometry.

@@ -90,12 +90,14 @@ Passengers keep one predictable right-side route while staff rooms and vertical 
 
 `Frozen Train > Rebuild Authored Train` is the only public authoring command.
 
-Relevant passes:
-1. `FrozenTrainMainStreetArchitecture` — base right-side corridor/work-room split.
-2. `FrozenTrainMainStreetConnector` — aligns car main openings to the +Z corridor.
-3. `FrozenTrainMainStreetSafety` — base corridor cleanup.
-4. `FrozenTrainLongVestibuleArchitecture` — authoritative 24 m room placement, removes in-car vertical access, rebuilds the shared connector as a 4 m vestibule/stair core.
-5. `FrozenTrainLongLightingPass` — distributes technical lighting across the 24 m length.
-6. `FrozenTrainLongExteriorPass` — removes legacy 18 m exterior QA details and rebuilds them for the 24 m body.
+Current chain (`FrozenTrainUnifiedAuthoring.cs`):
+1. `FrozenTrainBuilder` — canonical five-car prefabs, connector, scene and player.
+2. `FrozenTrainProductionArtPro` — FT_PRO materials/textures and shell/light tuning.
+3. `FrozenTrainExteriorScenery` — mountains, rocks, snow drifts and rail gauge (scene).
+4. `FrozenTrainMainStreetArchitecture` / `Connector` / `Safety` — +Z corridor, shifted main openings, partition colliders.
+5. `FrozenTrainLongVestibuleArchitecture` — 4 m vestibules, doors and wall-mounted ladders.
+6. `FrozenTrainMinimalInteriorPass` — final authority: strip dressing, baseline materials, cabin doors, minimal exterior, scene refresh.
+
+Removed on 2026-10-31 (their output was always deleted by the minimal pass): ScreenshotQARefinement (car part), ScreenshotQASafety, ExteriorMaterialFix (merged into ExteriorScenery), LongLightingPass, Post24ScreenshotPolish, LongExteriorPass, CirculationFinalizer, UpperDeckCirculation, UpperDeckFinalPolish, FinalScreenshotFix, ProductionArt wrapper.
 
 These passes preserve existing gameplay interaction components when moving their authored roots.

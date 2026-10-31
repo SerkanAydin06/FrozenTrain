@@ -82,13 +82,6 @@ namespace FrozenTrain.EditorTools
                 RemoveDirectChild(root.transform, "__CirculationFinalV2");
                 RemoveDirectChild(root.transform, "__UpperCirculationV3");
 
-                Transform qa = root.transform.Find("__ScreenshotQAV1");
-                if (qa != null)
-                {
-                    DestroyNamedChild(qa, "MainDeckQA");
-                    DestroyNamedChild(qa, "UpperDeckQA");
-                }
-
                 Transform architecture = root.transform.Find("__RightSideCorridorV2");
                 if (architecture != null)
                 {
