@@ -65,3 +65,13 @@
 - `Assets/Editor/FrozenTrainUnifiedAuthoring.cs`: Eski kalın dış trim geçişi kaldırıldı, sade dış tasarımı uygulayan son adım tek otorite oldu.
 - Commit: `3ff0fca84a9c7cf4f3323b5610cc964058af3477` (+ çatıda son sadeleştirme ve dokümantasyon commit'i).
 - Doğrulama: değiştirilmiş kodda statik parantez/simge kontrolleri ve varlık malzeme yolları denetlendi. **Unity Editor çalıştırılıp prefablar yeniden üretilmedi**. Yeni sahneyi görmek için GitHub'dan çek, `Frozen Train > Rebuild Authored Train`, ardından `Ctrl+S`; merdivenler, kapılar ve dış cepheyi Play Mode'da kontrol et.
+
+## 2026-10-31 — Merdiven oranları ve kaplama titreme/aliasing düzeltmesi
+- Kullanıcı duvara dayalı merdivenlerin çok uzun göründüğünü ve kaplamalarda hareket esnasında titreme yaşandığını bildirdi; yüksek kalite PC görünümü öncelikli.
+- Depodaki en yeni `Docs/Screenshots` seti **2026-10-30 23:07:41** tarihli. `gecis1_merdiven.jpg` hâlâ eski basamaklı tasarımı gösteriyor; mevcut düz dik merdivenlerin son görünümü bu görüntülerden doğrulanamaz. `vagon2_kat2.jpg` gibi karelerde zemin ve tavanda yoğun ince desenler var.
+- `FrozenTrainLongVestibuleArchitecture.cs`: duvara asılı dik merdivenlerde korkuluğun üst kat zeminini 1.08 m aşması azaltıldı (0.14 m), ray/basamak genişlikleri inceltildi; toplam erişim yüksekliği ve `E` ile kat geçişi korundu.
+- `FrozenTrainProductionArtPro.cs` ve mevcut `FT_PRO_Floor.mat`/`FT_PRO_Wall.mat`: yüksek frekanslı zemin doku tekrarı 3.5→1.25, duvar 2→1; normal etkisi düşürüldü, metaliklik dengelendi. Kaynak kodun her rebuild'de değerleri eski haline çevirmemesi için üretim otoritesi de güncellendi.
+- `Assets/Art/Textures/Generated/TrainProduction/` altındaki dört zemin/duvar albedo ve normal `.meta`: trilinear+mipmap, zemin 8× ve duvar 4× anizotropi, lossless import ayarları. `EnsureTexture` da aynı ayarları uyguluyor.
+- `PC_RPAsset.asset`: MSAA 1→4. `FrozenTrainBuilder.cs`: mevcut/yeniden oluşturulan oyuncu kamerasında SMAA High ve MSAA, near clip 0.04→0.10, far clip 260→220. Render dokümanlarına göre MSAA polygon kenarlarını, trilinear+mipmap/anisotropic filtreleme uzak/oblik doku taramasını azaltır; üst üste binen tam eşdüzlemsel geometriyi tek başına gidermez.
+- Commit: `18a8521c39263db7bcec0859a09a2d14613b4544`.
+- **Unity kontrolü hâlâ gerekli:** `Frozen Train > Rebuild Authored Train` → `Ctrl+S`; özellikle geçişlerde merdiven uzunluğu, zemin/duvar titreşimi, ve hareket esnasındaki aliasing'i Play Mode'da kontrol et. Yeni ekran görüntülerini tarihle kaydet. Bu ortamda Unity derlemesi/render doğrulaması yapılmadı.

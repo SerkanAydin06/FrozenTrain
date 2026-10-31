@@ -19,6 +19,7 @@ Work on the existing Unity survival-management game efficiently. Prefer focused 
 - Locomotive main deck is fully private; its rear vestibule enters a private landing.
 - Locomotive front is -X. Exterior scenery moves +X.
 - Public authoring workflow: `Frozen Train > Rebuild Authored Train`.
+- **PC render fidelity (2026-10-31):** `PC_RPAsset.asset` uses 4x MSAA; the authored player camera uses SMAA High and a 0.10–220 m clip range. `FrozenTrainProductionArtPro.cs` owns the less repetitive floor/wall textures and trilinear/aniso import settings. Keep these values consistent with the serialized materials and four texture `.meta` files when editing.
 - **Current rebuild mode: bare interiors (user request 2026-10-31).** The last pass,
   `Assets/Editor/FrozenTrainMinimalInteriorPass.cs`, removes all interior furniture,
   machines, consoles, screens, beds, storage and other dressing. Only structural shell,
@@ -101,4 +102,5 @@ Use the project skills when their descriptions match the task.
 - `Docs/Screenshots/README.md` lists capture time, labels and camera positions.
 - When `Docs/Screenshots/**` is pushed to `main`, `.github/workflows/screenshots-artifact.yml` uploads the whole screenshot set as a `frozen-train-screenshots-<commit>` GitHub Actions artifact for binary visual review.
 - For visual tasks, inspect the newest screenshot artifact when available; otherwise do not claim pixel-level visual review.
+- The newest checked screenshot set has capture timestamp 2026-10-30 23:07:41 and predates the current wall-ladder/minimal-exterior changes. Never describe it as a confirmed screenshot of the current build. Request fresh Unity captures after rebuild for actual visual QA.
 - Compare affected views against the previous screenshot set when judging visual changes.
