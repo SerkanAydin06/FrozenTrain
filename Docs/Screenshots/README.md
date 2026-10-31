@@ -1,66 +1,68 @@
-﻿# FrozenTrain otomatik görüntüler
+﻿# FrozenTrain – güncel QA ekran görüntüleri
 
-Son çekim: 2026-10-30 23:07:41
+Son çekim (UTC): 2026-10-31 09:48:03 UTC
+Kameralar vagon ve kat sınırları, geçişler, merdivenler ve kapılardan otomatik seçildi.
+Yalnızca son çekim dosyaları tutulur. GitHub üzerinden görülebilmeleri için push gerekir.
 
-Mimari: 5 x 24 m vagon + 4 x 4 m ara vestibül. `gecisN_merdiven` artık kapının dışına değil merdiven çekirdeğinin içinden basamaklara bakar; `_oda` gerçek kabin kapısından içeri bakar.
-
-| Dosya | Açıklama | Kamera (dünya) |
+| Görüntü | Bölüm | Kamera (dünya) |
 |---|---|---|
-| vagon1_kat1.jpg | Lokomotif, kat 1 (alt / teknik), öne bakış | (-45.6, -1.5, 0.0) |
-| vagon1_kat1_ters.jpg | Lokomotif, kat 1 (alt / teknik), arkaya bakış | (-66.5, -1.5, 0.0) |
-| vagon1_kat2.jpg | Lokomotif, kat 2 (orta / özel kabin veya sağ transit koridor), öne bakış | (-45.6, 1.7, 0.0) |
-| vagon1_kat2_ters.jpg | Lokomotif, kat 2 (orta / özel kabin veya sağ transit koridor), arkaya bakış | (-66.5, 1.7, 0.0) |
-| vagon1_kat3.jpg | Lokomotif, kat 3 (üst / özel konut), öne bakış | (-45.6, 4.8, 0.0) |
-| vagon1_kat3_ters.jpg | Lokomotif, kat 3 (üst / özel konut), arkaya bakış | (-66.5, 4.8, 0.0) |
-| vagon1_kat2_bolme.jpg | Lokomotif tam özel sürüş kabini | (-45.9, 1.7, 0.0) |
-| vagon1_kat3_oda.jpg | Lokomotif, üst konut örnek kabinine kapıdan bakış | (-65.4, 4.8, 0.1) |
-| vagon2_kat1.jpg | Jeneratör, kat 1 (alt / teknik), öne bakış | (-17.6, -1.5, 0.0) |
-| vagon2_kat1_ters.jpg | Jeneratör, kat 1 (alt / teknik), arkaya bakış | (-38.5, -1.5, 0.0) |
-| vagon2_kat2.jpg | Jeneratör, kat 2 (orta / özel kabin veya sağ transit koridor), öne bakış | (-17.6, 1.7, 3.2) |
-| vagon2_kat2_ters.jpg | Jeneratör, kat 2 (orta / özel kabin veya sağ transit koridor), arkaya bakış | (-38.5, 1.7, 3.2) |
-| vagon2_kat3.jpg | Jeneratör, kat 3 (üst / özel konut), öne bakış | (-17.6, 4.8, 0.0) |
-| vagon2_kat3_ters.jpg | Jeneratör, kat 3 (üst / özel konut), arkaya bakış | (-38.5, 4.8, 0.0) |
-| vagon2_kat2_bolme.jpg | Jeneratör, 24 m kapalı işlev bölümü | (-17.9, 1.7, -1.4) |
-| vagon2_kat3_oda.jpg | Jeneratör, üst konut örnek kabinine kapıdan bakış | (-37.4, 4.8, 0.1) |
-| vagon3_kat1.jpg | Yaşam, kat 1 (alt / teknik), öne bakış | (10.5, -1.5, 0.0) |
-| vagon3_kat1_ters.jpg | Yaşam, kat 1 (alt / teknik), arkaya bakış | (-10.5, -1.5, 0.0) |
-| vagon3_kat2.jpg | Yaşam, kat 2 (orta / özel kabin veya sağ transit koridor), öne bakış | (10.5, 1.7, 3.2) |
-| vagon3_kat2_ters.jpg | Yaşam, kat 2 (orta / özel kabin veya sağ transit koridor), arkaya bakış | (-10.5, 1.7, 3.2) |
-| vagon3_kat3.jpg | Yaşam, kat 3 (üst / özel konut), öne bakış | (10.5, 4.8, 0.0) |
-| vagon3_kat3_ters.jpg | Yaşam, kat 3 (üst / özel konut), arkaya bakış | (-10.5, 4.8, 0.0) |
-| vagon3_kat2_bolme.jpg | Yaşam, 24 m kapalı işlev bölümü | (10.2, 1.7, -1.4) |
-| vagon3_kat3_oda.jpg | Yaşam, üst konut örnek kabinine kapıdan bakış | (-9.4, 4.8, 0.1) |
-| vagon4_kat1.jpg | Atölye, kat 1 (alt / teknik), öne bakış | (38.5, -1.5, 0.0) |
-| vagon4_kat1_ters.jpg | Atölye, kat 1 (alt / teknik), arkaya bakış | (17.6, -1.5, 0.0) |
-| vagon4_kat2.jpg | Atölye, kat 2 (orta / özel kabin veya sağ transit koridor), öne bakış | (38.5, 1.7, 3.2) |
-| vagon4_kat2_ters.jpg | Atölye, kat 2 (orta / özel kabin veya sağ transit koridor), arkaya bakış | (17.6, 1.7, 3.2) |
-| vagon4_kat3.jpg | Atölye, kat 3 (üst / özel konut), öne bakış | (38.5, 4.8, 0.0) |
-| vagon4_kat3_ters.jpg | Atölye, kat 3 (üst / özel konut), arkaya bakış | (17.6, 4.8, 0.0) |
-| vagon4_kat2_bolme.jpg | Atölye, 24 m kapalı işlev bölümü | (38.2, 1.7, -1.4) |
-| vagon4_kat3_oda.jpg | Atölye, üst konut örnek kabinine kapıdan bakış | (18.7, 4.8, 0.1) |
-| vagon5_kat1.jpg | Sera, kat 1 (alt / teknik), öne bakış | (66.5, -1.5, 0.0) |
-| vagon5_kat1_ters.jpg | Sera, kat 1 (alt / teknik), arkaya bakış | (45.6, -1.5, 0.0) |
-| vagon5_kat2.jpg | Sera, kat 2 (orta / özel kabin veya sağ transit koridor), öne bakış | (66.5, 1.7, 3.2) |
-| vagon5_kat2_ters.jpg | Sera, kat 2 (orta / özel kabin veya sağ transit koridor), arkaya bakış | (45.6, 1.7, 3.2) |
-| vagon5_kat3.jpg | Sera, kat 3 (üst / özel konut), öne bakış | (66.5, 4.8, 0.0) |
-| vagon5_kat3_ters.jpg | Sera, kat 3 (üst / özel konut), arkaya bakış | (45.6, 4.8, 0.0) |
-| vagon5_kat2_bolme.jpg | Sera, 24 m kapalı işlev bölümü | (66.2, 1.7, -1.4) |
-| vagon5_kat3_oda.jpg | Sera, üst konut örnek kabinine kapıdan bakış | (46.7, 4.8, 0.1) |
-| gecis1_kat2.jpg | Ara vestibül 1, sağ ana geçiş | (-43.3, 1.7, 3.2) |
-| gecis1_merdiven.jpg | Ara vestibül 1, merdiven çekirdeğinin içinden basamaklar | (-42.0, 1.7, 0.6) |
-| gecis1_kat3.jpg | Ara vestibül 1, üst konut sahanlığı ve merdiven | (-40.9, 4.8, 0.8) |
-| gecis1_kat1.jpg | Ara vestibül 1, alt teknik sahanlık ve merdiven | (-43.1, -1.5, 0.8) |
-| gecis2_kat2.jpg | Ara vestibül 2, sağ ana geçiş | (-15.3, 1.7, 3.2) |
-| gecis2_merdiven.jpg | Ara vestibül 2, merdiven çekirdeğinin içinden basamaklar | (-14.0, 1.7, 0.6) |
-| gecis2_kat3.jpg | Ara vestibül 2, üst konut sahanlığı ve merdiven | (-12.9, 4.8, 0.8) |
-| gecis2_kat1.jpg | Ara vestibül 2, alt teknik sahanlık ve merdiven | (-15.1, -1.5, 0.8) |
-| gecis3_kat2.jpg | Ara vestibül 3, sağ ana geçiş | (12.7, 1.7, 3.2) |
-| gecis3_merdiven.jpg | Ara vestibül 3, merdiven çekirdeğinin içinden basamaklar | (14.0, 1.7, 0.6) |
-| gecis3_kat3.jpg | Ara vestibül 3, üst konut sahanlığı ve merdiven | (15.1, 4.8, 0.8) |
-| gecis3_kat1.jpg | Ara vestibül 3, alt teknik sahanlık ve merdiven | (12.9, -1.5, 0.8) |
-| gecis4_kat2.jpg | Ara vestibül 4, sağ ana geçiş | (40.7, 1.7, 3.2) |
-| gecis4_merdiven.jpg | Ara vestibül 4, merdiven çekirdeğinin içinden basamaklar | (42.0, 1.7, 0.6) |
-| gecis4_kat3.jpg | Ara vestibül 4, üst konut sahanlığı ve merdiven | (43.1, 4.8, 0.8) |
-| gecis4_kat1.jpg | Ara vestibül 4, alt teknik sahanlık ve merdiven | (40.9, -1.5, 0.8) |
-| tren_dis_yan.jpg | Tüm 136 m tren, temiz yandan profil (QA için sahne engelleri gizli) | (0.0, 12.0, -76.0) |
-| tren_dis_on.jpg | Uzun lokomotif önü, yakın çapraz | (-74.0, 5.5, -16.0) |
+| tren_dis_yan.jpg | Tren dış yan | (-0.39, 7.22, -56.91) |
+| tren_dis_karsi.jpg | Tren karşı yan | (-0.39, 7.22, 56.91) |
+| tren_dis_on.jpg | Lokomotif önü | (-80.89, 3.82, -12.86) |
+| vagon1_kat1.jpg | 01_Locomotive kat 1 | (-46.80, -1.45, 0.00) |
+| vagon1_kat1_ters.jpg | 01_Locomotive kat 1 | (-65.20, -1.45, 0.00) |
+| vagon1_kat2.jpg | 01_Locomotive kat 2 | (-46.80, 1.66, 0.00) |
+| vagon1_kat2_ters.jpg | 01_Locomotive kat 2 | (-65.20, 1.66, 0.00) |
+| vagon1_kat3.jpg | 01_Locomotive kat 3 | (-46.80, 4.79, 0.00) |
+| vagon1_kat3_ters.jpg | 01_Locomotive kat 3 | (-65.20, 4.79, 0.00) |
+| vagon2_kat1.jpg | 02_Generator kat 1 | (-18.80, -1.45, 0.00) |
+| vagon2_kat1_ters.jpg | 02_Generator kat 1 | (-37.20, -1.45, 0.00) |
+| vagon2_kat2.jpg | 02_Generator kat 2 | (-18.80, 1.66, 2.99) |
+| vagon2_kat2_ters.jpg | 02_Generator kat 2 | (-37.20, 1.66, 2.99) |
+| vagon2_kat3.jpg | 02_Generator kat 3 | (-18.80, 4.79, 0.00) |
+| vagon2_kat3_ters.jpg | 02_Generator kat 3 | (-37.20, 4.79, 0.00) |
+| vagon3_kat1.jpg | 03_Living kat 1 | (9.20, -1.45, 0.00) |
+| vagon3_kat1_ters.jpg | 03_Living kat 1 | (-9.20, -1.45, 0.00) |
+| vagon3_kat2.jpg | 03_Living kat 2 | (9.20, 1.66, 2.99) |
+| vagon3_kat2_ters.jpg | 03_Living kat 2 | (-9.20, 1.66, 2.99) |
+| vagon3_kat3.jpg | 03_Living kat 3 | (9.20, 4.79, 0.00) |
+| vagon3_kat3_ters.jpg | 03_Living kat 3 | (-9.20, 4.79, 0.00) |
+| vagon4_kat1.jpg | 04_Workshop kat 1 | (37.20, -1.45, 0.00) |
+| vagon4_kat1_ters.jpg | 04_Workshop kat 1 | (18.80, -1.45, 0.00) |
+| vagon4_kat2.jpg | 04_Workshop kat 2 | (37.20, 1.66, 2.99) |
+| vagon4_kat2_ters.jpg | 04_Workshop kat 2 | (18.80, 1.66, 2.99) |
+| vagon4_kat3.jpg | 04_Workshop kat 3 | (37.20, 4.79, 0.00) |
+| vagon4_kat3_ters.jpg | 04_Workshop kat 3 | (18.80, 4.79, 0.00) |
+| vagon5_kat1.jpg | 05_Greenhouse kat 1 | (65.20, -1.45, 0.00) |
+| vagon5_kat1_ters.jpg | 05_Greenhouse kat 1 | (46.80, -1.45, 0.00) |
+| vagon5_kat2.jpg | 05_Greenhouse kat 2 | (65.20, 1.66, 2.99) |
+| vagon5_kat2_ters.jpg | 05_Greenhouse kat 2 | (46.80, 1.66, 2.99) |
+| vagon5_kat3.jpg | 05_Greenhouse kat 3 | (65.20, 4.79, 0.00) |
+| vagon5_kat3_ters.jpg | 05_Greenhouse kat 3 | (46.80, 4.79, 0.00) |
+| gecis1_upperladder.jpg | Geçiş 1 – UpperLadder | (-42.82, 1.78, -2.72) |
+| gecis1_lowerladder.jpg | Geçiş 1 – LowerLadder | (-41.18, -1.33, -2.72) |
+| gecis1_lowerfloor.jpg | Geçiş 1 – LowerFloor | (-42.00, -1.45, 2.62) |
+| gecis1_mainfloor.jpg | Geçiş 1 – MainFloor | (-42.00, 1.66, 2.62) |
+| gecis1_upperfloor.jpg | Geçiş 1 – UpperFloor | (-42.00, 4.79, 2.62) |
+| gecis2_upperladder.jpg | Geçiş 2 – UpperLadder | (-14.82, 1.78, -2.72) |
+| gecis2_lowerladder.jpg | Geçiş 2 – LowerLadder | (-13.18, -1.33, -2.72) |
+| gecis2_lowerfloor.jpg | Geçiş 2 – LowerFloor | (-14.00, -1.45, 2.62) |
+| gecis2_mainfloor.jpg | Geçiş 2 – MainFloor | (-14.00, 1.66, 2.62) |
+| gecis2_upperfloor.jpg | Geçiş 2 – UpperFloor | (-14.00, 4.79, 2.62) |
+| gecis3_upperladder.jpg | Geçiş 3 – UpperLadder | (13.18, 1.78, -2.72) |
+| gecis3_lowerladder.jpg | Geçiş 3 – LowerLadder | (14.82, -1.33, -2.72) |
+| gecis3_lowerfloor.jpg | Geçiş 3 – LowerFloor | (14.00, -1.45, 2.62) |
+| gecis3_mainfloor.jpg | Geçiş 3 – MainFloor | (14.00, 1.66, 2.62) |
+| gecis3_upperfloor.jpg | Geçiş 3 – UpperFloor | (14.00, 4.79, 2.62) |
+| gecis4_upperladder.jpg | Geçiş 4 – UpperLadder | (41.18, 1.78, -2.72) |
+| gecis4_lowerladder.jpg | Geçiş 4 – LowerLadder | (42.82, -1.33, -2.72) |
+| gecis4_lowerfloor.jpg | Geçiş 4 – LowerFloor | (42.00, -1.45, 2.62) |
+| gecis4_mainfloor.jpg | Geçiş 4 – MainFloor | (42.00, 1.66, 2.62) |
+| gecis4_upperfloor.jpg | Geçiş 4 – UpperFloor | (42.00, 4.79, 2.62) |
+| kapi_01.jpg | CabinDoor_01 yüzey kontrolü | (-65.35, 4.27, 1.55) |
+| kapi_02.jpg | MainVestibuleDoorFront yüzey kontrolü | (-46.15, 1.36, 3.15) |
+| kapi_03.jpg | CabinDoor_05 yüzey kontrolü | (-28.00, 4.27, 1.55) |
+| kapi_04.jpg | MainVestibuleDoorRear yüzey kontrolü | (-14.26, 1.36, 3.15) |
+| kapi_05.jpg | CabinDoor_07 yüzey kontrolü | (4.70, 4.27, 1.55) |
+| kapi_06.jpg | CabinDoor_01 yüzey kontrolü | (18.65, 4.27, 1.55) |
+| kapi_07.jpg | CabinDoor_10 yüzey kontrolü | (37.35, 4.27, 3.25) |
