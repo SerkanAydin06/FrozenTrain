@@ -453,11 +453,27 @@ namespace FrozenTrain.EditorTools
         private static void BuildEndSlidingDoor(Transform p, string name, float x, float y, float z,
             float width, Mats m, float openOffset)
         {
+            // Use the actual car end-wall opening measurements. The original
+            // 2.30m slab and fixed centre did not match upper/lower lintels.
+            bool main = name.StartsWith("MainVestibuleDoor", StringComparison.Ordinal);
+            bool upper = name.StartsWith("UpperDoor", StringComparison.Ordinal);
+            float floor = main ? L.MainTop : upper ? L.UpperTop : L.LowerTop;
+            Vector2 opening = main ? L.MainEndOpening : upper ? L.UpperEndOpening : L.LowerEndOpening;
+            float lintelBottom = (main ? L.MainY : upper ? L.UpperY : L.LowerY) + opening.y;
+            float panelHeight = lintelBottom - floor - .02f;
+            float panelWidth = opening.x - .02f;
+            if (panelHeight <= 0f) throw new InvalidOperationException("Invalid door opening: " + name);
+
             Transform door = Group(p, name);
-            door.localPosition = new Vector3(x, y, z);
-            Cube(door, "DoorPanel", Vector3.zero, new Vector3(.10f, 2.30f, width), m.Frame, false);
-            door.gameObject.AddComponent<BoxCollider>().size = new Vector3(.22f, 2.34f, width + .05f);
-            door.gameObject.AddComponent<SlidingDoor>().Configure(new Vector3(0f, 0f, openOffset), 2.8f);
+            door.localPosition = new Vector3(x, (floor + lintelBottom) * .5f, z);
+            Cube(door, "DoorPanel", Vector3.zero,
+                new Vector3(.085f, panelHeight, panelWidth), m.Frame, false);
+            door.gameObject.AddComponent<BoxCollider>().size =
+                new Vector3(.10f, panelHeight, panelWidth);
+            // Slide sideways within the train width, never through the exterior.
+            float travel = panelWidth + .025f;
+            door.gameObject.AddComponent<SlidingDoor>().Configure(
+                new Vector3(0f, 0f, Mathf.Sign(openOffset) * travel), 2.8f);
         }
 
         private static void BuildVestibuleLighting(Transform p, Mats m)

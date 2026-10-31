@@ -3,6 +3,7 @@ using System;
 using System.Linq;
 using FrozenTrain.Interaction;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using L = FrozenTrain.EditorTools.FrozenTrainLayout;
 
@@ -20,9 +21,16 @@ namespace FrozenTrain.EditorTools
     {
         private const string PrefabRoot = "Assets/Prefabs/Train";
         private const string ConnectorPath = PrefabRoot + "/Shared/CarConnector.prefab";
+        private const string BaselineMaterialRoot = "Assets/Art/Materials/TrainBaseline";
+        private static Material bodySlot;
+        private static Material wallSlot;
+        private static Material floorSlot;
+        private static Material metalSlot;
+        private static Material doorSlot;
 
         public static void Apply()
         {
+            LoadBaselineSlots();
             int removed = 0;
 
             foreach (CarSpec car in L.Cars)
@@ -41,6 +49,7 @@ namespace FrozenTrain.EditorTools
 
                     int before = CountObjects(root.transform);
                     StripCar(root.transform);
+                    AssignBaselineMaterials(root.transform);
                     removed += before - CountObjects(root.transform);
 
                     PrefabUtility.SaveAsPrefabAsset(root, path);
@@ -65,6 +74,7 @@ namespace FrozenTrain.EditorTools
 
                 int before = CountObjects(connector.transform);
                 StripVestibule(connector.transform);
+                AssignBaselineMaterials(connector.transform);
                 removed += before - CountObjects(connector.transform);
 
                 PrefabUtility.SaveAsPrefabAsset(connector, ConnectorPath);
@@ -75,6 +85,7 @@ namespace FrozenTrain.EditorTools
             }
 
             AssetDatabase.SaveAssets();
+            RefreshAuthoredSceneInstances();
             AssetDatabase.Refresh();
             Debug.Log("[FrozenTrain] Minimal interiors: removed " + removed +
                       " nonessential objects from five cars and the inter-car vestibule prefab. " +
@@ -122,15 +133,9 @@ namespace FrozenTrain.EditorTools
                         break;
 
                     case "__ProductionArtV2":
-                        // Strip the former exterior detail layer too: some wide trim
-                        // pieces crossed the hull outline or overlapped the interior.
-                        KeepChildren(child, t => t.name == "UpperAccommodationDetails");
-                        Transform doors = child.Find("UpperAccommodationDetails");
-                        if (doors != null)
-                        {
-                            KeepChildren(doors, t =>
-                                t.name == "PocketDoorLeaf");
-                        }
+                        // Old decorative pocket leaves sit beside the actual opening
+                        // and never seal it. Replace them with functional exact-fit doors.
+                        UnityEngine.Object.DestroyImmediate(child.gameObject);
                         break;
 
                     default:
@@ -142,6 +147,7 @@ namespace FrozenTrain.EditorTools
             }
 
             StripDoorDecorations(root);
+            BuildCabinDoors(root);
             AddMinimalExterior(root, root.name == L.Cars[0].Name);
             AddInvisibleLighting(root);
         }
@@ -189,6 +195,137 @@ namespace FrozenTrain.EditorTools
             // sign and ornamental header attached to it is removed.
             foreach (SlidingDoor door in root.GetComponentsInChildren<SlidingDoor>(true))
                 KeepChildren(door.transform, part => part.name == "DoorPanel");
+        }
+
+        private static void BuildCabinDoors(Transform root)
+        {
+            Transform upper = root.Find("UpperSleepingDeck");
+            if (upper == null) return;
+            float bottom = L.UpperTop;
+            float height = L.CorridorDoorHeight - .02f;
+            float width = L.CorridorDoorWidth - .02f;
+            int number = 0;
+            foreach (float x in L.CorridorDoorX)
+                foreach (float side in new[] { -1f, 1f })
+                {
+                    Transform door = MakeGroup(upper, "CabinDoor_" + (++number).ToString("00"));
+                    door.localPosition = new Vector3(x, bottom + L.CorridorDoorHeight * .5f,
+                        side * L.CorridorHalf);
+                    Solid(door, "DoorPanel", Vector3.zero,
+                        new Vector3(width, height, .085f), doorSlot);
+                    BoxCollider hit = door.gameObject.AddComponent<BoxCollider>();
+                    hit.size = new Vector3(width, height, .10f);
+                    // The door parks against its adjacent partition, within
+                    // the car footprint and outside the clear opening.
+                    float direction = x > L.HalfL - 2f ? -1f : 1f;
+                    door.gameObject.AddComponent<SlidingDoor>().Configure(
+                        new Vector3(direction * (width + .025f), 0f, 0f), 2.6f);
+                }
+        }
+
+        private static void LoadBaselineSlots()
+        {
+            if (!AssetDatabase.IsValidFolder(BaselineMaterialRoot))
+            {
+                if (!AssetDatabase.IsValidFolder("Assets/Art/Materials"))
+                    AssetDatabase.CreateFolder("Assets/Art", "Materials");
+                AssetDatabase.CreateFolder("Assets/Art/Materials", "TrainBaseline");
+            }
+
+            // These are intentionally neutral URP/Lit PBR material slots with NO
+            // textures. A future texture pass can edit each material without
+            // changing any geometry or replacing references.
+            bodySlot = BaselineSlot("01_Body", new Color(.40f, .43f, .47f));
+            wallSlot = BaselineSlot("02_Walls", new Color(.55f, .57f, .60f));
+            floorSlot = BaselineSlot("03_Floors", new Color(.35f, .37f, .40f));
+            metalSlot = BaselineSlot("04_Structure", new Color(.28f, .30f, .33f));
+            doorSlot = BaselineSlot("05_Doors", new Color(.48f, .50f, .53f));
+        }
+
+        private static Material BaselineSlot(string name, Color tint)
+        {
+            string path = BaselineMaterialRoot + "/" + name + ".mat";
+            Material existing = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (existing != null) return existing; // Preserve user-assigned future PBR maps.
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null) throw new InvalidOperationException("URP/Lit is unavailable.");
+            Material material = new Material(shader) { name = name };
+            material.color = tint;
+            material.SetColor("_BaseColor", tint);
+            material.SetFloat("_Metallic", 0f);
+            material.SetFloat("_Smoothness", .22f);
+            material.SetTexture("_BaseMap", null);
+            material.SetTexture("_BumpMap", null);
+            material.DisableKeyword("_NORMALMAP");
+            AssetDatabase.CreateAsset(material, path);
+            return material;
+        }
+
+        private static void AssignBaselineMaterials(Transform root)
+        {
+            foreach (Renderer r in root.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r is ParticleSystemRenderer) continue;
+                string source = r.sharedMaterial != null ? r.sharedMaterial.name : "";
+                if (source.Contains("Glass") || r.name.Contains("Window")) continue;
+                string n = r.name;
+                if (r.GetComponentInParent<SlidingDoor>() != null ||
+                    n == "DoorPanel") r.sharedMaterial = doorSlot;
+                else if (n.Contains("Floor") || n.Contains("Deck"))
+                    r.sharedMaterial = floorSlot;
+                else if (n.Contains("Rail") || n.Contains("Rung") ||
+                         n.Contains("Wheel") || n.Contains("Hub") ||
+                         n.Contains("Underframe") || n.Contains("Bogie") ||
+                         n.Contains("Bracket") || n.Contains("Mount") ||
+                         n.Contains("Sill"))
+                    r.sharedMaterial = metalSlot;
+                else if (n.Contains("Wall") || n.Contains("Divider") ||
+                         n.Contains("Lintel") || n.Contains("Header") ||
+                         n.Contains("Roof") || n.Contains("Partition"))
+                    r.sharedMaterial = wallSlot;
+                else r.sharedMaterial = bodySlot;
+            }
+        }
+
+        private static void RefreshAuthoredSceneInstances()
+        {
+            // Builder places its pre-art prefabs into the open scene BEFORE all
+            // art passes change the prefab assets. Replace those stale instances
+            // with the final cleaned prefabs so a single Rebuild updates the scene.
+            GameObject sceneTrain = GameObject.Find("TRAIN_INTERIOR_PROTOTYPE");
+            if (sceneTrain == null) return;
+            Transform parent = sceneTrain.transform;
+            Transform[] existing = parent.Cast<Transform>().ToArray();
+            for (int i = 0; i < existing.Length; i++)
+            {
+                Transform old = existing[i];
+                string sourcePath = null;
+                foreach (CarSpec car in L.Cars)
+                    if (old.name == car.Name || old.name == car.Name + "(Clone)")
+                    {
+                        sourcePath = PrefabRoot + "/" + car.Name + ".prefab";
+                        break;
+                    }
+                if (sourcePath == null && old.name.StartsWith("CarConnector", StringComparison.Ordinal))
+                    sourcePath = ConnectorPath;
+                if (sourcePath == null) continue;
+                GameObject sourcePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(sourcePath);
+                if (sourcePrefab == null) throw new InvalidOperationException("Missing scene prefab " + sourcePath);
+
+                Vector3 position = old.localPosition;
+                Quaternion rotation = old.localRotation;
+                Vector3 scale = old.localScale;
+                int sibling = old.GetSiblingIndex();
+                UnityEngine.Object.DestroyImmediate(old.gameObject);
+                GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(sourcePrefab, parent);
+                instance.transform.SetSiblingIndex(sibling);
+                instance.transform.localPosition = position;
+                instance.transform.localRotation = rotation;
+                instance.transform.localScale = scale;
+            }
+            var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
         }
 
         private static void AddMinimalExterior(Transform root, bool locomotive)

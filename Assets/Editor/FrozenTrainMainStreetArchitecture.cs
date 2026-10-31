@@ -114,14 +114,16 @@ namespace FrozenTrain.EditorTools
                 new Vector3(DoorWidth, wallH - DoorHeight, .16f), m.Frame, true);
 
             Transform door = Group(corridor, "FunctionalCompartmentDoor");
-            door.localPosition = new Vector3(0f, L.MainTop + DoorHeight * .5f, PartitionZ - .015f);
-            Cube(door, "DoorPanel", Vector3.zero, new Vector3(DoorWidth - .08f, DoorHeight - .06f, .09f), m.Frame, false);
+            door.localPosition = new Vector3(0f, L.MainTop + DoorHeight * .5f, PartitionZ);
+            // Leave a consistent 1cm reveal all around the frame.
+            Cube(door, "DoorPanel", Vector3.zero,
+                new Vector3(DoorWidth - .02f, DoorHeight - .02f, .085f), m.Frame, false);
             Cube(door, "DoorAccent", new Vector3(0f, .52f, -.052f), new Vector3(DoorWidth - .26f, .15f, .025f), Accent(carIndex, m), false);
             Cube(door, "DoorKick", new Vector3(0f, -.78f, -.052f), new Vector3(DoorWidth - .22f, .34f, .026f), m.Steel, false);
             Cube(door, "DoorHandle", new Vector3(.48f, -.04f, -.072f), new Vector3(.07f, .34f, .05f), m.Hazard, false);
             BoxCollider hit = door.gameObject.AddComponent<BoxCollider>();
-            hit.size = new Vector3(DoorWidth, DoorHeight, .22f);
-            door.gameObject.AddComponent<SlidingDoor>().Configure(new Vector3(DoorWidth + .18f, 0f, 0f), 2.6f);
+            hit.size = new Vector3(DoorWidth - .02f, DoorHeight - .02f, .11f);
+            door.gameObject.AddComponent<SlidingDoor>().Configure(new Vector3(DoorWidth + .02f, 0f, 0f), 2.6f);
         }
 
         private static void RezoneFunctionalCompartment(Transform root, Transform marker, int index, Mats m)
