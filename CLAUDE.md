@@ -15,7 +15,7 @@ Work on the existing Unity survival-management game efficiently. Prefer focused 
   - middle: locomotive private cab, or right-side public corridor + closed functional room in cars 2–5;
   - upper: sleeping/accommodation using the full car footprint.
 - **No normal vertical circulation is inside a usable car.** All main↔upper and lower↔main access uses upright E-interactable ladders in the four inter-car vestibules (eight ladders in total).
-- Each vestibule has a right-side through passage and a separate left-side access core with two upright ladders serving both adjacent cars.
+- Each vestibule is a single open passage without an enclosed stair room or inner stair partition; two wall-mounted upright ladders along the -Z side serve the decks.
 - Locomotive main deck is fully private; its rear vestibule enters a private landing.
 - Locomotive front is -X. Exterior scenery moves +X.
 - Public authoring workflow: `Frozen Train > Rebuild Authored Train`.
@@ -24,7 +24,7 @@ Work on the existing Unity survival-management game efficiently. Prefer focused 
   machines, consoles, screens, beds, storage and other dressing. Only structural shell,
   windows, partition walls, plain passage/cabin doors and vestibule vertical ladders remain,
   with invisible basic lights so the scene is navigable.
-- Keep this minimal baseline with unadorned doors and vertical ladders until the user requests individual elements to be reintroduced.
+- Keep this minimal baseline with unadorned doors, wall-mounted vertical ladders and uncluttered exterior (no roof drifts, orange trim, oversized exterior decals) until the user requests individual elements to be reintroduced.
   Prior authored art sources are retained for later work but are stripped from rebuilt prefabs.
   Do not put removed props back automatically in a subsequent visual pass.
 
@@ -37,7 +37,7 @@ Work on the existing Unity survival-management game efficiently. Prefer focused 
 - Base main-opening alignment: `Assets/Editor/FrozenTrainMainStreetConnector.cs`
 - **Final long-car/inter-car circulation authority:** `Assets/Editor/FrozenTrainLongVestibuleArchitecture.cs` (two DeckLadder components per connector, compact ladder openings)
 - **24 m technical lighting authority:** `Assets/Editor/FrozenTrainLongLightingPass.cs`
-- **24 m exterior-detail authority:** `Assets/Editor/FrozenTrainLongExteriorPass.cs`
+- **Minimal exterior authority:** `Assets/Editor/FrozenTrainMinimalInteriorPass.cs`. The older `FrozenTrainLongExteriorPass.cs` is no longer in the rebuild chain; do not reactivate it while this minimalist baseline is in effect.
 - Rebuild entry point: `Assets/Editor/FrozenTrainUnifiedAuthoring.cs`
 - Architecture contracts: `Docs/FiveCarArchitecture.md`, `Docs/MainStreetArchitecture.md`
 - Survival state: `Assets/Scripts/Management/TrainPrototypeState.cs`
@@ -70,7 +70,7 @@ Legacy note: `FrozenTrainUpperDeckCirculation.cs`, `FrozenTrainUpperDeckFinalPol
 - Avoid decorative clutter that blocks corridors, windows, doors, vestibule landings or interactions.
 - Keep window sight-lines clear in windowed spaces.
 - Preserve `E` interaction stability and existing component bindings when moving/replacing authored objects.
-- **Never place vertical access inside a usable car.** Only the two straight vertical ladders per vestibule are allowed; do not restore treads, guards, orange door bands or decorative markers.
+- **Never place vertical access inside a usable car.** Only two straight wall-mounted vertical ladders per vestibule are allowed; do not restore the stair room, partitions, doors, treads, guards, orange bands or decorative markers.
 - Cars 2–5: right corridor stays physically clear for the complete 24 m body; all functional content stays behind the opaque partition on the left.
 - Locomotive: no public through-corridor; full-width private cab.
 - Upper residential halls/cabins must use the full 24 m car area and receive access from adjacent vestibule upper landings.

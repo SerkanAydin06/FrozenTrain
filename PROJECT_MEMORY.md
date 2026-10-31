@@ -57,3 +57,11 @@
 - `Assets/Editor/FrozenTrainUnifiedAuthoring.cs`: eski basamak/stringer son geçişi devreden çıkarıldı. Kaynak kodu denetimi yapıldı; Unity Editor Play Mode testi bu ortamda çalıştırılamadı.
 - Commit: `6281b6e35900fe17f4c1982fd6bf29a72cf1dd0e`.
 - **Unity'de uygulama:** Güncel `main` kodunu çek → `Frozen Train > Rebuild Authored Train` → sahneyi kaydet (`Ctrl+S`) → E ile alt/üst kat merdivenlerini test et.
+
+## 2026-10-31 — Minimal dış tasarım ve duvara sabit dik merdivenler
+- Kullanıcı trenin dışındaki gereksiz/söküntü parçalarının, içeri taşan detayların temizlenmesini; profesyonel ama sade dış gövde ve ayrı merdiven odası olmadan duvara dayanan dik merdiven istedi.
+- `Assets/Editor/FrozenTrainMinimalInteriorPass.cs`: `ExteriorDressing`, `__LongExteriorV1` ve eski üretim-art dış detayları son temizleme geçişinde siliniyor. Yapısal `Shell` (24 m gövde, üç kat, pencereler, çatı, alt şasi) korunuyor. `__MinimalExteriorV1` yalnızca koyu dış alt eşik, her boginin iki dingiline oturan tekerlek+göbek ve lokomotifin önünde kalan sade burun/iki beyaz far ekliyor. Çıkarılanlar: eski turuncu şeritler, saçaklar, kar birikintileri/buzlar, fazla kapaklar/çift tekerlek setleri, öne/yanlara taşan süsler; geçiş çatı kar kaplaması da çıkarıldı. Kaynak modeller silinmedi, rebuild sonucunda bulunmazlar.
+- `Assets/Editor/FrozenTrainLongVestibuleArchitecture.cs`: `BuildMainTransit` artık iç merdiven odası, bölme duvarı, kapı ve üst başlık oluşturmuyor; yalnızca mevcut ana geçiş kapılarını kuruyor. 4 vestibülün toplam 8 dik merdiveni -Z dış yan duvarın içine sabitlenmiş küçük bağlantı kollarıyla yerleştirildi. Kat delikleri yan duvar kenarına çekildi; çıkış noktaları sağlam zemin üzerinde tutuldu. Tutamaçlar üst kat zemininden yukarı uzanıyor. Merdiven E etkileşimi korunuyor.
+- `Assets/Editor/FrozenTrainUnifiedAuthoring.cs`: Eski kalın dış trim geçişi kaldırıldı, sade dış tasarımı uygulayan son adım tek otorite oldu.
+- Commit: `3ff0fca84a9c7cf4f3323b5610cc964058af3477` (+ çatıda son sadeleştirme ve dokümantasyon commit'i).
+- Doğrulama: değiştirilmiş kodda statik parantez/simge kontrolleri ve varlık malzeme yolları denetlendi. **Unity Editor çalıştırılıp prefablar yeniden üretilmedi**. Yeni sahneyi görmek için GitHub'dan çek, `Frozen Train > Rebuild Authored Train`, ardından `Ctrl+S`; merdivenler, kapılar ve dış cepheyi Play Mode'da kontrol et.

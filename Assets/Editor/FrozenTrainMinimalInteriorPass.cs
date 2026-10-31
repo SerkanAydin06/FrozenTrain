@@ -160,7 +160,7 @@ namespace FrozenTrain.EditorTools
                         return n.StartsWith("LowerFloor", StringComparison.Ordinal) ||
                             n.StartsWith("MainFloor", StringComparison.Ordinal) ||
                             n.StartsWith("UpperFloor", StringComparison.Ordinal) ||
-                            n == "Roof" || n == "RoofSnow" ||
+                            n == "Roof" ||
                             n == "OuterWallL" || n == "OuterWallR" ||
                             n == "VestibuleUnderframe" ||
                             n == "MainVestibuleDoorFront" || n == "MainVestibuleDoorRear" ||
