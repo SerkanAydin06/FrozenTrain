@@ -45,6 +45,9 @@ namespace FrozenTrain.EditorTools
             EnsureFolder("Assets/Settings");
             EnsureFolder("Assets/Scenes");
 
+            // Abort before touching the scene if mirrored architectural bays
+            // or bilateral window patterns are accidentally edited out of sync.
+            L.ValidateSymmetricBase();
             Scene scene = OpenOrCreateScene();
             mats = CreateMaterials();
             try

@@ -144,6 +144,64 @@ namespace FrozenTrain.EditorTools
         // back here automatically restores their prefab generation and connectors.
         public static readonly CarSpec[] Cars = { Locomotive(), Generator() };
 
+        /// <summary>
+        /// Detect accidental asymmetric bay editing while leaving rear access
+        /// hatches, locomotive cockpit and functional corridors intentionally asymmetric.
+        /// Called by the authoring pipeline before modifying any prefabs.
+        /// </summary>
+        public static void ValidateSymmetricBase()
+        {
+            ValidatePairs("Cabin dividers", SleepingDividerX);
+            ValidatePairs("Cabin doors", CorridorDoorX);
+            ValidatePairs("Cabin bays", SleepingPodX);
+            foreach (CarSpec car in Cars)
+            {
+                if (car.MainWindows.Length > 0)
+                    ValidateWindows(car.Name + " left/main windows", car.MainWindows);
+                if (car.CorridorSideWindows != null)
+                {
+                    ValidateWindows(car.Name + " right windows", car.CorridorSideWindows);
+                    if (!SameWindowSpans(car.MainWindows, car.CorridorSideWindows))
+                        throw new InvalidOperationException(
+                            "Asymmetric external window openings in " + car.Name);
+                }
+            }
+        }
+
+        private static void ValidatePairs(string label, float[] positions)
+        {
+            for (int i = 0; i < positions.Length / 2; i++)
+                if (Mathf.Abs(positions[i] + positions[positions.Length - 1 - i]) > .001f)
+                    throw new InvalidOperationException(label + " is not mirrored about X=0.");
+            if (positions.Length % 2 == 1 && Mathf.Abs(positions[positions.Length / 2]) > .001f)
+                throw new InvalidOperationException(label + " centre bay is not at X=0.");
+        }
+
+        private static void ValidateWindows(string label, WindowSpan[] windows)
+        {
+            WindowSpan[] ordered = windows.OrderBy(w => w.CenterX).ToArray();
+            for (int i = 0; i < ordered.Length / 2; i++)
+            {
+                WindowSpan left = ordered[i], right = ordered[ordered.Length - 1 - i];
+                if (Mathf.Abs(left.CenterX + right.CenterX) > .001f ||
+                    Mathf.Abs(left.Width - right.Width) > .001f)
+                    throw new InvalidOperationException(label + " has unmatched mirror windows.");
+            }
+            if (ordered.Length % 2 == 1 &&
+                Mathf.Abs(ordered[ordered.Length / 2].CenterX) > .001f)
+                throw new InvalidOperationException(label + " has an off-centre window.");
+        }
+
+        private static bool SameWindowSpans(WindowSpan[] a, WindowSpan[] b)
+        {
+            if (a == null || b == null || a.Length != b.Length) return false;
+            for (int i = 0; i < a.Length; i++)
+                if (Mathf.Abs(a[i].CenterX - b[i].CenterX) > .001f ||
+                    Mathf.Abs(a[i].Width - b[i].Width) > .001f)
+                    return false;
+            return true;
+        }
+
         public static float CarCenterX(int index) => (index - (Cars.Length - 1) * .5f) * CarSpacing;
         public static float VestibuleCenterX(int leftCarIndex) => (CarCenterX(leftCarIndex) + CarCenterX(leftCarIndex + 1)) * .5f;
 
@@ -164,10 +222,9 @@ namespace FrozenTrain.EditorTools
             MainGroupName = "Locomotive_Interior",
             PanoramicFront = true,
             TechnicalLadder = true, // only the locomotive reaches the technical deck for now
-            MainWindows = new[]
-            {
-                new WindowSpan(-9.2f, 2.25f), new WindowSpan(-6.2f, 2.25f), new WindowSpan(-3.2f, 2.25f)
-            },
+            // Mirror the standard 6-bay window pattern about the car centre
+            // on both sides. The front windshield remains locomotive-specific.
+            MainWindows = StandardCorridorWindows(),
             Lower = new[]
             {
                 OnLower(PropShape.Machine, "TractionMotorA", -7.2f, -2.75f, new Vector3(3.6f, 1.75f, 1.35f), TrainMat.Steel, TrainMat.Frame),
@@ -198,6 +255,9 @@ namespace FrozenTrain.EditorTools
         private static CarSpec Generator() => new CarSpec
         {
             Name = "02_Generator",
+            // Identical openings on both exterior sides (same X positions and
+            // widths). The +Z public corridor and -Z function room remain distinct.
+            MainWindows = StandardCorridorWindows(),
             CorridorSideWindows = StandardCorridorWindows(),
             MainGroupName = "GeneratorControlDeck",
             Lower = new[]
