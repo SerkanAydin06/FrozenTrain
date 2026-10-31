@@ -2,6 +2,7 @@
 using System;
 using System.Linq;
 using FrozenTrain.Interaction;
+using FrozenTrain.Visuals;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -51,6 +52,8 @@ namespace FrozenTrain.EditorTools
                     int before = CountObjects(root.transform);
                     StripCar(root.transform);
                     AssignBaselineMaterials(root.transform);
+                    if (root.GetComponent<TrainFloorTiling>() == null)
+                        root.AddComponent<TrainFloorTiling>();
                     removed += before - CountObjects(root.transform);
 
                     PrefabUtility.SaveAsPrefabAsset(root, path);
@@ -73,6 +76,8 @@ namespace FrozenTrain.EditorTools
                 int before = CountObjects(connector.transform);
                 StripVestibule(connector.transform);
                 AssignBaselineMaterials(connector.transform);
+                if (connector.GetComponent<TrainFloorTiling>() == null)
+                    connector.AddComponent<TrainFloorTiling>();
                 removed += before - CountObjects(connector.transform);
 
                 PrefabUtility.SaveAsPrefabAsset(connector, ConnectorPath);

@@ -22,3 +22,9 @@ Bu asset'ler ilk Unity yeniden üretiminde oluşturulur. **Var olan malzemeler o
 6. Unity Play'de kapıları **kapalı, açık ve hareket ederken** görüntüle. Dar kapı kenarlarında Z-fighting, dışarı taşma ve yanlış collider durumlarını kontrol et.
 
 Not: Bu aşama malzeme atama altyapısını hazırlıyor; UV unwrap, bake ve final yüksek çözünürlüklü PBR doku üretimi bu aşamaya dahil değildir.
+
+## Deneme: endüstriyel tren tabanı (2026-10-31)
+- Üretilen koyu gri kaymaz zemin tasarımının **128×128 küçültülmüş önizlemesi**, `Assets/Art/Textures/Floor/FT_Floor_IndustrialPreview.png` üzerinden yalnızca `03_Floors.mat` malzemesinin URP/Lit `_BaseMap` kanalına bağlandı. Bu yalnızca **görünüm testi**: yüksek çözünürlüklü 1254×1254 orijinal görselin yerine geçmez; normal, AO veya roughness haritası henüz yok.
+- `TrainFloorTiling` tüm zeminlerin URP tiling/offset değerini 2.50 m gerçek dünya ölçeğinde tutar; malzeme paylaşılır, kapılar, duvarlar ve diğer yüzeyler dokusuz kalır.
+- Daha yüksek çözünürlükte değerlendirmek için aynı asset yolundaki görseli orijinal PNG ile değiştirmek yeterlidir. `03_Floors.mat` ve 5 PBR slotunun GUID'lerini değiştirme.
+- `Frozen Train > Rebuild Authored Train` ve Play → en güncel screenshotları GitHub'a push et. Unity derlemesi/render testi bu ortamda yapılamadı.
