@@ -786,13 +786,23 @@ namespace FrozenTrain.EditorTools
             r.renderMode = ParticleSystemRenderMode.Billboard;
         }
 
+        private static Vector3 GetPrototypeSpawn()
+        {
+            // Place the player on the +Z public corridor of the first non-cab
+            // car; for a locomotive-only preview, use its open central aisle.
+            bool hasSecondCar = L.Cars.Length > 1;
+            int carIndex = hasSecondCar ? 1 : 0;
+            return new Vector3(L.CarCenterX(carIndex), L.MainTop + .04f,
+                hasSecondCar ? 2.95f : 0f);
+        }
+
         private static void EnsurePlayer(TrainPrototypeState state)
         {
             GameObject player = GameObject.Find(PlayerName);
             if (player == null)
             {
                 player = new GameObject(PlayerName);
-                player.transform.position = new Vector3(L.CarCenterX(2), L.MainTop + .01f, 0f);
+                player.transform.position = GetPrototypeSpawn();
                 CharacterController cc = player.AddComponent<CharacterController>();
                 cc.height = 1.8f; cc.radius = .34f; cc.center = new Vector3(0f, .9f, 0f); cc.stepOffset = .32f; cc.slopeLimit = 50f;
 
@@ -804,6 +814,16 @@ namespace FrozenTrain.EditorTools
                 cam.fieldOfView = 72f; cam.nearClipPlane = .10f; cam.farClipPlane = 220f;
                 camObject.AddComponent<AudioListener>();
             }
+
+            // Builder recreates cars but preserves the FPS_Player GameObject. A
+            // previously saved five-car player position can otherwise end up on
+            // the snow or inside the 1 m inter-car gap after reducing the train.
+            CharacterController playerBody = player.GetComponent<CharacterController>();
+            bool wasEnabled = playerBody != null && playerBody.enabled;
+            if (wasEnabled) playerBody.enabled = false;
+            player.transform.position = GetPrototypeSpawn();
+            Physics.SyncTransforms();
+            if (wasEnabled) playerBody.enabled = true;
 
             Camera camera = player.GetComponentInChildren<Camera>(true);
             FpsPlayerController controller = GetOrAdd<FpsPlayerController>(player);

@@ -6,7 +6,7 @@ namespace FrozenTrain.EditorTools
 {
     /// <summary>
     /// Single public authoring entry point. Order matters:
-    /// 1. Builder: five separate 24 m car prefabs with end doors and in-car ladders (CarAccess),
+    /// 1. Builder: active 24 m car prefabs (currently locomotive + generator), doors and ladders,
     ///    the short main + technical-deck gangway connector, scene and player.
     /// 2. ProductionArtPro: FT_PRO_* materials/textures (used by later passes) and shell/light tuning.
     /// 3. ExteriorScenery: mountains, rocks, snow drifts and rail gauge in the scene.
@@ -28,7 +28,8 @@ namespace FrozenTrain.EditorTools
             FrozenTrainLongVestibuleArchitecture.Apply();
             FrozenTrainMinimalInteriorPass.Apply();
             AssetDatabase.Refresh();
-            Debug.Log("FrozenTrain rebuilt: five coupled cars, connected main/technical-deck gangways, in-car upper ladders and locomotive-only technical access.");
+            Debug.Log("FrozenTrain rebuilt: " + FrozenTrainLayout.Cars.Length +
+                " active coupled cars, main/technical-deck connection, upper ladders and locomotive-only technical access.");
         }
     }
 }

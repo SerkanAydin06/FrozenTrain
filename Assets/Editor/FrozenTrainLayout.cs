@@ -63,7 +63,7 @@ namespace FrozenTrain.EditorTools
     }
 
     /// <summary>
-    /// Canonical five-car train layout. Five separate 24 m cars are coupled by short main-deck gangways
+    /// Modular train layout. The active prototype uses the locomotive and generator car,
     /// (real-train style): main and technical-deck gangways connect cars, while the
     /// upper accommodation decks remain closed between cars. Vertical access is restricted.
     /// </summary>
@@ -139,7 +139,10 @@ namespace FrozenTrain.EditorTools
             new WindowSpan(1.8f, 2.2f), new WindowSpan(5.5f, 2.2f), new WindowSpan(9.2f, 2.2f)
         };
 
-        public static readonly CarSpec[] Cars = { Locomotive(), Generator(), Living(), Workshop(), Greenhouse() };
+        // Minimal greybox stage: build only the locomotive and one functional car.
+        // Remaining car specifications stay below for later expansion; adding them
+        // back here automatically restores their prefab generation and connectors.
+        public static readonly CarSpec[] Cars = { Locomotive(), Generator() };
 
         public static float CarCenterX(int index) => (index - (Cars.Length - 1) * .5f) * CarSpacing;
         public static float VestibuleCenterX(int leftCarIndex) => (CarCenterX(leftCarIndex) + CarCenterX(leftCarIndex + 1)) * .5f;
