@@ -1,13 +1,13 @@
 ﻿# FrozenTrain – güncel QA ekran görüntüleri
 
-Son çekim (UTC): 2026-10-31 09:48:03 UTC
+Son çekim (UTC): 2026-10-31 10:13:51 UTC
 Kameralar vagon ve kat sınırları, geçişler, merdivenler ve kapılardan otomatik seçildi.
 Yalnızca son çekim dosyaları tutulur. GitHub üzerinden görülebilmeleri için push gerekir.
 
 | Görüntü | Bölüm | Kamera (dünya) |
 |---|---|---|
-| tren_dis_yan.jpg | Tren dış yan | (-0.39, 7.22, -56.91) |
-| tren_dis_karsi.jpg | Tren karşı yan | (-0.39, 7.22, 56.91) |
+| tren_dis_yan.jpg | Tren dış yan (tam boy) | (-0.39, 4.33, -121.30) |
+| tren_dis_karsi.jpg | Tren karşı yan (tam boy) | (-0.39, 4.33, 121.30) |
 | tren_dis_on.jpg | Lokomotif önü | (-80.89, 3.82, -12.86) |
 | vagon1_kat1.jpg | 01_Locomotive kat 1 | (-46.80, -1.45, 0.00) |
 | vagon1_kat1_ters.jpg | 01_Locomotive kat 1 | (-65.20, -1.45, 0.00) |
@@ -59,10 +59,10 @@ Yalnızca son çekim dosyaları tutulur. GitHub üzerinden görülebilmeleri iç
 | gecis4_lowerfloor.jpg | Geçiş 4 – LowerFloor | (42.00, -1.45, 2.62) |
 | gecis4_mainfloor.jpg | Geçiş 4 – MainFloor | (42.00, 1.66, 2.62) |
 | gecis4_upperfloor.jpg | Geçiş 4 – UpperFloor | (42.00, 4.79, 2.62) |
-| kapi_01.jpg | CabinDoor_01 yüzey kontrolü | (-65.35, 4.27, 1.55) |
-| kapi_02.jpg | MainVestibuleDoorFront yüzey kontrolü | (-46.15, 1.36, 3.15) |
-| kapi_03.jpg | CabinDoor_05 yüzey kontrolü | (-28.00, 4.27, 1.55) |
-| kapi_04.jpg | MainVestibuleDoorRear yüzey kontrolü | (-14.26, 1.36, 3.15) |
-| kapi_05.jpg | CabinDoor_07 yüzey kontrolü | (4.70, 4.27, 1.55) |
-| kapi_06.jpg | CabinDoor_01 yüzey kontrolü | (18.65, 4.27, 1.55) |
-| kapi_07.jpg | CabinDoor_10 yüzey kontrolü | (37.35, 4.27, 3.25) |
+| kapi_01.jpg | CabinDoor_01 yüzey kontrolü | (-65.35, 4.80, 0.65) |
+| kapi_02.jpg | MainVestibuleDoorFront yüzey kontrolü | (-42.25, 1.67, 3.15) |
+| kapi_03.jpg | CabinDoor_05 yüzey kontrolü | (-28.00, 4.80, 0.65) |
+| kapi_04.jpg | MainVestibuleDoorRear yüzey kontrolü | (-10.36, 1.67, 3.15) |
+| kapi_05.jpg | CabinDoor_07 yüzey kontrolü | (4.70, 4.80, 0.65) |
+| kapi_06.jpg | CabinDoor_01 yüzey kontrolü | (18.65, 4.80, 0.65) |
+| kapi_07.jpg | CabinDoor_10 yüzey kontrolü | (37.35, 4.80, 2.75) |
