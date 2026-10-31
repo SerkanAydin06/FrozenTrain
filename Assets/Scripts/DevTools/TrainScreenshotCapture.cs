@@ -10,6 +10,7 @@ using FrozenTrain.Player;
 using UnityEngine.Rendering.Universal;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using L = FrozenTrain.EditorTools.FrozenTrainLayout;
 
 namespace FrozenTrain.DevTools
 {
@@ -43,7 +44,7 @@ namespace FrozenTrain.DevTools
         private const int Width = 1600;
         private const int Height = 900;
         private const int JpgQuality = 92;
-        private const int MaxShots = 60;
+        private const int MaxShots = 72;
         private const float EyeHeight = 1.55f;
         private const float StartDelaySeconds = 2f;
 
