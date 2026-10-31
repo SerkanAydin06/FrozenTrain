@@ -109,9 +109,9 @@ namespace FrozenTrain.EditorTools
                 float sx = 1.8f + (float)rng.NextDouble() * 3.2f;
                 float sy = .8f + (float)rng.NextDouble() * 1.6f;
                 float sz = 1.6f + (float)rng.NextDouble() * 2.8f;
-                Transform rock = MeshObject(group, "Rock", mesh, new Vector3(x, L.GroundY, z), new Vector3(sx, sy, sz), rock);
-                rock.localRotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 180f, 0f);
-                MeshObject(rock, "SnowCap", mesh, new Vector3(0f, .50f, 0f), new Vector3(.82f, .34f, .82f), snow);
+                Transform rockObject = MeshObject(group, "Rock", mesh, new Vector3(x, L.GroundY, z), new Vector3(sx, sy, sz), rock);
+                rockObject.localRotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 180f, 0f);
+                MeshObject(rockObject, "SnowCap", mesh, new Vector3(0f, .50f, 0f), new Vector3(.82f, .34f, .82f), snow);
             }
 
             for (int i = 0; i < 18; i++)
